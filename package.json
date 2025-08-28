@@ -1,0 +1,21 @@
+{
+  "name": "leaduj",
+  "version": "1.0.0",
+  "main": "index.js",
+  "private": true,
+  "scripts": {
+    "dev": "concurrently -n backend,frontend -c green,blue \"npm:dev --workspace backend\" \"npm:dev --workspace frontend\"",
+    "test": "echo \"No tests yet\""
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": "",
+  "devDependencies": {
+    "concurrently": "^9.2.1"
+  },
+  "workspaces": [
+    "frontend",
+    "backend"
+  ]
+}

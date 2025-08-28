@@ -1,0 +1,15 @@
+node_modules
+.DS_Store
+.env
+backend/.env
+frontend/.env
+dist
+backend/dist
+frontend/dist
+pnpm-lock.yaml
+package-lock.json
+yarn.lock
+docker-data
+.vercel
+.railway
+

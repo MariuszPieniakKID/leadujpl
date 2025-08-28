@@ -1,0 +1,91 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Roles in the system
+enum Role {
+  ADMIN
+  MANAGER
+  SALES_REP
+}
+
+model Team {
+  id        String   @id @default(cuid())
+  name      String
+  manager   User?    @relation("TeamManager", fields: [managerId], references: [id])
+  managerId String?
+  members   User[]   @relation("TeamMembers")
+  leads     Lead[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  firstName String
+  lastName  String
+  phone     String?
+  street            String?
+  city              String?
+  postalCode        String?
+  houseNumber       String?
+  apartmentNumber   String?
+  company           String?
+  industry          String?
+  passwordHash      String
+  role      Role
+  team      Team?    @relation("TeamMembers", fields: [teamId], references: [id])
+  teamId    String?
+  leads     Lead[]   @relation("LeadOwner")
+  meetings  Meeting[]
+  managedTeams Team[] @relation("TeamManager")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Lead {
+  id          String   @id @default(cuid())
+  firstName   String
+  lastName    String
+  phone       String?
+  email       String?
+  company     String?
+  notes       String?
+  status      String   @default("new")
+  owner       User     @relation("LeadOwner", fields: [ownerId], references: [id])
+  ownerId     String
+  team        Team?    @relation(fields: [teamId], references: [id])
+  teamId      String?
+  meetings    Meeting[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  @@index([ownerId])
+  @@index([teamId])
+}
+
+model Meeting {
+  id          String   @id @default(cuid())
+  lead        Lead     @relation(fields: [leadId], references: [id])
+  leadId      String
+  scheduledAt DateTime
+  location    String?
+  notes       String?
+  attendee    User     @relation(fields: [attendeeId], references: [id])
+  attendeeId  String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  @@index([leadId])
+  @@index([attendeeId])
+}
