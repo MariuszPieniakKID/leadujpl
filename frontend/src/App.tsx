@@ -4,6 +4,7 @@ import './App.css'
 
 import { fetchLeads, createLead } from './lib/api'
 import Login from './pages/Login'
+import CalendarPage from './pages/Calendar'
 import { clearAuth, getToken, getUser } from './lib/auth'
 
 function Protected({ children, roles }: { children: React.ReactNode, roles?: Array<'ADMIN' | 'MANAGER' | 'SALES_REP'> }) {
@@ -127,7 +128,7 @@ function App() {
       <Routes>
         <Route path="/login" element={<Login />} />
         <Route path="/" element={<Protected><Dashboard /></Protected>} />
-        <Route path="/calendar" element={<Protected><div className="container" style={{ paddingTop: 16 }}><h2>Kalendarz</h2><p className="muted">Wersja demonstracyjna. Widok kalendarza będzie tutaj.</p></div></Protected>} />
+        <Route path="/calendar" element={<Protected><CalendarPage /></Protected>} />
         <Route path="/stats" element={<Protected><div className="container" style={{ paddingTop: 16 }}><h2>Statystyki i Analityka</h2><p className="muted">Wersja demonstracyjna. Wykresy i KPI pojawią się w kolejnej iteracji.</p></div></Protected>} />
         <Route path="/account" element={<Protected><div className="container" style={{ paddingTop: 16 }}><h2>Moje Konto</h2></div></Protected>} />
         <Route path="/admin" element={<Protected roles={['ADMIN']}><AdminPage /></Protected>} />

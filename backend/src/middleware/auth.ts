@@ -33,4 +33,11 @@ export function requireAdmin(req: Request, res: Response, next: NextFunction) {
   next();
 }
 
+export function requireManagerOrAdmin(req: Request, res: Response, next: NextFunction) {
+  if (!req.user || (req.user.role !== 'ADMIN' && req.user.role !== 'MANAGER')) {
+    return res.status(403).json({ error: 'Forbidden' });
+  }
+  next();
+}
+
 

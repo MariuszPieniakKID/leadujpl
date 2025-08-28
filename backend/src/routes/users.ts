@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { PrismaClient, Role } from '@prisma/client';
 import bcrypt from 'bcryptjs';
-import { requireAdmin, requireAuth } from '../middleware/auth';
+import { requireAdmin, requireAuth, requireManagerOrAdmin } from '../middleware/auth';
 
 const prisma = new PrismaClient();
 const router = Router();
@@ -32,5 +32,14 @@ router.patch('/:id/role', requireAuth, requireAdmin, async (req, res) => {
 });
 
 export default router;
+// List users (manager/admin)
+router.get('/', requireAuth, requireManagerOrAdmin, async (_req, res) => {
+  try {
+    const users = await prisma.user.findMany({ select: { id: true, firstName: true, lastName: true, email: true, role: true } });
+    res.json(users);
+  } catch (e) {
+    res.status(500).json({ error: (e as Error).message });
+  }
+});
 
 
