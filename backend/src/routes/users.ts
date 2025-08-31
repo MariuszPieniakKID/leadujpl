@@ -31,15 +31,68 @@ router.patch('/:id/role', requireAuth, requireAdmin, async (req, res) => {
   }
 });
 
+// Manager creates a sales rep and auto-assigns to themselves
+router.post('/create-sales', requireAuth, requireManagerOrAdmin, async (req, res) => {
+  try {
+    const current = req.user!
+    if (current.role !== 'MANAGER' && current.role !== 'ADMIN') return res.status(403).json({ error: 'Forbidden' })
+    const { email, password, firstName, lastName, phone } = req.body as { email: string; password?: string; firstName: string; lastName: string; phone?: string }
+    if (!email || !firstName || !lastName) return res.status(400).json({ error: 'Missing required fields' })
+    const pwd = password && password.trim() ? password : 'test123'
+    const passwordHash = await bcrypt.hash(pwd, 10)
+    const user = await prisma.user.create({
+      data: {
+        email,
+        passwordHash,
+        role: 'SALES_REP',
+        firstName,
+        lastName,
+        phone,
+        managerId: current.id,
+      },
+      select: { id: true, email: true, firstName: true, lastName: true, role: true, managerId: true },
+    })
+    res.status(201).json(user)
+  } catch (e) {
+    res.status(500).json({ error: (e as Error).message })
+  }
+})
+
 export default router;
 // List users (manager/admin)
 router.get('/', requireAuth, requireManagerOrAdmin, async (_req, res) => {
   try {
-    const users = await prisma.user.findMany({ select: { id: true, firstName: true, lastName: true, email: true, role: true } });
+    const users = await prisma.user.findMany({ select: { id: true, firstName: true, lastName: true, email: true, role: true, managerId: true } });
     res.json(users);
   } catch (e) {
     res.status(500).json({ error: (e as Error).message });
   }
 });
+
+// Assign a sales rep to current manager
+router.post('/:id/assign-to-me', requireAuth, requireManagerOrAdmin, async (req, res) => {
+  try {
+    const current = req.user!
+    if (current.role !== 'MANAGER' && current.role !== 'ADMIN') return res.status(403).json({ error: 'Forbidden' })
+    const { id } = req.params
+    const updated = await prisma.user.update({ where: { id }, data: { managerId: current.id } })
+    res.json({ id: updated.id, managerId: updated.managerId })
+  } catch (e) {
+    res.status(500).json({ error: (e as Error).message })
+  }
+})
+
+// Remove assignment
+router.post('/:id/unassign', requireAuth, requireManagerOrAdmin, async (req, res) => {
+  try {
+    const current = req.user!
+    if (current.role !== 'MANAGER' && current.role !== 'ADMIN') return res.status(403).json({ error: 'Forbidden' })
+    const { id } = req.params
+    const updated = await prisma.user.update({ where: { id }, data: { managerId: null } })
+    res.json({ id: updated.id, managerId: updated.managerId })
+  } catch (e) {
+    res.status(500).json({ error: (e as Error).message })
+  }
+})
 
 

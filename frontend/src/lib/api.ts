@@ -49,4 +49,35 @@ export async function createLead(payload: Omit<Lead, 'id' | 'status'> & { status
   return res.data;
 }
 
+export type Client = {
+  id: string;
+  firstName: string;
+  lastName: string;
+  phone?: string | null;
+  email?: string | null;
+  street?: string | null;
+  city?: string | null;
+  category?: string | null;
+};
+
+export async function fetchClients() {
+  const res = await api.get<Client[]>('/api/clients');
+  return res.data;
+}
+
+export async function createClient(payload: Omit<Client, 'id'>) {
+  const res = await api.post<Client>('/api/clients', payload);
+  return res.data;
+}
+
+export async function updateClient(id: string, payload: Partial<Omit<Client, 'id'>>) {
+  const res = await api.patch<Client>(`/api/clients/${id}`, payload);
+  return res.data;
+}
+
+export async function deleteClient(id: string) {
+  const res = await api.delete<{ ok: true }>(`/api/clients/${id}`);
+  return res.data;
+}
+
 

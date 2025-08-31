@@ -1,0 +1,18 @@
+{
+  "watch": [
+    "src",
+    "prisma/schema.prisma"
+  ],
+  "ext": "ts,json",
+  "ignore": [
+    "node_modules",
+    "dist",
+    "prisma/migrations/**",
+    "../frontend/**",
+    ".git",
+    ".env",
+    "**/*.map"
+  ]
+}
+
+

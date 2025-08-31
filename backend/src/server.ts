@@ -6,6 +6,7 @@ import dotenv from 'dotenv';
 import authRouter from './routes/auth';
 import usersRouter from './routes/users';
 import meetingsRouter from './routes/meetings';
+import clientsRouter from './routes/clients';
 import { PrismaClient } from '@prisma/client';
 
 dotenv.config();
@@ -22,6 +23,7 @@ app.use(morgan('dev'));
 app.use('/api/auth', authRouter);
 app.use('/api/users', usersRouter);
 app.use('/api/meetings', meetingsRouter);
+app.use('/api/clients', clientsRouter);
 
 app.get('/health', async (_req, res) => {
   let dbHealthy = true;

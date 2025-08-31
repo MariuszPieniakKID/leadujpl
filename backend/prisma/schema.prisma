@@ -51,6 +51,9 @@ model User {
   leads     Lead[]   @relation("LeadOwner")
   meetings  Meeting[]
   managedTeams Team[] @relation("TeamManager")
+  manager   User?    @relation("ManagerToSales", fields: [managerId], references: [id])
+  managerId String?
+  sales     User[]   @relation("ManagerToSales")
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
@@ -77,15 +80,42 @@ model Lead {
 
 model Meeting {
   id          String   @id @default(cuid())
-  lead        Lead     @relation(fields: [leadId], references: [id])
-  leadId      String
+  lead        Lead?    @relation(fields: [leadId], references: [id])
+  leadId      String?
+  client      Client?  @relation(fields: [clientId], references: [id])
+  clientId    String?
   scheduledAt DateTime
+  endsAt      DateTime?
   location    String?
   notes       String?
+  pvInstalled Boolean?
+  billRange   String?
+  extraComments String?
+  status      String?  // 'Sukces', 'Porażka', 'Dogrywka'
   attendee    User     @relation(fields: [attendeeId], references: [id])
   attendeeId  String
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
   @@index([leadId])
+  @@index([clientId])
   @@index([attendeeId])
+}
+
+// Clients (Klienci)
+model Client {
+  id           String   @id @default(cuid())
+  firstName    String
+  lastName     String
+  phone        String?
+  email        String?
+  street       String?
+  city         String?
+  category     String?
+  pvInstalled  Boolean?
+  billRange    String?
+  extraComments String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  meetings     Meeting[]
+  @@index([lastName])
 }
