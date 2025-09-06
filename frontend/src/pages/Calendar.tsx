@@ -102,6 +102,7 @@ export default function CalendarPage() {
     pvInstalled: '', // '' | 'TAK' | 'NIE'
     billRange: '',
     extraComments: '',
+    contactConsent: false,
   })
   const [createSectionsOpen, setCreateSectionsOpen] = useState({ meeting: true, client: true, extra: true })
 
@@ -238,6 +239,10 @@ export default function CalendarPage() {
   async function submitCreate() {
     try {
       setCreateError(null)
+      if (!createForm.contactConsent) {
+        setCreateError('Aby zapisać wydarzenie, zaznacz wymagany checkbox zgody.')
+        return
+      }
       const attendeeId = canManageAll && selectedUserId ? selectedUserId : currentUser.id
       const scheduledAt = composeIsoFromLocal(createForm.startDate, createForm.startTime)
       const endsAt = (createForm.endDate && createForm.endTime)
@@ -267,6 +272,7 @@ export default function CalendarPage() {
         ...(pvInstalled !== undefined ? { pvInstalled } : {}),
         ...(billRange ? { billRange } : {}),
         ...(extraComments ? { extraComments } : {}),
+        contactConsent: true,
       })
       setIsCreateOpen(false)
       await refreshMeetings()
@@ -370,13 +376,16 @@ export default function CalendarPage() {
   type BigCalendarEvent = { id: string; title: string; start: Date; end: Date }
 
   return (
-    <div className="container" style={{ paddingTop: 16 }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-        <h2>Kalendarz</h2>
+    <div className="container">
+      <div className="page-header">
+        <div>
+          <h1 className="page-title">Kalendarz</h1>
+          <p className="text-gray-600">Zarządzaj swoimi spotkaniami</p>
+        </div>
         {canManageAll && (
-          <div>
-            <label className="muted" style={{ marginRight: 8 }}>Użytkownik:</label>
-            <select value={selectedUserId || ''} onChange={e => setSelectedUserId(e.target.value || undefined)}>
+          <div className="form-group" style={{ minWidth: '200px', margin: 0 }}>
+            <label className="form-label">Kalendarz użytkownika</label>
+            <select className="form-select" value={selectedUserId || ''} onChange={e => setSelectedUserId(e.target.value || undefined)}>
               <option value="">Ja ({currentUser.firstName} {currentUser.lastName})</option>
               {users.map(u => (
                 <option key={u.id} value={u.id}>{u.firstName} {u.lastName} ({u.role})</option>
@@ -386,11 +395,7 @@ export default function CalendarPage() {
         )}
       </div>
 
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-        <Link to="/" className="muted">← Wstecz</Link>
-      </div>
-
-      <div className="card" style={{ padding: 8 }}>
+      <div className="calendar-container">
         <DndProvider backend={HTML5Backend}>
         <DnDCalendar
           localizer={localizer}
@@ -426,55 +431,68 @@ export default function CalendarPage() {
       </div>
 
       {isCreateOpen && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 50 }}>
-          <div className="card" style={{ width: 720, maxWidth: '95%', background: '#fff', padding: 16, boxShadow: '0 10px 30px rgba(0,0,0,0.2)' }}>
-            <h3 style={{ marginTop: 0, marginBottom: 12 }}>Nowe spotkanie</h3>
+        <div className="modal-overlay">
+          <div className="modal-content" style={{ maxWidth: '900px' }}>
+            <div className="modal-header">
+              <h3 className="modal-title">Nowe spotkanie</h3>
+              <button className="secondary" onClick={() => setIsCreateOpen(false)} style={{ padding: 'var(--space-2)' }}>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M18 6L6 18M6 6l12 12"/>
+                </svg>
+              </button>
+            </div>
 
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer', padding: '6px 0' }} onClick={() => setCreateSectionsOpen(s => ({ ...s, meeting: !s.meeting }))}>
-              <strong>Nowe spotkanie</strong>
-              <button className="secondary" onClick={(e) => { e.stopPropagation(); setCreateSectionsOpen(s => ({ ...s, meeting: !s.meeting })) }} aria-label="toggle">
-                {createSectionsOpen.meeting ? '▲' : '▼'}
+            <div className="section-header" onClick={() => setCreateSectionsOpen(s => ({ ...s, meeting: !s.meeting }))}>
+              <span className="section-title">Szczegóły spotkania</span>
+              <button className="section-toggle" onClick={(e) => { e.stopPropagation(); setCreateSectionsOpen(s => ({ ...s, meeting: !s.meeting })) }} aria-label="toggle">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ transform: createSectionsOpen.meeting ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s' }}>
+                  <path d="m6 9 6 6 6-6"/>
+                </svg>
               </button>
             </div>
             {createSectionsOpen.meeting && (
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-              <div>
-                <label>Temat/Notatka</label>
-                <input value={createForm.notes} onChange={e => setCreateForm({ ...createForm, notes: e.target.value })} placeholder="Np. Spotkanie z klientem" />
-              </div>
-              <div>
-                <label>Lokalizacja</label>
-                <select value={createForm.location} onChange={e => setCreateForm({ ...createForm, location: e.target.value })}>
-                  <option value="">— wybierz —</option>
-                  <option value="U klienta">U klienta</option>
-                  <option value="Biuro">Biuro</option>
-                  <option value="Zdalne">Zdalne</option>
-                  <option value="Inne">Inne</option>
-                </select>
-              </div>
-              <div>
-                <label>Początek - Data</label>
-                <input type="date" value={createForm.startDate} onChange={e => setCreateForm({ ...createForm, startDate: e.target.value, endDate: e.target.value })} />
-              </div>
-              <div>
-                <label>Początek - Godzina</label>
-                <input type="time" value={createForm.startTime} onChange={e => setCreateForm({ ...createForm, startTime: e.target.value })} />
-              </div>
-              <div>
-                <label>Koniec - Data</label>
-                <input type="date" value={createForm.endDate} onChange={e => setCreateForm({ ...createForm, endDate: e.target.value })} />
-              </div>
-              <div>
-                <label>Koniec - Godzina</label>
-                <input type="time" value={createForm.endTime} onChange={e => setCreateForm({ ...createForm, endTime: e.target.value })} />
+            <div className="section-content">
+              <div className="form-grid-2">
+                <div className="form-group">
+                  <label className="form-label">Temat/Notatka</label>
+                  <input className="form-input" value={createForm.notes} onChange={e => setCreateForm({ ...createForm, notes: e.target.value })} placeholder="Np. Spotkanie z klientem" />
+                </div>
+                <div className="form-group">
+                  <label className="form-label">Lokalizacja</label>
+                  <select className="form-select" value={createForm.location} onChange={e => setCreateForm({ ...createForm, location: e.target.value })}>
+                    <option value="">— wybierz —</option>
+                    <option value="U klienta">U klienta</option>
+                    <option value="Biuro">Biuro</option>
+                    <option value="Zdalne">Zdalne</option>
+                    <option value="Inne">Inne</option>
+                  </select>
+                </div>
+                <div className="form-group">
+                  <label className="form-label">Początek - Data</label>
+                  <input className="form-input" type="date" value={createForm.startDate} onChange={e => setCreateForm({ ...createForm, startDate: e.target.value, endDate: e.target.value })} />
+                </div>
+                <div className="form-group">
+                  <label className="form-label">Początek - Godzina</label>
+                  <input className="form-input" type="time" value={createForm.startTime} onChange={e => setCreateForm({ ...createForm, startTime: e.target.value })} />
+                </div>
+                <div className="form-group">
+                  <label className="form-label">Koniec - Data</label>
+                  <input className="form-input" type="date" value={createForm.endDate} onChange={e => setCreateForm({ ...createForm, endDate: e.target.value })} />
+                </div>
+                <div className="form-group">
+                  <label className="form-label">Koniec - Godzina</label>
+                  <input className="form-input" type="time" value={createForm.endTime} onChange={e => setCreateForm({ ...createForm, endTime: e.target.value })} />
+                </div>
               </div>
             </div>
             )}
 
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer', padding: '6px 0', marginTop: 8 }} onClick={() => setCreateSectionsOpen(s => ({ ...s, client: !s.client }))}>
-              <strong>Dane klienta (opcjonalnie)</strong>
-              <button className="secondary" onClick={(e) => { e.stopPropagation(); setCreateSectionsOpen(s => ({ ...s, client: !s.client })) }} aria-label="toggle">
-                {createSectionsOpen.client ? '▲' : '▼'}
+            <div className="section-header" onClick={() => setCreateSectionsOpen(s => ({ ...s, client: !s.client }))}>
+              <span className="section-title">Dane klienta (opcjonalnie)</span>
+              <button className="section-toggle" onClick={(e) => { e.stopPropagation(); setCreateSectionsOpen(s => ({ ...s, client: !s.client })) }} aria-label="toggle">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ transform: createSectionsOpen.client ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s' }}>
+                  <path d="m6 9 6 6 6-6"/>
+                </svg>
               </button>
             </div>
             {createSectionsOpen.client && (
@@ -569,6 +587,13 @@ export default function CalendarPage() {
             )}
 
             {createError && <div style={{ color: 'red', marginTop: 8 }}>{createError}</div>}
+
+            <div style={{ marginTop: 12 }}>
+              <label style={{ display: 'grid', gridTemplateColumns: 'auto 1fr', alignItems: 'start', gap: 8, width: '100%' }}>
+                <input type="checkbox" checked={createForm.contactConsent} onChange={e => setCreateForm({ ...createForm, contactConsent: e.target.checked })} style={{ marginTop: 2 }} />
+                <span style={{ color: 'var(--gray-800)' }}>Potwierdzam, że klient wyraził zgodę na przetwarzanie danych w celu kontaktu handlowego i przygotowania oferty.</span>
+              </label>
+            </div>
 
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 16 }}>
               <button className="secondary" onClick={() => setIsCreateOpen(false)}>Anuluj</button>

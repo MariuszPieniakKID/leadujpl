@@ -7,6 +7,7 @@ import authRouter from './routes/auth';
 import usersRouter from './routes/users';
 import meetingsRouter from './routes/meetings';
 import clientsRouter from './routes/clients';
+import calculatorRouter from './routes/calculator';
 import { PrismaClient } from '@prisma/client';
 
 dotenv.config();
@@ -15,7 +16,7 @@ const app = express();
 const prisma = new PrismaClient();
 
 app.use(helmet());
-app.use(cors({ origin: process.env.CORS_ORIGIN?.split(',') || ['http://localhost:3005'], credentials: true }));
+app.use(cors({ origin: process.env.CORS_ORIGIN?.split(',') || ['http://localhost:5000'], credentials: true }));
 app.use(express.json());
 app.use(morgan('dev'));
 
@@ -24,6 +25,7 @@ app.use('/api/auth', authRouter);
 app.use('/api/users', usersRouter);
 app.use('/api/meetings', meetingsRouter);
 app.use('/api/clients', clientsRouter);
+app.use('/api/calculator', calculatorRouter);
 
 app.get('/health', async (_req, res) => {
   let dbHealthy = true;
@@ -100,7 +102,7 @@ app.post('/api/leads', async (req, res) => {
   }
 });
 
-const PORT = Number(process.env.PORT || 3006);
+const PORT = Number(process.env.PORT || 5001);
 app.listen(PORT, () => {
   // eslint-disable-next-line no-console
   console.log(`API listening on http://localhost:${PORT}`);

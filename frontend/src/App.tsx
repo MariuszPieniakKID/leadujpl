@@ -10,6 +10,8 @@ import CalendarPage from './pages/Calendar'
 import ClientsPage from './pages/Clients'
 import SalesPage from './pages/Sales'
 import MyClientsPage from './pages/MyClients'
+import CalculatorPage from './pages/Calculator'
+import CalculatorSettingsPage from './pages/CalculatorSettings'
 import { clearAuth, getToken, getUser } from './lib/auth'
 
 function Protected({ children, roles }: { children: React.ReactNode, roles?: Array<'ADMIN' | 'MANAGER' | 'SALES_REP'> }) {
@@ -25,6 +27,8 @@ function Dashboard() {
   const [leads, setLeads] = useState<any[]>([])
   const [loading, setLoading] = useState(false)
   const [meetings, setMeetings] = useState<any[]>([])
+  const [managerStats, setManagerStats] = useState({ leads: 0, past: 0, future: 0, rescheduled: 0, contracts: 0, effectiveness: 0 })
+  const [managerLoading, setManagerLoading] = useState(false)
   const [isCreateOpen, setIsCreateOpen] = useState(false)
   const [createError, setCreateError] = useState<string | null>(null)
   const [createForm, setCreateForm] = useState({
@@ -44,11 +48,72 @@ function Dashboard() {
     pvInstalled: '',
     billRange: '',
     extraComments: '',
+    contactConsent: false,
   })
   const [clientQuery, setClientQuery] = useState('')
   const [clientOptions, setClientOptions] = useState<Client[]>([])
   const [isSearchingClients, setIsSearchingClients] = useState(false)
   const [selectedClientId, setSelectedClientId] = useState<string | null>(null)
+  const [teamUsers, setTeamUsers] = useState<Array<{ id: string; firstName: string; lastName: string }>>([])
+  const [selectedTeamUserId, setSelectedTeamUserId] = useState<string | null>(null)
+  const [managerUpcoming, setManagerUpcoming] = useState<Array<{ id: string; date: string; time: string; place: string; topic: string }>>([])
+  const [managerRecent, setManagerRecent] = useState<Array<{ id: string; date: string; time: string; place: string; topic: string }>>([])
+
+  async function refreshManagerAggregates() {
+    if (!user || user.role !== 'MANAGER') return
+    setManagerLoading(true)
+    try {
+      const usersRes = await api.get<Array<{ id: string; firstName: string; lastName: string; role: string; managerId?: string | null }>>('/api/users')
+      const team = usersRes.data.filter(u => u.role === 'SALES_REP' && u.managerId === user.id)
+      setTeamUsers(team.map(t => ({ id: t.id, firstName: t.firstName, lastName: t.lastName })))
+      if (team.length > 0) {
+        const allMeetingsArrays = await Promise.all(team.map(u => api.get<any[]>(`/api/meetings`, { params: { userId: u.id } }).then(r => r.data).catch(() => [])))
+        const allMeetings = ([] as any[]).concat(...allMeetingsArrays)
+        const nowTs = Date.now()
+        const past = allMeetings.filter(m => new Date(m.scheduledAt).getTime() <= nowTs)
+        const future = allMeetings.filter(m => new Date(m.scheduledAt).getTime() > nowTs)
+        const rescheduled = allMeetings.filter(m => (m as any).status === 'Dogrywka')
+        const contracts = allMeetings.filter(m => (m as any).status === 'Sukces')
+        const clientIds = new Set<string>()
+        for (const m of allMeetings) {
+          const cid = (m as any).clientId as string | undefined
+          if (cid) clientIds.add(cid)
+        }
+        const effectiveness = past.length > 0 ? Math.round((contracts.length / past.length) * 100) : 0
+        setManagerStats({ leads: clientIds.size, past: past.length, future: future.length, rescheduled: rescheduled.length, contracts: contracts.length, effectiveness })
+
+        const upcoming = future
+          .sort((a, b) => new Date(a.scheduledAt).getTime() - new Date(b.scheduledAt).getTime())
+          .slice(0, 5)
+          .map(m => ({
+            id: m.id as string,
+            date: new Date(m.scheduledAt).toLocaleDateString(),
+            time: new Date(m.scheduledAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+            place: (m as any).location || '—',
+            topic: (m as any).notes || 'Spotkanie',
+          }))
+        setManagerUpcoming(upcoming)
+
+        const recent = past
+          .sort((a, b) => new Date(b.scheduledAt).getTime() - new Date(a.scheduledAt).getTime())
+          .slice(0, 5)
+          .map(m => ({
+            id: m.id as string,
+            date: new Date(m.scheduledAt).toLocaleDateString(),
+            time: new Date(m.scheduledAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+            place: (m as any).location || '—',
+            topic: (m as any).notes || 'Spotkanie',
+          }))
+        setManagerRecent(recent)
+      } else {
+        setManagerStats({ leads: 0, past: 0, future: 0, rescheduled: 0, contracts: 0, effectiveness: 0 })
+        setManagerUpcoming([])
+        setManagerRecent([])
+      }
+    } finally {
+      setManagerLoading(false)
+    }
+  }
 
   useEffect(() => {
     const run = async () => {
@@ -59,6 +124,8 @@ function Dashboard() {
         // load meetings for current user
         const res = await api.get<any[]>('/api/meetings')
         setMeetings(res.data)
+        // If manager, also load team-wide stats and upcoming
+        if (user && user.role === 'MANAGER') await refreshManagerAggregates()
       } catch (e) {
         console.error(e)
       } finally {
@@ -103,9 +170,8 @@ function Dashboard() {
 
   const stats = useMemo(() => {
     const now = Date.now()
-    const total = meetings.length
     let pastCount = 0
-    let closedPast = 0
+    let futureCount = 0
     let successPast = 0
     let unfinishedPast = 0
     for (const m of meetings) {
@@ -114,13 +180,14 @@ function Dashboard() {
         pastCount += 1
         const status = (m as any).status as string | undefined
         const hasStatus = !!status && status.trim() !== ''
-        if (hasStatus) closedPast += 1
         if (status === 'Sukces') successPast += 1
         if (!hasStatus) unfinishedPast += 1
+      } else {
+        futureCount += 1
       }
     }
     const skutecznosc = pastCount > 0 ? Math.round((successPast / pastCount) * 100) : 0
-    return { total, closedPast, successPast, skutecznosc, unfinishedPast }
+    return { pastCount, futureCount, successPast, skutecznosc, unfinishedPast }
   }, [meetings])
 
   function toLocalDateValue(date: Date) {
@@ -170,6 +237,7 @@ function Dashboard() {
       pvInstalled: '',
       billRange: '',
       extraComments: '',
+      contactConsent: false,
     }))
     setClientQuery('')
     setClientOptions([])
@@ -219,7 +287,11 @@ function Dashboard() {
   async function submitCreate() {
     try {
       setCreateError(null)
-      const attendeeId = user!.id
+      if (!createForm.contactConsent) {
+        setCreateError('Aby zapisać wydarzenie, zaznacz wymagany checkbox zgody.')
+        return
+      }
+      const attendeeId = (user && user.role === 'MANAGER' && selectedTeamUserId) ? selectedTeamUserId : user!.id
       const scheduledAt = composeIsoFromLocal(createForm.startDate, createForm.startTime)
       const endsAt = (createForm.endDate && createForm.endTime)
         ? composeIsoFromLocal(createForm.endDate, createForm.endTime)
@@ -247,10 +319,12 @@ function Dashboard() {
         ...(pvInstalled !== undefined ? { pvInstalled } : {}),
         ...(billRange ? { billRange } : {}),
         ...(extraComments ? { extraComments } : {}),
+        contactConsent: true,
       })
       setIsCreateOpen(false)
       const res = await api.get<any[]>('/api/meetings')
       setMeetings(res.data)
+      await refreshManagerAggregates()
     } catch (e: any) {
       setCreateError(e?.response?.data?.error || e?.message || 'Nie udało się utworzyć spotkania')
     }
@@ -335,6 +409,10 @@ function Dashboard() {
       }
       const hasClient = Object.values(client).some(v => v && `${v}`.trim() !== '')
       if (hasClient) payload.client = client
+      // include extra fields
+      if (editForm.pvInstalled) payload.pvInstalled = editForm.pvInstalled === 'TAK'
+      if (editForm.billRange) payload.billRange = editForm.billRange
+      if (editForm.extraComments) payload.extraComments = editForm.extraComments
       await api.patch(`/api/meetings/${editMeetingId}`, payload)
       setIsEditOpen(false)
       setEditMeetingId(null)
@@ -361,84 +439,257 @@ function Dashboard() {
   return (
     <div className="container">
 
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', margin: '8px 0 16px' }}>
-        <div className="muted">Twoje punkty: <strong>{points}</strong></div>
-        <button className="primary" onClick={openCreate}>Dodaj spotkanie</button>
+      {(
+      <div className="dashboard-header">
+        <div className="points-display">
+          <span className="muted">Twoje punkty:</span> {points}
+        </div>
+        <button className="primary" onClick={openCreate}>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <path d="M12 5v14M5 12h14"/>
+          </svg>
+          Dodaj spotkanie
+        </button>
       </div>
+      )}
 
       <div className="grid">
-        <section className="card">
-          <h3>Najbliższe spotkania</h3>
-          <ul className="list">
-            {upcoming.map(m => (
-              <li key={m.id} onClick={() => openEdit(m.id)} style={{ cursor: 'pointer' }}>
-                <div>
-                  <strong>{m.date} • {m.time}</strong>
-                  <div className="muted">{m.place}</div>
+        {user?.role === 'MANAGER' ? (
+          <>
+          <section className="card">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="card-title">Najbliższe spotkania zespołu</h3>
+              <span className="text-sm text-gray-500">{managerUpcoming.length} z 5</span>
+            </div>
+            {managerUpcoming.length === 0 ? (
+              <div className="text-center text-gray-500" style={{ padding: '2rem 0' }}>
+                <p>Brak nadchodzących spotkań</p>
+              </div>
+            ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}>
+              {managerUpcoming.map(m => (
+                <div key={m.id} className="meeting-item" onClick={() => openEdit(m.id)}>
+                  <div className="flex items-center gap-3">
+                    <div style={{ flexShrink: 0 }}>
+                      <div className="meeting-time">{m.date}</div>
+                      <div className="meeting-time text-primary">{m.time}</div>
+                    </div>
+                    <div>
+                      <div className="meeting-topic font-medium">{m.topic}</div>
+                      <div className="meeting-location">{m.place}</div>
+                    </div>
+                  </div>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ color: 'var(--gray-400)' }}>
+                    <path d="m9 18 6-6-6-6"/>
+                  </svg>
                 </div>
-                <div className="topic">{m.topic}</div>
-              </li>
-            ))}
-          </ul>
-        </section>
-
-        <section className="card">
-          <h3>Statystyki</h3>
-          <ul className="list small">
-            <li style={{ display: 'flex', justifyContent: 'space-between' }}>
-              <span>Odbyte spotkania</span>
-              <strong>{stats.closedPast}</strong>
-            </li>
-            <li style={{ display: 'flex', justifyContent: 'space-between' }}>
-              <span>Umówione spotkania</span>
-              <strong>{stats.total}</strong>
-            </li>
-            <li style={{ display: 'flex', justifyContent: 'space-between' }}>
-              <span>Skuteczność</span>
-              <strong>{stats.skutecznosc}%</strong>
-            </li>
-            <li style={{ display: 'flex', justifyContent: 'space-between' }}>
-              <span>Nie zamknięte spotkania</span>
-              <strong>{stats.unfinishedPast}</strong>
-            </li>
-          </ul>
-        </section>
-
-        <section className="card" style={{ gridColumn: '1 / -1' }}>
-          <h3>Twoje ostatnie spotkania</h3>
-          <ul className="list">
-            {recent.map(m => (
-              <li key={m.id} onClick={() => openEdit(m.id)} style={{ cursor: 'pointer' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  {(() => {
-                    const color = m.status === 'Sukces' ? '#16a34a' : m.status === 'Porażka' ? '#dc2626' : m.status === 'Dogrywka' ? '#f59e0b' : '#94a3b8'
-                    return <span title={m.status || 'brak statusu'} style={{ display: 'inline-block', width: 10, height: 10, borderRadius: '50%', background: color }} />
-                  })()}
-                  <strong>{m.date} • {m.time}</strong>
-                  <div className="muted">{m.place}</div>
+              ))}
+            </div>
+            )}
+          </section>
+          <section className="card">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="card-title">Ostatnie spotkania zespołu</h3>
+              <span className="text-sm text-gray-500">{managerRecent.length} z 5</span>
+            </div>
+            {managerRecent.length === 0 ? (
+              <div className="text-center text-gray-500" style={{ padding: '2rem 0' }}>
+                <p>Brak ostatnich spotkań</p>
+              </div>
+            ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}>
+              {managerRecent.map(m => (
+                <div key={m.id} className="meeting-item" onClick={() => openEdit(m.id)}>
+                  <div className="flex items-center gap-3">
+                    <div style={{ flexShrink: 0 }}>
+                      <div className="meeting-time">{m.date}</div>
+                      <div className="meeting-time text-primary">{m.time}</div>
+                    </div>
+                    <div>
+                      <div className="meeting-topic font-medium">{m.topic}</div>
+                      <div className="meeting-location">{m.place}</div>
+                    </div>
+                  </div>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ color: 'var(--gray-400)' }}>
+                    <path d="m9 18 6-6-6-6"/>
+                  </svg>
                 </div>
-                <div className="topic">{m.topic}</div>
-              </li>
-            ))}
-          </ul>
-        </section>
+              ))}
+            </div>
+            )}
+          </section>
+          <section className="card">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="card-title">Statystyki Managera</h3>
+              {managerLoading && <span className="text-sm text-gray-500">Ładuję…</span>}
+            </div>
+            <div className="stats-grid">
+              <div className="stat-card">
+                <span className="stat-value" style={{ color: 'var(--primary-600)' }}>{managerStats.leads}</span>
+                <span className="stat-label">Leady</span>
+              </div>
+              <div className="stat-card">
+                <span className="stat-value text-success">{managerStats.past}</span>
+                <span className="stat-label">Odbyte</span>
+              </div>
+              <div className="stat-card">
+                <span className="stat-value" style={{ color: 'var(--primary-600)' }}>{managerStats.future}</span>
+                <span className="stat-label">Umówione</span>
+              </div>
+              <div className="stat-card">
+                <span className="stat-value" style={{ color: 'var(--warning-600)' }}>{managerStats.rescheduled}</span>
+                <span className="stat-label">Przełożone</span>
+              </div>
+              <div className="stat-card">
+                <span className="stat-value" style={{ color: 'var(--success-600)' }}>{managerStats.contracts}</span>
+                <span className="stat-label">Umowy</span>
+              </div>
+              <div className="stat-card">
+                <span className="stat-value" style={{ color: 'var(--warning-600)' }}>{managerStats.effectiveness}%</span>
+                <span className="stat-label">Skuteczność</span>
+              </div>
+            </div>
+          </section>
+          </>
+        ) : (
+          <>
+          <section className="card">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="card-title">Najbliższe spotkania</h3>
+              <span className="text-sm text-gray-500">{upcoming.length} spotkań</span>
+            </div>
+            {upcoming.length === 0 ? (
+              <div className="text-center text-gray-500" style={{ padding: '2rem 0' }}>
+                <svg style={{ margin: '0 auto 1rem', display: 'block' }} width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1">
+                  <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+                  <line x1="16" y1="2" x2="16" y2="6"/>
+                  <line x1="8" y1="2" x2="8" y2="6"/>
+                  <line x1="3" y1="10" x2="21" y2="10"/>
+                </svg>
+                <p>Brak nadchodzących spotkań</p>
+              </div>
+            ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}>
+              {upcoming.map(m => (
+                <div key={m.id} className="meeting-item" onClick={() => openEdit(m.id)}>
+                  <div className="flex items-center gap-3">
+                    <div style={{ flexShrink: 0 }}>
+                      <div className="meeting-time">{m.date}</div>
+                      <div className="meeting-time text-primary">{m.time}</div>
+                    </div>
+                    <div>
+                      <div className="meeting-topic font-medium">{m.topic}</div>
+                      <div className="meeting-location">{m.place}</div>
+                    </div>
+                  </div>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ color: 'var(--gray-400)' }}>
+                    <path d="m9 18 6-6-6-6"/>
+                  </svg>
+                </div>
+              ))}
+            </div>
+            )}
+          </section>
+          <section className="card">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="card-title">Statystyki</h3>
+            </div>
+            <div className="stats-grid">
+              <div className="stat-card">
+                <span className="stat-value text-success">{stats.pastCount}</span>
+                <span className="stat-label">Odbyte</span>
+              </div>
+              <div className="stat-card">
+                <span className="stat-value" style={{ color: 'var(--primary-600)' }}>{stats.futureCount}</span>
+                <span className="stat-label">Umówione</span>
+              </div>
+              <div className="stat-card">
+                <span className="stat-value" style={{ color: 'var(--warning-600)' }}>{stats.skutecznosc}%</span>
+                <span className="stat-label">Skuteczność</span>
+              </div>
+              <div className="stat-card">
+                <span className="stat-value" style={{ color: 'var(--error-600)' }}>{stats.unfinishedPast}</span>
+                <span className="stat-label">Nie zamknięte</span>
+              </div>
+            </div>
+          </section>
+          </>
+        )}
       </div>
 
-      {loading && <div className="muted small" style={{ marginTop: 12 }}>Ładowanie danych…</div>}
-      {!loading && <div className="muted small" style={{ marginTop: 12 }}>Leady w systemie: {leads.length}</div>}
+      {user?.role !== 'MANAGER' && (
+      <section className="card mt-6">
+        <div className="flex justify-between items-center mb-4">
+          <h3 className="card-title">Twoje ostatnie spotkania</h3>
+          <span className="text-sm text-gray-500">{recent.length} spotkań</span>
+        </div>
+        {recent.length === 0 ? (
+          <div className="text-center text-gray-500" style={{ padding: '2rem 0' }}>
+            <p>Brak ostatnich spotkań</p>
+          </div>
+        ) : (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}>
+            {recent.map(m => (
+              <div key={m.id} className="meeting-item" onClick={() => openEdit(m.id)}>
+                <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-2">
+                  {(() => {
+                    const color = m.status === 'Sukces' ? '#16a34a' : m.status === 'Porażka' ? '#dc2626' : m.status === 'Dogrywka' ? '#f59e0b' : '#94a3b8'
+                    return <span title={m.status || 'brak statusu'} className="status-dot" style={{ background: color }} />
+                  })()}
+                  </div>
+                  <div style={{ flexShrink: 0 }}>
+                    <div className="meeting-time">{m.date}</div>
+                    <div className="meeting-time text-primary">{m.time}</div>
+                  </div>
+                  <div>
+                    <div className="meeting-topic font-medium">{m.topic}</div>
+                    <div className="meeting-location">{m.place}</div>
+                  </div>
+                </div>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ color: 'var(--gray-400)' }}>
+                  <path d="m9 18 6-6-6-6"/>
+                </svg>
+              </div>
+            ))}
+        </div>
+        )}
+      </section>
+      )}
+
+      {user?.role !== 'MANAGER' && loading && <div className="text-center text-gray-500 mt-6">Ładowanie danych…</div>}
+      {user?.role !== 'MANAGER' && !loading && <div className="text-center text-gray-500 mt-6 text-sm">Leady w systemie: {leads.length}</div>}
 
       {isCreateOpen && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 50 }}>
-          <div className="card" style={{ width: 720, maxWidth: '95%', background: '#fff', padding: 16, boxShadow: '0 10px 30px rgba(0,0,0,0.2)' }}>
-            <h3 style={{ marginTop: 0, marginBottom: 12 }}>Nowe spotkanie</h3>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-              <div>
-                <label>Temat/Notatka</label>
-                <input value={createForm.notes} onChange={e => setCreateForm({ ...createForm, notes: e.target.value })} placeholder="Np. Spotkanie z klientem" />
+        <div className="modal-overlay">
+          <div className="modal-content" style={{ maxWidth: '800px' }}>
+            <div className="modal-header">
+              <h3 className="modal-title">Nowe spotkanie</h3>
+              <button className="secondary" onClick={() => setIsCreateOpen(false)} style={{ padding: 'var(--space-2)' }}>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M18 6L6 18M6 6l12 12"/>
+                </svg>
+              </button>
+            </div>
+            <div className="form-grid-2">
+              {user?.role === 'MANAGER' && teamUsers.length > 0 && (
+                <div className="form-group" style={{ gridColumn: '1 / -1' }}>
+                  <label className="form-label">Przypisz do handlowca</label>
+                  <select className="form-select" value={selectedTeamUserId || ''} onChange={e => setSelectedTeamUserId(e.target.value || null)}>
+                    <option value="">— wybierz handlowca —</option>
+                    {teamUsers.map(u => (
+                      <option key={u.id} value={u.id}>{u.firstName} {u.lastName}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
+              <div className="form-group">
+                <label className="form-label">Temat/Notatka</label>
+                <input className="form-input" value={createForm.notes} onChange={e => setCreateForm({ ...createForm, notes: e.target.value })} placeholder="Np. Spotkanie z klientem" />
               </div>
-              <div>
-                <label>Lokalizacja</label>
-                <select value={createForm.location} onChange={e => setCreateForm({ ...createForm, location: e.target.value })}>
+              <div className="form-group">
+                <label className="form-label">Lokalizacja</label>
+                <select className="form-select" value={createForm.location} onChange={e => setCreateForm({ ...createForm, location: e.target.value })}>
                   <option value="">— wybierz —</option>
                   <option value="U klienta">U klienta</option>
                   <option value="Biuro">Biuro</option>
@@ -446,137 +697,162 @@ function Dashboard() {
                   <option value="Inne">Inne</option>
                 </select>
               </div>
-              <div>
-                <label>Początek - Data</label>
-                <input type="date" value={createForm.startDate} onChange={e => setCreateForm({ ...createForm, startDate: e.target.value, endDate: e.target.value })} />
+              <div className="form-group">
+                <label className="form-label">Początek - Data</label>
+                <input className="form-input" type="date" value={createForm.startDate} onChange={e => setCreateForm({ ...createForm, startDate: e.target.value, endDate: e.target.value })} />
               </div>
-              <div>
-                <label>Początek - Godzina</label>
-                <input type="time" value={createForm.startTime} onChange={e => setCreateForm({ ...createForm, startTime: e.target.value })} />
+              <div className="form-group">
+                <label className="form-label">Początek - Godzina</label>
+                <input className="form-input" type="time" value={createForm.startTime} onChange={e => setCreateForm({ ...createForm, startTime: e.target.value })} />
               </div>
-              <div>
-                <label>Koniec - Data</label>
-                <input type="date" value={createForm.endDate} onChange={e => setCreateForm({ ...createForm, endDate: e.target.value })} />
+              <div className="form-group">
+                <label className="form-label">Koniec - Data</label>
+                <input className="form-input" type="date" value={createForm.endDate} onChange={e => setCreateForm({ ...createForm, endDate: e.target.value })} />
               </div>
-              <div>
-                <label>Koniec - Godzina</label>
-                <input type="time" value={createForm.endTime} onChange={e => setCreateForm({ ...createForm, endTime: e.target.value })} />
+              <div className="form-group">
+                <label className="form-label">Koniec - Godzina</label>
+                <input className="form-input" type="time" value={createForm.endTime} onChange={e => setCreateForm({ ...createForm, endTime: e.target.value })} />
               </div>
             </div>
 
-            <h4 style={{ marginTop: 16 }}>Dane klienta (opcjonalnie)</h4>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-              <div style={{ gridColumn: '1 / -1' }}>
-                <label>Wybierz klienta z bazy</label>
-                <input
-                  placeholder="Szukaj po imieniu, nazwisku, telefonie, e-mailu, adresie..."
-                  value={clientQuery}
-                  onChange={e => { setClientQuery(e.target.value); setSelectedClientId(null) }}
-                />
-                {isSearchingClients && <div className="muted" style={{ fontSize: 12 }}>Szukam…</div>}
-                {!isSearchingClients && clientOptions.length > 0 && (
-                  <div className="card" style={{ marginTop: 6, maxHeight: 180, overflowY: 'auto' }}>
-                    {clientOptions.map(c => (
-                      <div key={c.id} style={{ padding: 8, cursor: 'pointer' }} onClick={() => onPickClient(c)}>
-                        <div style={{ fontWeight: 600 }}>{c.firstName} {c.lastName}</div>
-                        <div className="muted" style={{ fontSize: 12 }}>{[c.phone, c.email, c.city, c.street].filter(Boolean).join(' • ')}</div>
+            <div style={{ marginTop: 'var(--space-6)', paddingTop: 'var(--space-4)', borderTop: '1px solid var(--gray-200)' }}>
+              <h4 className="text-lg font-semibold text-gray-800 mb-4">Dane klienta (opcjonalnie)</h4>
+              <div className="form-grid-2">
+                <div className="form-group" style={{ gridColumn: '1 / -1' }}>
+                  <label className="form-label">Wybierz klienta z bazy</label>
+                  <div style={{ position: 'relative' }}>
+                    <input
+                      className="form-input"
+                      placeholder="Szukaj po imieniu, nazwisku, telefonie, e-mailu, adresie..."
+                      value={clientQuery}
+                      onChange={e => { setClientQuery(e.target.value); setSelectedClientId(null) }}
+                    />
+                    {isSearchingClients && <div className="text-xs text-gray-500 mt-1">Szukam…</div>}
+                    {!isSearchingClients && clientOptions.length > 0 && (
+                      <div className="autocomplete-dropdown">
+                        {clientOptions.map(c => (
+                          <div key={c.id} className="autocomplete-item" onClick={() => onPickClient(c)}>
+                            <div className="font-medium">{c.firstName} {c.lastName}</div>
+                            <div className="text-xs text-gray-500">{[c.phone, c.email, c.city, c.street].filter(Boolean).join(' • ')}</div>
+                          </div>
+                        ))}
                       </div>
-                    ))}
+                    )}
                   </div>
-                )}
-              </div>
-              <div>
-                <label>Imię</label>
-                <input value={createForm.clientFirstName} onChange={e => setCreateForm({ ...createForm, clientFirstName: e.target.value })} />
-              </div>
-              <div>
-                <label>Nazwisko</label>
-                <input value={createForm.clientLastName} onChange={e => setCreateForm({ ...createForm, clientLastName: e.target.value })} />
-              </div>
-              <div>
-                <label>Telefon</label>
-                <input value={createForm.clientPhone} onChange={e => setCreateForm({ ...createForm, clientPhone: e.target.value })} />
-              </div>
-              <div>
-                <label>E-mail</label>
-                <input value={createForm.clientEmail} onChange={e => setCreateForm({ ...createForm, clientEmail: e.target.value })} />
-              </div>
-              <div>
-                <label>Ulica</label>
-                <input value={createForm.clientStreet} onChange={e => setCreateForm({ ...createForm, clientStreet: e.target.value })} />
-              </div>
-              <div>
-                <label>Miasto</label>
-                <input value={createForm.clientCity} onChange={e => setCreateForm({ ...createForm, clientCity: e.target.value })} />
-              </div>
-              <div>
-                <label>Kategoria</label>
-                <input value={createForm.clientCategory} onChange={e => setCreateForm({ ...createForm, clientCategory: e.target.value })} />
-              </div>
-            </div>
-
-            <h4 style={{ marginTop: 16 }}>Dodatkowe informacje</h4>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-              <div>
-                <label style={{ display: 'block', marginBottom: 4 }}>Czy posiada instalację PV?</label>
-                <div>
-                  <label style={{ marginRight: 12 }}>
-                    <input type="radio" name="pvInstalledCreateDash" checked={createForm.pvInstalled === 'TAK'} onChange={() => setCreateForm({ ...createForm, pvInstalled: 'TAK' })} /> TAK
-                  </label>
-                  <label>
-                    <input type="radio" name="pvInstalledCreateDash" checked={createForm.pvInstalled === 'NIE'} onChange={() => setCreateForm({ ...createForm, pvInstalled: 'NIE' })} /> NIE
-                  </label>
+                </div>
+                <div className="form-group">
+                  <label className="form-label">Imię</label>
+                  <input className="form-input" value={createForm.clientFirstName} onChange={e => setCreateForm({ ...createForm, clientFirstName: e.target.value })} />
+                </div>
+                <div className="form-group">
+                  <label className="form-label">Nazwisko</label>
+                  <input className="form-input" value={createForm.clientLastName} onChange={e => setCreateForm({ ...createForm, clientLastName: e.target.value })} />
+                </div>
+                <div className="form-group">
+                  <label className="form-label">Telefon</label>
+                  <input className="form-input" value={createForm.clientPhone} onChange={e => setCreateForm({ ...createForm, clientPhone: e.target.value })} />
+                </div>
+                <div className="form-group">
+                  <label className="form-label">E-mail</label>
+                  <input className="form-input" value={createForm.clientEmail} onChange={e => setCreateForm({ ...createForm, clientEmail: e.target.value })} />
+                </div>
+                <div className="form-group">
+                  <label className="form-label">Ulica</label>
+                  <input className="form-input" value={createForm.clientStreet} onChange={e => setCreateForm({ ...createForm, clientStreet: e.target.value })} />
+                </div>
+                <div className="form-group">
+                  <label className="form-label">Miasto</label>
+                  <input className="form-input" value={createForm.clientCity} onChange={e => setCreateForm({ ...createForm, clientCity: e.target.value })} />
+                </div>
+                <div className="form-group">
+                  <label className="form-label">Kategoria</label>
+                  <input className="form-input" value={createForm.clientCategory} onChange={e => setCreateForm({ ...createForm, clientCategory: e.target.value })} />
                 </div>
               </div>
-              <div>
-                <label>Wysokość rachunków (zł)</label>
-                <select value={createForm.billRange} onChange={e => setCreateForm({ ...createForm, billRange: e.target.value })}>
-                  <option value="">— wybierz —</option>
-                  <option value="50 - 150">50 - 150</option>
-                  <option value="150 - 250">150 - 250</option>
-                  <option value="250 - 350">250 - 350</option>
-                  <option value="350 - 500">350 - 500</option>
-                  <option value="500 - 800">500 - 800</option>
-                  <option value="800 - 1000">800 - 1000</option>
-                  <option value="> 1000">powyżej 1000</option>
-                </select>
-              </div>
-              <div style={{ gridColumn: '1 / -1' }}>
-                <label>Komentarz/uwagi</label>
-                <textarea rows={3} value={createForm.extraComments} onChange={e => setCreateForm({ ...createForm, extraComments: e.target.value })} />
+            </div>
+
+            <div style={{ marginTop: 'var(--space-6)', paddingTop: 'var(--space-4)', borderTop: '1px solid var(--gray-200)' }}>
+              <h4 className="text-lg font-semibold text-gray-800 mb-4">Dodatkowe informacje</h4>
+              <div className="form-grid-2">
+                <div className="form-group">
+                  <label className="form-label">Czy posiada instalację PV?</label>
+                  <div className="radio-group">
+                    <label className="radio-item">
+                      <input type="radio" name="pvInstalledCreateDash" checked={createForm.pvInstalled === 'TAK'} onChange={() => setCreateForm({ ...createForm, pvInstalled: 'TAK' })} />
+                      <span>TAK</span>
+                    </label>
+                    <label className="radio-item">
+                      <input type="radio" name="pvInstalledCreateDash" checked={createForm.pvInstalled === 'NIE'} onChange={() => setCreateForm({ ...createForm, pvInstalled: 'NIE' })} />
+                      <span>NIE</span>
+                    </label>
+                  </div>
+                </div>
+                <div className="form-group">
+                  <label className="form-label">Wysokość rachunków (zł)</label>
+                  <select className="form-select" value={createForm.billRange} onChange={e => setCreateForm({ ...createForm, billRange: e.target.value })}>
+                    <option value="">— wybierz —</option>
+                    <option value="50 - 150">50 - 150</option>
+                    <option value="150 - 250">150 - 250</option>
+                    <option value="250 - 350">250 - 350</option>
+                    <option value="350 - 500">350 - 500</option>
+                    <option value="500 - 800">500 - 800</option>
+                    <option value="800 - 1000">800 - 1000</option>
+                    <option value="> 1000">powyżej 1000</option>
+                  </select>
+                </div>
+                <div className="form-group" style={{ gridColumn: '1 / -1' }}>
+                  <label className="form-label">Komentarz/uwagi</label>
+                  <textarea className="form-textarea" rows={3} value={createForm.extraComments} onChange={e => setCreateForm({ ...createForm, extraComments: e.target.value })} />
+                </div>
               </div>
             </div>
 
-            {createError && <div style={{ color: 'red', marginTop: 8 }}>{createError}</div>}
+            {createError && <div className="text-error text-sm mt-4 p-3 bg-error-50 rounded border border-error-200">{createError}</div>}
 
-            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 16 }}>
+            <div style={{ marginTop: 12 }}>
+              <label style={{ display: 'grid', gridTemplateColumns: 'auto 1fr', alignItems: 'start', gap: 8, width: '100%' }}>
+                <input type="checkbox" checked={createForm.contactConsent} onChange={e => setCreateForm({ ...createForm, contactConsent: e.target.checked })} style={{ marginTop: 2 }} />
+                <span style={{ color: 'var(--gray-800)' }}>Potwierdzam, że klient wyraził zgodę na przetwarzanie danych w celu kontaktu handlowego i przygotowania oferty.</span>
+              </label>
+            </div>
+
+            <div className="modal-footer">
               <button className="secondary" onClick={() => setIsCreateOpen(false)}>Anuluj</button>
-              <button onClick={submitCreate}>Zapisz</button>
+              <button className="primary" onClick={submitCreate}>Zapisz</button>
             </div>
           </div>
         </div>
       )}
 
       {isEditOpen && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 50 }}>
-          <div className="card" style={{ width: 720, maxWidth: '95%', background: '#fff', padding: 16, boxShadow: '0 10px 30px rgba(0,0,0,0.2)' }}>
-            <h3 style={{ marginTop: 0, marginBottom: 12 }}>Edycja spotkania</h3>
+        <div className="modal-overlay">
+          <div className="modal-content" style={{ maxWidth: '800px' }}>
+            <div className="modal-header">
+              <h3 className="modal-title">Edycja spotkania</h3>
+              <button className="secondary" onClick={() => { setIsEditOpen(false); setEditMeetingId(null) }} style={{ padding: 'var(--space-2)' }}>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M18 6L6 18M6 6l12 12"/>
+                </svg>
+              </button>
+            </div>
             {editLoading ? (
-              <div>Wczytywanie…</div>
+              <div className="text-center py-8">
+                <div className="text-gray-500">Wczytywanie…</div>
+              </div>
             ) : (
             <>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-              <div>
-                <label>Temat/Notatka</label>
-                <input value={editForm.notes} onChange={e => setEditForm({ ...editForm, notes: e.target.value })} />
+            <div className="form-grid-2">
+              <div className="form-group">
+                <label className="form-label">Temat/Notatka</label>
+                <input className="form-input" value={editForm.notes} onChange={e => setEditForm({ ...editForm, notes: e.target.value })} />
               </div>
-              <div>
-                <label>Lokalizacja</label>
-                <input value={editForm.location} onChange={e => setEditForm({ ...editForm, location: e.target.value })} />
+              <div className="form-group">
+                <label className="form-label">Lokalizacja</label>
+                <input className="form-input" value={editForm.location} onChange={e => setEditForm({ ...editForm, location: e.target.value })} />
               </div>
-              <div>
-                <label>Początek</label>
-                <input type="datetime-local" value={editForm.startLocal} onChange={e => {
+              <div className="form-group">
+                <label className="form-label">Początek</label>
+                <input className="form-input" type="datetime-local" value={editForm.startLocal} onChange={e => {
                   const v = e.target.value
                   let newEnd = editForm.endLocal
                   if (v) {
@@ -591,41 +867,43 @@ function Dashboard() {
                   setEditForm({ ...editForm, startLocal: v, endLocal: newEnd })
                 }} />
               </div>
-              <div>
-                <label>Koniec</label>
-                <input type="datetime-local" value={editForm.endLocal} onChange={e => setEditForm({ ...editForm, endLocal: e.target.value })} />
+              <div className="form-group">
+                <label className="form-label">Koniec</label>
+                <input className="form-input" type="datetime-local" value={editForm.endLocal} onChange={e => setEditForm({ ...editForm, endLocal: e.target.value })} />
               </div>
             </div>
 
-            <h4 style={{ marginTop: 16 }}>Dane klienta</h4>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-              <div>
-                <label>Imię</label>
-                <input value={editForm.clientFirstName} onChange={e => setEditForm({ ...editForm, clientFirstName: e.target.value })} />
-              </div>
-              <div>
-                <label>Nazwisko</label>
-                <input value={editForm.clientLastName} onChange={e => setEditForm({ ...editForm, clientLastName: e.target.value })} />
-              </div>
-              <div>
-                <label>Telefon</label>
-                <input value={editForm.clientPhone} onChange={e => setEditForm({ ...editForm, clientPhone: e.target.value })} />
-              </div>
-              <div>
-                <label>E-mail</label>
-                <input value={editForm.clientEmail} onChange={e => setEditForm({ ...editForm, clientEmail: e.target.value })} />
-              </div>
-              <div>
-                <label>Ulica</label>
-                <input value={editForm.clientStreet} onChange={e => setEditForm({ ...editForm, clientStreet: e.target.value })} />
-              </div>
-              <div>
-                <label>Miasto</label>
-                <input value={editForm.clientCity} onChange={e => setEditForm({ ...editForm, clientCity: e.target.value })} />
-              </div>
-              <div>
-                <label>Kategoria</label>
-                <input value={editForm.clientCategory} onChange={e => setEditForm({ ...editForm, clientCategory: e.target.value })} />
+            <div style={{ marginTop: 'var(--space-6)', paddingTop: 'var(--space-4)', borderTop: '1px solid var(--gray-200)' }}>
+              <h4 className="text-lg font-semibold text-gray-800 mb-4">Dane klienta</h4>
+              <div className="form-grid-2">
+                <div className="form-group">
+                  <label className="form-label">Imię</label>
+                  <input className="form-input" value={editForm.clientFirstName} onChange={e => setEditForm({ ...editForm, clientFirstName: e.target.value })} />
+                </div>
+                <div className="form-group">
+                  <label className="form-label">Nazwisko</label>
+                  <input className="form-input" value={editForm.clientLastName} onChange={e => setEditForm({ ...editForm, clientLastName: e.target.value })} />
+                </div>
+                <div className="form-group">
+                  <label className="form-label">Telefon</label>
+                  <input className="form-input" value={editForm.clientPhone} onChange={e => setEditForm({ ...editForm, clientPhone: e.target.value })} />
+                </div>
+                <div className="form-group">
+                  <label className="form-label">E-mail</label>
+                  <input className="form-input" value={editForm.clientEmail} onChange={e => setEditForm({ ...editForm, clientEmail: e.target.value })} />
+                </div>
+                <div className="form-group">
+                  <label className="form-label">Ulica</label>
+                  <input className="form-input" value={editForm.clientStreet} onChange={e => setEditForm({ ...editForm, clientStreet: e.target.value })} />
+                </div>
+                <div className="form-group">
+                  <label className="form-label">Miasto</label>
+                  <input className="form-input" value={editForm.clientCity} onChange={e => setEditForm({ ...editForm, clientCity: e.target.value })} />
+                </div>
+                <div className="form-group">
+                  <label className="form-label">Kategoria</label>
+                  <input className="form-input" value={editForm.clientCategory} onChange={e => setEditForm({ ...editForm, clientCategory: e.target.value })} />
+                </div>
               </div>
             </div>
 
@@ -635,30 +913,33 @@ function Dashboard() {
               const isPast = start.getTime() < now.getTime()
               if (!isPast) return null
               return (
-                <div style={{ marginTop: 8 }}>
-                  <strong>Status spotkania</strong>
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: 8, marginTop: 6 }}>
-                    <label>
-                      <input type="radio" name="meetingStatusDash" checked={editForm.status === 'Sukces'} onChange={() => setEditForm({ ...editForm, status: 'Sukces' })} /> Sukces !
+                <div style={{ marginTop: 'var(--space-6)', paddingTop: 'var(--space-4)', borderTop: '1px solid var(--gray-200)' }}>
+                  <h4 className="text-lg font-semibold text-gray-800 mb-4">Status spotkania</h4>
+                  <div className="radio-group">
+                    <label className="radio-item">
+                      <input type="radio" name="meetingStatusDash" checked={editForm.status === 'Sukces'} onChange={() => setEditForm({ ...editForm, status: 'Sukces' })} />
+                      <span>Sukces !</span>
                     </label>
-                    <label>
-                      <input type="radio" name="meetingStatusDash" checked={editForm.status === 'Porażka'} onChange={() => setEditForm({ ...editForm, status: 'Porażka' })} /> Porażka
+                    <label className="radio-item">
+                      <input type="radio" name="meetingStatusDash" checked={editForm.status === 'Porażka'} onChange={() => setEditForm({ ...editForm, status: 'Porażka' })} />
+                      <span>Porażka</span>
                     </label>
-                    <label>
-                      <input type="radio" name="meetingStatusDash" checked={editForm.status === 'Dogrywka'} onChange={() => setEditForm({ ...editForm, status: 'Dogrywka' })} /> Dogrywka
+                    <label className="radio-item">
+                      <input type="radio" name="meetingStatusDash" checked={editForm.status === 'Dogrywka'} onChange={() => setEditForm({ ...editForm, status: 'Dogrywka' })} />
+                      <span>Dogrywka</span>
                     </label>
                   </div>
                 </div>
               )
             })()}
 
-            {editError && <div style={{ color: 'red', marginTop: 8 }}>{editError}</div>}
+            {editError && <div className="text-error text-sm mt-4 p-3 bg-error-50 rounded border border-error-200">{editError}</div>}
 
-            <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8, marginTop: 16 }}>
-              <button className="secondary" onClick={deleteMeeting}>Usuń</button>
-              <div style={{ display: 'flex', gap: 8 }}>
+            <div className="modal-footer">
+              <button className="danger" onClick={deleteMeeting}>Usuń</button>
+              <div className="flex gap-3">
                 <button className="secondary" onClick={() => { setIsEditOpen(false); setEditMeetingId(null) }}>Anuluj</button>
-                <button onClick={submitEdit}>Zapisz</button>
+                <button className="primary" onClick={submitEdit}>Zapisz</button>
               </div>
             </div>
             </>
@@ -692,6 +973,7 @@ function App() {
             <Link to="/clients">Klienci</Link>
           )}
           <Link to="/my-clients">Moi klienci</Link>
+          <Link to="/calculator">Kalkulator ofertowy</Link>
           {user && user.role === 'MANAGER' && (
             <Link to="/sales">Handlowcy</Link>
           )}
@@ -715,6 +997,8 @@ function App() {
           <Route path="/clients" element={<Protected roles={['ADMIN','MANAGER']}><ClientsPage /></Protected>} />
           <Route path="/sales" element={<Protected roles={['MANAGER']}><SalesPage /></Protected>} />
           <Route path="/my-clients" element={<Protected><MyClientsPage /></Protected>} />
+          <Route path="/calculator" element={<Protected><CalculatorPage /></Protected>} />
+          <Route path="/calculator/settings" element={<Protected roles={['MANAGER']}><CalculatorSettingsPage /></Protected>} />
           <Route path="/stats" element={<Protected><div className="container" style={{ paddingTop: 16 }}><h2>Statystyki i Analityka</h2><p className="muted">Wersja demonstracyjna. Wykresy i KPI pojawią się w kolejnej iteracji.</p></div></Protected>} />
           <Route path="/account" element={<Protected><div className="container" style={{ paddingTop: 16 }}><h2>Moje Konto</h2></div></Protected>} />
           <Route path="/admin" element={<Protected roles={['ADMIN']}><AdminPage /></Protected>} />

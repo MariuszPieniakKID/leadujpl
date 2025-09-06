@@ -42,53 +42,80 @@ export default function SalesPage() {
   const allSales = useMemo(() => salesOnly.filter(s => s.managerId !== currentUser.id), [salesOnly, currentUser.id])
 
   return (
-    <div className="container" style={{ paddingTop: 16 }}>
-      <h2>Handlowcy</h2>
-      {error && <div style={{ color: 'red', marginBottom: 8 }}>{error}</div>}
+    <div className="container">
+      <div className="page-header">
+        <div>
+          <h1 className="page-title">Handlowcy</h1>
+          <p className="text-gray-600">Zarządzaj swoim zespołem handlowym</p>
+        </div>
+      </div>
 
-      <div className="card" style={{ marginBottom: 16 }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <h3 style={{ margin: 0 }}>Moi handlowcy</h3>
+      {error && (
+        <div className="text-error text-sm p-3 bg-error-50 rounded border border-error-200 mb-6">
+          {error}
+        </div>
+      )}
+
+      <div className="card mb-6">
+        <div className="flex justify-between items-center mb-4">
+          <h3 className="card-title">Moi handlowcy</h3>
           <AddSalesForm onCreated={load} />
         </div>
-        {loading ? <div className="muted">Ładowanie…</div> : (
-          <ul className="list">
-            {mySales.length === 0 && <li className="muted">Brak przypisanych handlowców</li>}
+        {loading ? (
+          <div className="text-center py-8 text-gray-500">Ładowanie…</div>
+        ) : mySales.length === 0 ? (
+          <div className="text-center py-8 text-gray-500">
+            <svg style={{ margin: '0 auto 1rem', display: 'block' }} width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1">
+              <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+              <circle cx="8.5" cy="7" r="4"/>
+              <path d="m22 2-5 5M17 2l5 5"/>
+            </svg>
+            <p>Brak przypisanych handlowców</p>
+          </div>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}>
             {mySales.map(u => (
-              <li key={u.id}>
+              <div key={u.id} className="list-item">
                 <div>
-                  <strong>{u.firstName} {u.lastName}</strong>
-                  <div className="muted" style={{ fontSize: 12 }}>{u.email}</div>
+                  <div className="font-medium text-gray-900">{u.firstName} {u.lastName}</div>
+                  <div className="text-sm text-gray-500">{u.email}</div>
                 </div>
-                <div>
-                  <button className="secondary" onClick={() => unassign(u.id)}>Usuń przypisanie</button>
-                </div>
-              </li>
+                <button className="secondary btn-sm" onClick={() => unassign(u.id)}>Usuń przypisanie</button>
+              </div>
             ))}
-          </ul>
+          </div>
         )}
       </div>
 
       <div className="card">
-        <h3>Wszyscy handlowcy</h3>
-        {loading ? <div className="muted">Ładowanie…</div> : (
-          <ul className="list">
+        <div className="flex justify-between items-center mb-4">
+          <h3 className="card-title">Wszyscy handlowcy</h3>
+          <span className="text-sm text-gray-500">{allSales.length} dostępnych</span>
+        </div>
+        {loading ? (
+          <div className="text-center py-8 text-gray-500">Ładowanie…</div>
+        ) : allSales.length === 0 ? (
+          <div className="text-center py-8 text-gray-500">
+            <p>Wszyscy handlowcy są już przypisani</p>
+          </div>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}>
             {allSales.map(u => {
               const currentManager = u.managerId ? managersById.get(u.managerId) : null
               return (
-                <li key={u.id}>
+                <div key={u.id} className="list-item">
                   <div>
-                    <strong>{u.firstName} {u.lastName}</strong>
-                    <div className="muted" style={{ fontSize: 12 }}>{u.email}</div>
+                    <div className="font-medium text-gray-900">{u.firstName} {u.lastName}</div>
+                    <div className="text-sm text-gray-500">{u.email}</div>
+                    {currentManager && <div className="text-xs text-gray-400">Manager: {currentManager.firstName} {currentManager.lastName}</div>}
                   </div>
-                  <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                    {currentManager && <span className="muted" style={{ fontSize: 12 }}>Manager: {currentManager.firstName} {currentManager.lastName}</span>}
-                    <button onClick={() => assignToMe(u.id)}>{currentManager ? 'Przypisz do mnie' : 'Przypisz do mnie'}</button>
-                  </div>
-                </li>
+                  <button className="primary btn-sm" onClick={() => assignToMe(u.id)}>
+                    {currentManager ? 'Przypisz do mnie' : 'Przypisz do mnie'}
+                  </button>
+                </div>
               )
             })}
-          </ul>
+          </div>
         )}
       </div>
     </div>
@@ -125,20 +152,60 @@ function AddSalesForm({ onCreated }: { onCreated: () => void }) {
     }
   }
 
-  if (!open) return <button onClick={() => setOpen(true)}>Dodaj handlowca</button>
+  if (!open) {
+    return (
+      <button className="primary btn-sm" onClick={() => setOpen(true)}>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <path d="M12 5v14M5 12h14"/>
+        </svg>
+        Dodaj handlowca
+      </button>
+    )
+  }
+
   return (
-    <div className="card" style={{ padding: 12 }}>
-      <div className="grid" style={{ gridTemplateColumns: 'repeat(2, 1fr)', gap: 8 }}>
-        <input placeholder="Imię" value={form.firstName} onChange={e => setForm({ ...form, firstName: e.target.value })} />
-        <input placeholder="Nazwisko" value={form.lastName} onChange={e => setForm({ ...form, lastName: e.target.value })} />
-        <input placeholder="E-mail" value={form.email} onChange={e => setForm({ ...form, email: e.target.value })} />
-        <input placeholder="Telefon" value={form.phone} onChange={e => setForm({ ...form, phone: e.target.value })} />
-        <input placeholder="Hasło (opcjonalnie)" type="password" value={form.password} onChange={e => setForm({ ...form, password: e.target.value })} />
-      </div>
-      {error && <div style={{ color: 'red', marginTop: 6 }}>{error}</div>}
-      <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 8 }}>
-        <button className="secondary" onClick={() => setOpen(false)}>Anuluj</button>
-        <button disabled={submitting} onClick={submit}>{submitting ? 'Zapisywanie…' : 'Zapisz'}</button>
+    <div className="modal-overlay">
+      <div className="modal-content" style={{ maxWidth: '500px' }}>
+        <div className="modal-header">
+          <h3 className="modal-title">Nowy handlowiec</h3>
+          <button className="secondary" onClick={() => setOpen(false)} style={{ padding: 'var(--space-2)' }}>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M18 6L6 18M6 6l12 12"/>
+            </svg>
+          </button>
+        </div>
+        
+        <div className="form-grid-2">
+          <div className="form-group">
+            <label className="form-label">Imię</label>
+            <input className="form-input" placeholder="Imię" value={form.firstName} onChange={e => setForm({ ...form, firstName: e.target.value })} />
+          </div>
+          <div className="form-group">
+            <label className="form-label">Nazwisko</label>
+            <input className="form-input" placeholder="Nazwisko" value={form.lastName} onChange={e => setForm({ ...form, lastName: e.target.value })} />
+          </div>
+          <div className="form-group">
+            <label className="form-label">E-mail</label>
+            <input className="form-input" placeholder="E-mail" value={form.email} onChange={e => setForm({ ...form, email: e.target.value })} />
+          </div>
+          <div className="form-group">
+            <label className="form-label">Telefon</label>
+            <input className="form-input" placeholder="Telefon" value={form.phone} onChange={e => setForm({ ...form, phone: e.target.value })} />
+          </div>
+          <div className="form-group" style={{ gridColumn: '1 / -1' }}>
+            <label className="form-label">Hasło (opcjonalnie)</label>
+            <input className="form-input" type="password" placeholder="Zostaw puste dla domyślnego: test123" value={form.password} onChange={e => setForm({ ...form, password: e.target.value })} />
+          </div>
+        </div>
+        
+        {error && <div className="text-error text-sm mt-4 p-3 bg-error-50 rounded border border-error-200">{error}</div>}
+        
+        <div className="modal-footer">
+          <button className="secondary" onClick={() => setOpen(false)}>Anuluj</button>
+          <button className="primary" disabled={submitting} onClick={submit}>
+            {submitting ? 'Zapisywanie…' : 'Zapisz'}
+          </button>
+        </div>
       </div>
     </div>
   )

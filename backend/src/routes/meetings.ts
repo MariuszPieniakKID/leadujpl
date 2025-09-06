@@ -35,7 +35,10 @@ router.get('/', requireAuth, async (req, res) => {
 router.post('/', requireAuth, async (req, res) => {
   try {
     const currentUser = req.user!;
-    const { scheduledAt, endsAt, location, notes, attendeeId, client, clientId, pvInstalled, billRange, extraComments, status } = req.body as { scheduledAt: string; endsAt?: string; location?: string; notes?: string; attendeeId?: string; client?: { firstName?: string; lastName?: string; phone?: string; email?: string; street?: string; city?: string; category?: string }; clientId?: string; pvInstalled?: boolean; billRange?: string; extraComments?: string; status?: string };
+    const { scheduledAt, endsAt, location, notes, attendeeId, client, clientId, pvInstalled, billRange, extraComments, status, contactConsent } = req.body as { scheduledAt: string; endsAt?: string; location?: string; notes?: string; attendeeId?: string; client?: { firstName?: string; lastName?: string; phone?: string; email?: string; street?: string; city?: string; category?: string }; clientId?: string; pvInstalled?: boolean; billRange?: string; extraComments?: string; status?: string; contactConsent?: boolean };
+    if (contactConsent !== true) {
+      return res.status(400).json({ error: 'Wymagana jest zgoda klienta na kontakt handlowy.' });
+    }
     let ownerId = currentUser.id;
     if (attendeeId && (currentUser.role === 'ADMIN' || currentUser.role === 'MANAGER')) {
       ownerId = attendeeId;
@@ -55,6 +58,7 @@ router.post('/', requireAuth, async (req, res) => {
       notes,
       attendeeId: ownerId,
     };
+    createData.contactConsent = true;
     if (status !== undefined) createData.status = status;
     if (pvInstalled !== undefined) createData.pvInstalled = pvInstalled;
     if (billRange !== undefined) createData.billRange = billRange;

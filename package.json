@@ -5,6 +5,8 @@
   "private": true,
   "scripts": {
     "dev": "concurrently -n backend,frontend -c green,blue \"npm:dev --workspace backend\" \"npm:dev --workspace frontend\"",
+    "inspect:xlsx": "node ./scripts/inspect-xlsx.mjs",
+    "extract:calculator": "node ./scripts/extract-calculator-data.mjs",
     "test": "echo \"No tests yet\""
   },
   "keywords": [],
@@ -12,7 +14,8 @@
   "license": "ISC",
   "description": "",
   "devDependencies": {
-    "concurrently": "^9.2.1"
+    "concurrently": "^9.2.1",
+    "xlsx": "^0.18.5"
   },
   "workspaces": [
     "frontend",
