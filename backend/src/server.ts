@@ -16,7 +16,7 @@ const app = express();
 const prisma = new PrismaClient();
 
 app.use(helmet());
-app.use(cors({ origin: process.env.CORS_ORIGIN?.split(',') || ['http://localhost:5000'], credentials: true }));
+app.use(cors({ origin: process.env.CORS_ORIGIN?.split(',') || ['http://localhost:3005'], credentials: true }));
 app.use(express.json());
 app.use(morgan('dev'));
 

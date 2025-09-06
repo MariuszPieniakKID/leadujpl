@@ -95,8 +95,8 @@ export default function CalculatorPage() {
           <p className="text-gray-600">Wprowadź dane, aby przygotować ofertę</p>
         </div>
         {(() => { const u = getUser(); return (u && u.role === 'MANAGER') ? (
-          <div>
-            <Link className="secondary" to="/calculator/settings">Edytuj ustawienia</Link>
+          <div className="flex items-center gap-4">
+            <Link className="secondary" to="/calculator/settings">Ustawienia</Link>
           </div>
         ) : null })()}
       </div>

@@ -48,6 +48,7 @@ export default function SalesPage() {
           <h1 className="page-title">Handlowcy</h1>
           <p className="text-gray-600">Zarządzaj swoim zespołem handlowym</p>
         </div>
+        <AddSalesForm onCreated={load} />
       </div>
 
       {error && (
@@ -59,7 +60,6 @@ export default function SalesPage() {
       <div className="card mb-6">
         <div className="flex justify-between items-center mb-4">
           <h3 className="card-title">Moi handlowcy</h3>
-          <AddSalesForm onCreated={load} />
         </div>
         {loading ? (
           <div className="text-center py-8 text-gray-500">Ładowanie…</div>

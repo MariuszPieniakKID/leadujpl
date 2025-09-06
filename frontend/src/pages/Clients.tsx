@@ -18,15 +18,20 @@ export default function ClientsPage() {
 
   useEffect(() => { load() }, [])
 
+  const [isCreateOpen, setIsCreateOpen] = useState(false)
+  const [createError, setCreateError] = useState<string | null>(null)
+
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault()
-    if (!form.firstName || !form.lastName) return alert('Imię i nazwisko są wymagane')
+    setCreateError(null)
+    if (!form.firstName || !form.lastName) { setCreateError('Imię i nazwisko są wymagane'); return }
     await createClient({
-      id: '' as any, // ignored by backend; type compatibility
+      id: '' as any,
       firstName: form.firstName!, lastName: form.lastName!, phone: form.phone || undefined, email: form.email || undefined,
       street: form.street || undefined, city: form.city || undefined, category: form.category || undefined,
     })
     setForm({ firstName: '', lastName: '', phone: '', email: '', street: '', city: '', category: '' })
+    setIsCreateOpen(false)
     await load()
   }
 
@@ -43,52 +48,68 @@ export default function ClientsPage() {
           <h1 className="page-title">Klienci</h1>
           <p className="text-gray-600">Zarządzaj bazą klientów</p>
         </div>
-        <span className="text-sm text-gray-500">{clients.length} klientów</span>
-      </div>
-
-      <form className="card mb-6" onSubmit={onSubmit}>
-        <div className="flex justify-between items-center mb-4">
-          <h3 className="card-title">Dodaj nowego klienta</h3>
-        </div>
-        <div className="form-grid-2">
-          <div className="form-group">
-            <label className="form-label">Imię</label>
-            <input className="form-input" placeholder="Imię" value={form.firstName || ''} onChange={e => setForm({ ...form, firstName: e.target.value })} />
-          </div>
-          <div className="form-group">
-            <label className="form-label">Nazwisko</label>
-            <input className="form-input" placeholder="Nazwisko" value={form.lastName || ''} onChange={e => setForm({ ...form, lastName: e.target.value })} />
-          </div>
-          <div className="form-group">
-            <label className="form-label">Telefon</label>
-            <input className="form-input" placeholder="Telefon" value={form.phone || ''} onChange={e => setForm({ ...form, phone: e.target.value })} />
-          </div>
-          <div className="form-group">
-            <label className="form-label">E-mail</label>
-            <input className="form-input" placeholder="E-mail" value={form.email || ''} onChange={e => setForm({ ...form, email: e.target.value })} />
-          </div>
-          <div className="form-group">
-            <label className="form-label">Ulica i numer domu</label>
-            <input className="form-input" placeholder="Ulica i numer domu" value={form.street || ''} onChange={e => setForm({ ...form, street: e.target.value })} />
-          </div>
-          <div className="form-group">
-            <label className="form-label">Miasto</label>
-            <input className="form-input" placeholder="Miasto" value={form.city || ''} onChange={e => setForm({ ...form, city: e.target.value })} />
-          </div>
-          <div className="form-group">
-            <label className="form-label">Kategoria</label>
-            <input className="form-input" placeholder="Kategoria" value={form.category || ''} onChange={e => setForm({ ...form, category: e.target.value })} />
-          </div>
-        </div>
-        <div className="modal-footer">
-          <button className="primary" type="submit">
+        <div className="flex items-center gap-4">
+          <span className="text-sm text-gray-500">{clients.length} klientów</span>
+          <button className="primary" onClick={() => setIsCreateOpen(true)}>
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <path d="M12 5v14M5 12h14"/>
             </svg>
             Dodaj klienta
           </button>
         </div>
-      </form>
+      </div>
+
+      {isCreateOpen && (
+        <div className="modal-overlay">
+          <div className="modal-content" style={{ maxWidth: '700px' }}>
+            <div className="modal-header">
+              <h3 className="modal-title">Nowy klient</h3>
+              <button className="secondary" onClick={() => setIsCreateOpen(false)} style={{ padding: 'var(--space-2)' }}>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M18 6L6 18M6 6l12 12"/>
+                </svg>
+              </button>
+            </div>
+            <form onSubmit={onSubmit}>
+              <div className="form-grid-2">
+                <div className="form-group">
+                  <label className="form-label">Imię</label>
+                  <input className="form-input" placeholder="Imię" value={form.firstName || ''} onChange={e => setForm({ ...form, firstName: e.target.value })} />
+                </div>
+                <div className="form-group">
+                  <label className="form-label">Nazwisko</label>
+                  <input className="form-input" placeholder="Nazwisko" value={form.lastName || ''} onChange={e => setForm({ ...form, lastName: e.target.value })} />
+                </div>
+                <div className="form-group">
+                  <label className="form-label">Telefon</label>
+                  <input className="form-input" placeholder="Telefon" value={form.phone || ''} onChange={e => setForm({ ...form, phone: e.target.value })} />
+                </div>
+                <div className="form-group">
+                  <label className="form-label">E-mail</label>
+                  <input className="form-input" placeholder="E-mail" value={form.email || ''} onChange={e => setForm({ ...form, email: e.target.value })} />
+                </div>
+                <div className="form-group">
+                  <label className="form-label">Ulica i numer domu</label>
+                  <input className="form-input" placeholder="Ulica i numer domu" value={form.street || ''} onChange={e => setForm({ ...form, street: e.target.value })} />
+                </div>
+                <div className="form-group">
+                  <label className="form-label">Miasto</label>
+                  <input className="form-input" placeholder="Miasto" value={form.city || ''} onChange={e => setForm({ ...form, city: e.target.value })} />
+                </div>
+                <div className="form-group">
+                  <label className="form-label">Kategoria</label>
+                  <input className="form-input" placeholder="Kategoria" value={form.category || ''} onChange={e => setForm({ ...form, category: e.target.value })} />
+                </div>
+              </div>
+              {createError && <div className="text-error text-sm mt-4 p-3 bg-error-50 rounded border border-error-200">{createError}</div>}
+              <div className="modal-footer">
+                <button className="secondary" type="button" onClick={() => setIsCreateOpen(false)}>Anuluj</button>
+                <button className="primary" type="submit">Zapisz</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
       <div className="card">
         {loading ? (

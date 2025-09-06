@@ -6,6 +6,62 @@ import { requireAdmin, requireAuth, requireManagerOrAdmin } from '../middleware/
 const prisma = new PrismaClient();
 const router = Router();
 
+// Authenticated user: get my profile
+router.get('/me', requireAuth, async (req, res) => {
+  try {
+    const id = req.user!.id
+    const user = await prisma.user.findUnique({
+      where: { id },
+      select: {
+        id: true,
+        email: true,
+        firstName: true,
+        lastName: true,
+        phone: true,
+        street: true,
+        city: true,
+        postalCode: true,
+        houseNumber: true,
+        apartmentNumber: true,
+        company: true,
+        industry: true,
+        role: true,
+      },
+    })
+    if (!user) return res.status(404).json({ error: 'Not found' })
+    res.json(user)
+  } catch (e) {
+    res.status(500).json({ error: (e as Error).message })
+  }
+})
+
+// Authenticated user: update my profile
+router.patch('/me', requireAuth, async (req, res) => {
+  try {
+    const id = req.user!.id
+    const { firstName, lastName, phone, street, city, postalCode, houseNumber, apartmentNumber, company, industry } = req.body as any
+    const user = await prisma.user.update({
+      where: { id },
+      data: {
+        ...(firstName !== undefined ? { firstName } : {}),
+        ...(lastName !== undefined ? { lastName } : {}),
+        ...(phone !== undefined ? { phone } : {}),
+        ...(street !== undefined ? { street } : {}),
+        ...(city !== undefined ? { city } : {}),
+        ...(postalCode !== undefined ? { postalCode } : {}),
+        ...(houseNumber !== undefined ? { houseNumber } : {}),
+        ...(apartmentNumber !== undefined ? { apartmentNumber } : {}),
+        ...(company !== undefined ? { company } : {}),
+        ...(industry !== undefined ? { industry } : {}),
+      },
+      select: { id: true },
+    })
+    res.json({ id: user.id, ok: true })
+  } catch (e) {
+    res.status(500).json({ error: (e as Error).message })
+  }
+})
+
 router.post('/', requireAuth, requireAdmin, async (req, res) => {
   try {
     const { email, password, role, firstName, lastName, phone, street, city, postalCode, houseNumber, apartmentNumber, company, industry } = req.body as any;

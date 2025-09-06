@@ -1,6 +1,8 @@
 import { Router } from 'express'
 import { PrismaClient } from '@prisma/client'
-import baseData from '../../../frontend/src/data/calculatorData.json'
+// Load default calculator data from frontend JSON using require to avoid TS JSON import issues
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const baseData: any = require('../../../frontend/src/data/calculatorData.json')
 import { requireAuth, requireManagerOrAdmin } from '../middleware/auth'
 
 const prisma = new PrismaClient()

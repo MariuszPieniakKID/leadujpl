@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { BrowserRouter, Routes, Route, Navigate, Link, useLocation } from 'react-router-dom'
+import { BrowserRouter, Routes, Route, Navigate, NavLink, useLocation, Link } from 'react-router-dom'
 import './App.css'
 
 import { fetchLeads } from './lib/api'
@@ -12,7 +12,21 @@ import SalesPage from './pages/Sales'
 import MyClientsPage from './pages/MyClients'
 import CalculatorPage from './pages/Calculator'
 import CalculatorSettingsPage from './pages/CalculatorSettings'
+import AccountPage from './pages/Account'
+import StatsPage from './pages/Stats'
+import ManagerStatsPage from './pages/ManagerStats'
 import { clearAuth, getToken, getUser } from './lib/auth'
+import MobileNav from './components/MobileNav'
+import Logo from './components/Logo'
+
+function QuickTile({ label, to, icon }: { label: string; to: string; icon: React.ReactNode }) {
+  return (
+    <Link to={to} className="quick-tile" aria-label={label}>
+      <div className="quick-tile-icon">{icon}</div>
+      <div className="quick-tile-label">{label}</div>
+    </Link>
+  )
+}
 
 function Protected({ children, roles }: { children: React.ReactNode, roles?: Array<'ADMIN' | 'MANAGER' | 'SALES_REP'> }) {
   const token = getToken()
@@ -27,6 +41,7 @@ function Dashboard() {
   const [leads, setLeads] = useState<any[]>([])
   const [loading, setLoading] = useState(false)
   const [meetings, setMeetings] = useState<any[]>([])
+  const [headerCollapsed, setHeaderCollapsed] = useState(false)
   const [managerStats, setManagerStats] = useState({ leads: 0, past: 0, future: 0, rescheduled: 0, contracts: 0, effectiveness: 0 })
   const [managerLoading, setManagerLoading] = useState(false)
   const [isCreateOpen, setIsCreateOpen] = useState(false)
@@ -167,6 +182,18 @@ function Dashboard() {
   }, [meetings])
 
   const points = 1280
+
+  useEffect(() => {
+    try { setHeaderCollapsed(localStorage.getItem('headerCollapsed') === '1') } catch {}
+  }, [])
+  function collapseHeader() {
+    setHeaderCollapsed(true)
+    try { localStorage.setItem('headerCollapsed', '1') } catch {}
+  }
+  function expandHeader() {
+    setHeaderCollapsed(false)
+    try { localStorage.setItem('headerCollapsed', '0') } catch {}
+  }
 
   const stats = useMemo(() => {
     const now = Date.now()
@@ -439,27 +466,180 @@ function Dashboard() {
   return (
     <div className="container">
 
-      {(
-      <div className="dashboard-header">
-        <div className="points-display">
-          <span className="muted">Twoje punkty:</span> {points}
+      {headerCollapsed ? (
+      <div className="dashboard-compact">
+        <div className="dashboard-compact-left">
+          <span className="muted">Witaj{user ? `, ${user.firstName}` : ''}!</span>
         </div>
-        <button className="primary" onClick={openCreate}>
+        <div className="dashboard-compact-right">
+          <div className="points-chip">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+            </svg>
+            {points} pkt
+          </div>
+          <button className="primary btn-sm" onClick={openCreate}>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M12 5v14M5 12h14"/>
+            </svg>
+            Nowe spotkanie
+          </button>
+          <button aria-label="Pokaż panel" className="icon-button" onClick={expandHeader}>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M4 12h16"/>
+            </svg>
+          </button>
+        </div>
+      </div>
+      ) : (
+      <div className="dashboard-header">
+        <button aria-label="Zamknij panel" className="icon-button close" onClick={collapseHeader}>
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <path d="M12 5v14M5 12h14"/>
+            <path d="M18 6L6 18M6 6l12 12"/>
           </svg>
-          Dodaj spotkanie
         </button>
+        <div style={{ flex: 1 }}>
+          <h1 style={{
+            fontSize: 'var(--text-5xl)',
+            fontWeight: 900,
+            marginBottom: 'var(--space-3)',
+            background: 'linear-gradient(135deg, rgba(255, 255, 255, 1) 0%, rgba(255, 255, 255, 0.8) 100%)',
+            WebkitBackgroundClip: 'text',
+            WebkitTextFillColor: 'transparent',
+            backgroundClip: 'text',
+            textShadow: '0 4px 12px rgba(0, 0, 0, 0.2)',
+            lineHeight: 1.1
+          }}>
+            Witaj{user ? `, ${user.firstName}` : ''}! 
+            <span style={{ 
+              display: 'inline-block',
+              marginLeft: 'var(--space-3)',
+              transform: 'rotate(10deg)',
+              fontSize: 'var(--text-4xl)'
+            }}>👋</span>
+          </h1>
+          <p style={{
+            fontSize: 'var(--text-xl)',
+            fontWeight: 500,
+            color: 'rgba(255, 255, 255, 0.9)',
+            lineHeight: 1.6,
+            maxWidth: '600px'
+          }}>
+            Zarządzaj swoimi leadami, planuj spotkania i śledź wyniki sprzedaży w nowoczesnym środowisku CRM.
+          </p>
+        </div>
+        <div style={{ 
+          display: 'flex', 
+          gap: 'var(--space-4)', 
+          flexWrap: 'wrap', 
+          alignItems: 'center',
+          marginTop: 'var(--space-6)'
+        }}>
+          <div style={{ 
+            display: 'flex', 
+            alignItems: 'center', 
+            gap: 'var(--space-3)', 
+            padding: 'var(--space-4) var(--space-6)', 
+            background: 'rgba(255, 255, 255, 0.15)', 
+            backdropFilter: 'blur(10px)',
+            borderRadius: 'var(--radius-2xl)', 
+            border: '1px solid rgba(255, 255, 255, 0.2)',
+            color: 'white',
+            fontSize: 'var(--text-base)',
+            fontWeight: 700,
+            boxShadow: 'var(--shadow-glass-sm)'
+          }}>
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              width: '32px',
+              height: '32px',
+              background: 'rgba(255, 255, 255, 0.2)',
+              borderRadius: 'var(--radius-lg)'
+            }}>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+              </svg>
+            </div>
+            <span>{points} punktów</span>
+          </div>
+          <button 
+            className="primary" 
+            onClick={openCreate}
+            style={{
+              background: 'rgba(255, 255, 255, 0.9)',
+              color: 'var(--primary-600)',
+              border: '1px solid rgba(255, 255, 255, 0.3)',
+              backdropFilter: 'blur(10px)',
+              padding: 'var(--space-4) var(--space-6)',
+              borderRadius: 'var(--radius-2xl)',
+              fontSize: 'var(--text-base)',
+              fontWeight: 700,
+              boxShadow: 'var(--shadow-glass-md)',
+              transition: 'all 0.3s ease',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 'var(--space-2)'
+            }}
+          >
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+              <path d="M12 5v14M5 12h14"/>
+            </svg>
+            Nowe spotkanie
+          </button>
+        </div>
       </div>
       )}
 
       <div className="grid">
+        {/* Quick Action Tiles */}
+        <section className="actions-bar" style={{ gridColumn: '1 / -1' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--space-3)' }}>
+            <h3 className="card-title" style={{ fontSize: 'var(--text-2xl)', fontWeight: 800, margin: 0, background: 'linear-gradient(135deg, var(--gray-900) 0%, var(--gray-700) 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>Szybkie akcje</h3>
+          </div>
+          <div className="quick-grid">
+            <QuickTile label="Kalendarz" to="/calendar" icon={(
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                <rect x="3" y="4" width="18" height="18" rx="2"/>
+                <line x1="16" y1="2" x2="16" y2="6"/>
+                <line x1="8" y1="2" x2="8" y2="6"/>
+                <line x1="3" y1="10" x2="21" y2="10"/>
+              </svg>
+            )} />
+            <QuickTile label="Klienci" to={user?.role === 'MANAGER' || user?.role === 'ADMIN' ? '/clients' : '/my-clients'} icon={(
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                <path d="M16 21v-2a4 4 0 0 0-4-4H7a4 4 0 0 0-4 4v2"/>
+                <circle cx="9" cy="7" r="4"/>
+                <path d="M22 21v-2a4 4 0 0 0-3-3.87"/>
+                <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+              </svg>
+            )} />
+            <QuickTile label="Kalkulator" to="/calculator" icon={(
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                <rect x="4" y="3" width="16" height="18" rx="2"/>
+                <rect x="7" y="7" width="10" height="4" rx="1"/>
+                <path d="M8 14h.01M12 14h.01M16 14h.01M8 18h.01M12 18h.01M16 18h.01"/>
+              </svg>
+            )} />
+            {user?.role === 'MANAGER' && (
+              <QuickTile label="Zespół" to="/sales" icon={(
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                  <path d="M12 12a5 5 0 1 0-5-5 5 5 0 0 0 5 5Z"/>
+                  <path d="M20 21a8 8 0 0 0-16 0"/>
+                  <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+                  <path d="M22 21v-2a4 4 0 0 0-3-3.87"/>
+                </svg>
+              )} />
+            )}
+          </div>
+        </section>
         {user?.role === 'MANAGER' ? (
           <>
           <section className="card">
             <div className="flex justify-between items-center mb-4">
               <h3 className="card-title">Najbliższe spotkania zespołu</h3>
-              <span className="text-sm text-gray-500">{managerUpcoming.length} z 5</span>
+              <span className="text-sm text-gray-400">{managerUpcoming.length} z 5</span>
             </div>
             {managerUpcoming.length === 0 ? (
               <div className="text-center text-gray-500" style={{ padding: '2rem 0' }}>
@@ -490,7 +670,7 @@ function Dashboard() {
           <section className="card">
             <div className="flex justify-between items-center mb-4">
               <h3 className="card-title">Ostatnie spotkania zespołu</h3>
-              <span className="text-sm text-gray-500">{managerRecent.length} z 5</span>
+              <span className="text-sm text-gray-400">{managerRecent.length} z 5</span>
             </div>
             {managerRecent.length === 0 ? (
               <div className="text-center text-gray-500" style={{ padding: '2rem 0' }}>
@@ -520,8 +700,8 @@ function Dashboard() {
           </section>
           <section className="card">
             <div className="flex justify-between items-center mb-4">
-              <h3 className="card-title">Statystyki Managera</h3>
-              {managerLoading && <span className="text-sm text-gray-500">Ładuję…</span>}
+              <h3 className="card-title">Statystyki zespołu</h3>
+              {managerLoading && <span className="text-sm text-gray-400">Ładuję…</span>}
             </div>
             <div className="stats-grid">
               <div className="stat-card">
@@ -555,8 +735,8 @@ function Dashboard() {
           <>
           <section className="card">
             <div className="flex justify-between items-center mb-4">
-              <h3 className="card-title">Najbliższe spotkania</h3>
-              <span className="text-sm text-gray-500">{upcoming.length} spotkań</span>
+              <h3 className="card-title">Twoje nadchodzące spotkania</h3>
+              <span className="text-sm text-gray-400">{upcoming.length} spotkań</span>
             </div>
             {upcoming.length === 0 ? (
               <div className="text-center text-gray-500" style={{ padding: '2rem 0' }}>
@@ -592,7 +772,7 @@ function Dashboard() {
           </section>
           <section className="card">
             <div className="flex justify-between items-center mb-4">
-              <h3 className="card-title">Statystyki</h3>
+              <h3 className="card-title">Twoje statystyki</h3>
             </div>
             <div className="stats-grid">
               <div className="stat-card">
@@ -613,49 +793,47 @@ function Dashboard() {
               </div>
             </div>
           </section>
+          <section className="card">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="card-title">Twoje ostatnie spotkania</h3>
+              <span className="text-sm text-gray-400">{recent.length} spotkań</span>
+            </div>
+            {recent.length === 0 ? (
+              <div className="text-center text-gray-500" style={{ padding: '2rem 0' }}>
+                <p>Brak ostatnich spotkań</p>
+              </div>
+            ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}>
+                {recent.map(m => (
+                  <div key={m.id} className="meeting-item" onClick={() => openEdit(m.id)}>
+                    <div className="flex items-center gap-3">
+                      <div className="flex items-center gap-2">
+                      {(() => {
+                        const color = m.status === 'Sukces' ? '#16a34a' : m.status === 'Porażka' ? '#dc2626' : m.status === 'Dogrywka' ? '#f59e0b' : '#94a3b8'
+                        return <span title={m.status || 'brak statusu'} className="status-dot" style={{ background: color }} />
+                      })()}
+                      </div>
+                      <div style={{ flexShrink: 0 }}>
+                        <div className="meeting-time">{m.date}</div>
+                        <div className="meeting-time text-primary">{m.time}</div>
+                      </div>
+                      <div>
+                        <div className="meeting-topic font-medium">{m.topic}</div>
+                        <div className="meeting-location">{m.place}</div>
+                      </div>
+                    </div>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ color: 'var(--gray-400)' }}>
+                      <path d="m9 18 6-6-6-6"/>
+                    </svg>
+                  </div>
+                ))}
+            </div>
+            )}
+          </section>
           </>
         )}
       </div>
 
-      {user?.role !== 'MANAGER' && (
-      <section className="card mt-6">
-        <div className="flex justify-between items-center mb-4">
-          <h3 className="card-title">Twoje ostatnie spotkania</h3>
-          <span className="text-sm text-gray-500">{recent.length} spotkań</span>
-        </div>
-        {recent.length === 0 ? (
-          <div className="text-center text-gray-500" style={{ padding: '2rem 0' }}>
-            <p>Brak ostatnich spotkań</p>
-          </div>
-        ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}>
-            {recent.map(m => (
-              <div key={m.id} className="meeting-item" onClick={() => openEdit(m.id)}>
-                <div className="flex items-center gap-3">
-                  <div className="flex items-center gap-2">
-                  {(() => {
-                    const color = m.status === 'Sukces' ? '#16a34a' : m.status === 'Porażka' ? '#dc2626' : m.status === 'Dogrywka' ? '#f59e0b' : '#94a3b8'
-                    return <span title={m.status || 'brak statusu'} className="status-dot" style={{ background: color }} />
-                  })()}
-                  </div>
-                  <div style={{ flexShrink: 0 }}>
-                    <div className="meeting-time">{m.date}</div>
-                    <div className="meeting-time text-primary">{m.time}</div>
-                  </div>
-                  <div>
-                    <div className="meeting-topic font-medium">{m.topic}</div>
-                    <div className="meeting-location">{m.place}</div>
-                  </div>
-                </div>
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ color: 'var(--gray-400)' }}>
-                  <path d="m9 18 6-6-6-6"/>
-                </svg>
-              </div>
-            ))}
-        </div>
-        )}
-      </section>
-      )}
 
       {user?.role !== 'MANAGER' && loading && <div className="text-center text-gray-500 mt-6">Ładowanie danych…</div>}
       {user?.role !== 'MANAGER' && !loading && <div className="text-center text-gray-500 mt-6 text-sm">Leady w systemie: {leads.length}</div>}
@@ -963,22 +1141,32 @@ function AdminPage() {
 function App() {
   function NavBar() {
     const user = getUser()
+    const [menuOpen, setMenuOpen] = useState(false)
+    function toggleTheme() {
+      const isDark = document.documentElement.classList.toggle('dark')
+      try { localStorage.setItem('theme', isDark ? 'dark' : 'light') } catch {}
+    }
     return (
       <nav className="navbar">
-        <div className="brand">leaduj</div>
-        <div className="nav">
-          <Link to="/">Home</Link>
-          <Link to="/calendar">Kalendarz</Link>
+        <div className="brand"><Logo size={22} /></div>
+        <button className="menu-toggle" aria-label="Otwórz menu" onClick={() => setMenuOpen(o => !o)}>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <path d="M3 6h18M3 12h18M3 18h18"/>
+          </svg>
+        </button>
+        <div className={`nav ${menuOpen ? 'open' : ''}`}>
+          <NavLink to="/" className={({ isActive }) => isActive ? 'active' : undefined}>Home</NavLink>
+          <NavLink to="/calendar" className={({ isActive }) => isActive ? 'active' : undefined}>Kalendarz</NavLink>
           {user && (user.role === 'ADMIN' || user.role === 'MANAGER') && (
-            <Link to="/clients">Klienci</Link>
+            <NavLink to="/clients" className={({ isActive }) => isActive ? 'active' : undefined}>Klienci</NavLink>
           )}
-          <Link to="/my-clients">Moi klienci</Link>
-          <Link to="/calculator">Kalkulator ofertowy</Link>
+          <NavLink to="/my-clients" className={({ isActive }) => isActive ? 'active' : undefined}>Moi klienci</NavLink>
+          <NavLink to="/calculator" className={({ isActive }) => isActive ? 'active' : undefined}>Kalkulator ofertowy</NavLink>
           {user && user.role === 'MANAGER' && (
-            <Link to="/sales">Handlowcy</Link>
+            <NavLink to="/sales" className={({ isActive }) => isActive ? 'active' : undefined}>Handlowcy</NavLink>
           )}
-          <Link to="/stats">Statystyki i Analityka</Link>
-          <Link to="/account">Moje Konto</Link>
+          <NavLink to="/stats" className={({ isActive }) => isActive ? 'active' : undefined}>Statystyki i Analityka</NavLink>
+          <NavLink to="/account" className={({ isActive }) => isActive ? 'active' : undefined}>Moje Konto</NavLink>
           <button className="logout" onClick={() => { clearAuth(); location.href = '/login' }}>Wyloguj</button>
         </div>
       </nav>
@@ -999,9 +1187,10 @@ function App() {
           <Route path="/my-clients" element={<Protected><MyClientsPage /></Protected>} />
           <Route path="/calculator" element={<Protected><CalculatorPage /></Protected>} />
           <Route path="/calculator/settings" element={<Protected roles={['MANAGER']}><CalculatorSettingsPage /></Protected>} />
-          <Route path="/stats" element={<Protected><div className="container" style={{ paddingTop: 16 }}><h2>Statystyki i Analityka</h2><p className="muted">Wersja demonstracyjna. Wykresy i KPI pojawią się w kolejnej iteracji.</p></div></Protected>} />
-          <Route path="/account" element={<Protected><div className="container" style={{ paddingTop: 16 }}><h2>Moje Konto</h2></div></Protected>} />
-          <Route path="/admin" element={<Protected roles={['ADMIN']}><AdminPage /></Protected>} />
+          <Route path="/stats" element={<Protected><StatsPage /></Protected>} />
+          <Route path="/manager/stats" element={<Protected roles={['MANAGER']}><ManagerStatsPage /></Protected>} />
+          <Route path="/account" element={<Protected><AccountPage /></Protected>} />
+          <Route path="/admin" element={<Protected roles={['ADMIN']}><div className="container"><div className="page-header"><div><h1 className="page-title">Panel administratora</h1><p className="text-gray-600">Zarządzanie aplikacją</p></div></div><section className="card"><AdminPage /></section></div></Protected>} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </>
@@ -1010,6 +1199,7 @@ function App() {
   return (
     <BrowserRouter>
       <Shell />
+      <MobileNav />
     </BrowserRouter>
   )
 }

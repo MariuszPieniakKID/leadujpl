@@ -140,6 +140,37 @@ export default function CalendarPage() {
     return dt.toISOString()
   }
 
+  function openCreateNow() {
+    setCreateError(null)
+    const start = new Date()
+    const end = addHours(start, 1)
+    setCreateForm(f => ({
+      ...f,
+      notes: '',
+      location: '',
+      startDate: toLocalDateValue(start),
+      startTime: toLocalTimeValue(start),
+      endDate: toLocalDateValue(end),
+      endTime: toLocalTimeValue(end),
+      clientFirstName: '',
+      clientLastName: '',
+      clientPhone: '',
+      clientEmail: '',
+      clientStreet: '',
+      clientCity: '',
+      clientCategory: '',
+      pvInstalled: '',
+      billRange: '',
+      extraComments: '',
+      contactConsent: false,
+    }))
+    setSelectedClientId(null)
+    setClientQuery('')
+    setClientOptions([])
+    setCreateSectionsOpen({ meeting: true, client: true, extra: true })
+    setIsCreateOpen(true)
+  }
+
   // Edit meeting modal state
   const [isEditOpen, setIsEditOpen] = useState(false)
   const [editLoading, setEditLoading] = useState(false)
@@ -382,17 +413,25 @@ export default function CalendarPage() {
           <h1 className="page-title">Kalendarz</h1>
           <p className="text-gray-600">Zarządzaj swoimi spotkaniami</p>
         </div>
-        {canManageAll && (
-          <div className="form-group" style={{ minWidth: '200px', margin: 0 }}>
-            <label className="form-label">Kalendarz użytkownika</label>
-            <select className="form-select" value={selectedUserId || ''} onChange={e => setSelectedUserId(e.target.value || undefined)}>
-              <option value="">Ja ({currentUser.firstName} {currentUser.lastName})</option>
-              {users.map(u => (
-                <option key={u.id} value={u.id}>{u.firstName} {u.lastName} ({u.role})</option>
-              ))}
-            </select>
-          </div>
-        )}
+        <div className="flex items-center gap-4">
+          {canManageAll && (
+            <div className="form-group" style={{ minWidth: '200px', margin: 0 }}>
+              <label className="form-label">Kalendarz użytkownika</label>
+              <select className="form-select" value={selectedUserId || ''} onChange={e => setSelectedUserId(e.target.value || undefined)}>
+                <option value="">Ja ({currentUser.firstName} {currentUser.lastName})</option>
+                {users.map(u => (
+                  <option key={u.id} value={u.id}>{u.firstName} {u.lastName} ({u.role})</option>
+                ))}
+              </select>
+            </div>
+          )}
+          <button className="primary" onClick={openCreateNow}>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M12 5v14M5 12h14"/>
+            </svg>
+            Dodaj spotkanie
+          </button>
+        </div>
       </div>
 
       <div className="calendar-container">
@@ -604,9 +643,16 @@ export default function CalendarPage() {
       )}
 
       {isEditOpen && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 50 }}>
-          <div className="card" style={{ width: 720, maxWidth: '95%', background: '#fff', padding: 16, boxShadow: '0 10px 30px rgba(0,0,0,0.2)' }}>
-            <h3 style={{ marginTop: 0, marginBottom: 12 }}>Szczegóły spotkania</h3>
+        <div className="modal-overlay">
+          <div className="modal-content" style={{ maxWidth: '720px' }}>
+            <div className="modal-header">
+              <h3 className="modal-title">Szczegóły spotkania</h3>
+              <button className="secondary" onClick={() => { setIsEditOpen(false); setEditMeetingId(null) }} style={{ padding: 'var(--space-2)' }}>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M18 6L6 18M6 6l12 12"/>
+                </svg>
+              </button>
+            </div>
             {editLoading ? (
               <div>Wczytywanie…</div>
             ) : (

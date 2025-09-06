@@ -49,7 +49,7 @@ export default function CalculatorSettingsPage() {
           <h1 className="page-title">Ustawienia kalkulatora</h1>
           <p className="text-gray-600">Edycja wartości, cen i parametrów (lokalnie)</p>
         </div>
-        <div style={{ display: 'flex', gap: 8 }}>
+        <div className="flex items-center gap-4">
           <button className="secondary" onClick={reset}>Przywróć domyślne</button>
           <button className="primary" onClick={save}>Zapisz</button>
         </div>
