@@ -16,7 +16,8 @@ export default defineConfig({
         cleanupOutdatedCaches: true,
         runtimeCaching: [
           {
-            urlPattern: ({ url }) => url.pathname.startsWith('/api'),
+            // Local/proxied API calls
+            urlPattern: /\/api\//,
             handler: 'NetworkFirst',
             options: {
               cacheName: 'api-cache',
@@ -24,13 +25,13 @@ export default defineConfig({
               cacheableResponse: { statuses: [0, 200] },
               expiration: {
                 maxEntries: 200,
-                maxAgeSeconds: 60 * 60 * 24, // 1 day
+                maxAgeSeconds: 60 * 60 * 24,
               },
             },
           },
           {
-            // Handle Railway-hosted backend (e.g., https://*.railway.app/api/*)
-            urlPattern: ({ url }) => url.host.endsWith('.railway.app') && url.pathname.startsWith('/api'),
+            // Railway-hosted backend API (e.g., https://*.railway.app/api/*)
+            urlPattern: /https?:\/\/[^/]*\.railway\.app\/api\//,
             handler: 'NetworkFirst',
             options: {
               cacheName: 'api-cache-railway',
@@ -38,7 +39,7 @@ export default defineConfig({
               cacheableResponse: { statuses: [0, 200] },
               expiration: {
                 maxEntries: 200,
-                maxAgeSeconds: 60 * 60 * 24, // 1 day
+                maxAgeSeconds: 60 * 60 * 24,
               },
             },
           },
