@@ -1,8 +1,8 @@
 import { Router } from 'express'
 import { PrismaClient } from '@prisma/client'
-// Load default calculator data from frontend JSON using require to avoid TS JSON import issues
+// Load default calculator data from backend-local JSON to work in container runtime
 // eslint-disable-next-line @typescript-eslint/no-var-requires
-const baseData: any = require('../../../frontend/src/data/calculatorData.json')
+const baseData: any = require('../data/calculatorData.json')
 import { requireAuth, requireManagerOrAdmin } from '../middleware/auth'
 
 const prisma = new PrismaClient()
