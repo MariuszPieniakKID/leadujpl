@@ -1,14 +1,15 @@
 import { useEffect, useMemo, useState } from 'react'
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-import { Link } from 'react-router-dom'
-import { Calendar as BigCalendar, Views, type SlotInfo, type View } from 'react-big-calendar'
+import BigCalendar from 'react-big-calendar'
 import withDragAndDrop from 'react-big-calendar/lib/addons/dragAndDrop'
 import 'react-big-calendar/lib/addons/dragAndDrop/styles.css'
 import 'react-big-calendar/lib/css/react-big-calendar.css'
-import { dateFnsLocalizer } from 'react-big-calendar'
+const Views: any = (BigCalendar as any).Views || {}
+const dateFnsLocalizer: any = (BigCalendar as any).dateFnsLocalizer
 import { format, parse, startOfWeek, getDay, addHours, setHours, setMinutes } from 'date-fns'
 import { pl } from 'date-fns/locale'
 import type { Locale } from 'date-fns'
+type SlotInfo = any
+type View = any
 import { DndProvider } from 'react-dnd'
 import { HTML5Backend } from 'react-dnd-html5-backend'
 import api from '../lib/api'
@@ -30,13 +31,13 @@ export default function CalendarPage() {
   const [meetings, setMeetings] = useState<Meeting[]>([])
   const [users, setUsers] = useState<User[]>([])
   const [selectedUserId, setSelectedUserId] = useState<string | undefined>(undefined)
-  const allowedViews: View[] = [Views.MONTH, Views.WEEK, Views.DAY]
+  const allowedViews: any[] = [Views.MONTH, Views.WEEK, Views.DAY]
   const [currentDate, setCurrentDate] = useState<Date>(() => {
     const raw = typeof window !== 'undefined' ? localStorage.getItem('calendar_date') : null
     const d = raw ? new Date(raw) : new Date()
     return isNaN(d.getTime()) ? new Date() : d
   })
-  const [currentView, setCurrentView] = useState<View>(() => {
+  const [currentView, setCurrentView] = useState<any>(() => {
     const raw = typeof window !== 'undefined' ? (localStorage.getItem('calendar_view') as View | null) : null
     return raw && allowedViews.includes(raw) ? raw : Views.WEEK
   })
@@ -404,8 +405,7 @@ export default function CalendarPage() {
     }
   }
 
-  const DnDCalendar = useMemo(() => withDragAndDrop<BigCalendarEvent>(BigCalendar as any), [])
-  type BigCalendarEvent = { id: string; title: string; start: Date; end: Date }
+  const DnDCalendar = useMemo(() => withDragAndDrop(BigCalendar as any) as any, [])
 
   return (
     <div className="container">
