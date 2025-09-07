@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import baseData from '../data/calculatorData.json'
-import api from '../lib/api'
+import api, { generateOfferPDF, saveOfferForClient } from '../lib/api'
 import { getUser } from '../lib/auth'
 import { Link } from 'react-router-dom'
 
@@ -86,6 +86,62 @@ export default function CalculatorPage() {
       monthly,
     }
   }, [form, prices, settings, grantOptions])
+
+  // const [offerBlob, setOfferBlob] = useState<Blob | null>(null)
+  const [saveOpen, setSaveOpen] = useState(false)
+  const [clientQuery, setClientQuery] = useState('')
+  const [clientOptions, setClientOptions] = useState<any[]>([])
+  const [saving, setSaving] = useState(false)
+  const [saveError, setSaveError] = useState<string | null>(null)
+  const [selectedClientId, setSelectedClientId] = useState<string | null>(null)
+
+  async function onGeneratePDF() {
+    const snapshot = { form, calc }
+    const blob = await generateOfferPDF(snapshot)
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = 'oferta.pdf'
+    a.click()
+    URL.revokeObjectURL(url)
+  }
+
+  function openSave() {
+    setSaveError(null)
+    setSelectedClientId(null)
+    setClientQuery('')
+    setClientOptions([])
+    setSaveOpen(true)
+  }
+
+  async function submitSave() {
+    try {
+      setSaveError(null)
+      setSaving(true)
+      if (!selectedClientId) { setSaveError('Wybierz klienta'); return }
+      const snapshot = { form, calc }
+      await saveOfferForClient(selectedClientId, undefined, snapshot)
+      setSaveOpen(false)
+    } catch (e: any) {
+      setSaveError(e?.response?.data?.error || 'Nie udało się zapisać oferty')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  // search my clients
+  useState(() => {
+    const handler = setTimeout(async () => {
+      const q = clientQuery.trim()
+      if (!saveOpen || q.length < 2) { setClientOptions([]); return }
+      try {
+        const res = await api.get('/api/clients/mine')
+        const list = (res.data as any[]).filter(c => (`${c.firstName} ${c.lastName} ${c.phone||''} ${c.email||''} ${c.city||''} ${c.street||''}`).toLowerCase().includes(q.toLowerCase()))
+        setClientOptions(list.slice(0, 10))
+      } catch { setClientOptions([]) }
+    }, 250)
+    return () => clearTimeout(handler)
+  })
 
   return (
     <div className="container">
@@ -197,7 +253,46 @@ export default function CalculatorPage() {
             </div>
           </div>
         </div>
+
+        <div className="modal-footer" style={{ justifyContent: 'flex-end' }}>
+          <button className="secondary" onClick={openSave}>Zapisz do klienta</button>
+          <button className="primary" onClick={onGeneratePDF}>Generuj PDF</button>
+        </div>
       </section>
+
+      {saveOpen && (
+        <div className="modal-overlay">
+          <div className="modal-content" style={{ maxWidth: 560 }}>
+            <div className="modal-header">
+              <h3 className="modal-title">Zapisz ofertę do klienta</h3>
+              <button className="secondary" onClick={() => setSaveOpen(false)} style={{ padding: 'var(--space-2)' }}>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M18 6L6 18M6 6l12 12"/>
+                </svg>
+              </button>
+            </div>
+            <div className="form-group">
+              <label className="form-label">Wybierz klienta</label>
+              <input className="form-input" placeholder="Szukaj..." value={clientQuery} onChange={e => { setClientQuery(e.target.value); setSelectedClientId(null) }} />
+              {clientOptions.length > 0 && (
+                <div className="card" style={{ marginTop: 6, maxHeight: 220, overflowY: 'auto' }}>
+                  {clientOptions.map((c) => (
+                    <div key={c.id} style={{ padding: 8, cursor: 'pointer' }} onClick={() => { setSelectedClientId(c.id); setClientQuery(`${c.firstName} ${c.lastName}`) }}>
+                      <div style={{ fontWeight: 600 }}>{c.firstName} {c.lastName}</div>
+                      <div className="muted" style={{ fontSize: 12 }}>{[c.phone, c.email, c.city, c.street].filter(Boolean).join(' • ')}</div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+            {saveError && <div className="text-error text-sm mt-4 p-3 bg-error-50 rounded border border-error-200">{saveError}</div>}
+            <div className="modal-footer">
+              <button className="secondary" onClick={() => setSaveOpen(false)}>Anuluj</button>
+              <button className="primary" disabled={saving || !selectedClientId} onClick={submitSave}>{saving ? 'Zapisywanie…' : 'Zapisz'}</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

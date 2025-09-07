@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import api from '../lib/api'
+import api, { listClientOffers, downloadOffer } from '../lib/api'
 
 type Client = {
   id: string
@@ -71,6 +71,7 @@ export default function MyClientsPage() {
                   <th>E-mail</th>
                   <th>Adres</th>
                   <th>Kategoria</th>
+                  <th>Oferty</th>
                 </tr>
               </thead>
               <tbody>
@@ -82,6 +83,9 @@ export default function MyClientsPage() {
                     <td>{c.email || <span className="text-gray-400">—</span>}</td>
                     <td>{[c.street, c.city].filter(Boolean).join(', ') || <span className="text-gray-400">—</span>}</td>
                     <td>{c.category || <span className="text-gray-400">—</span>}</td>
+                    <td>
+                      <ClientOffers clientId={c.id} />
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -89,6 +93,48 @@ export default function MyClientsPage() {
           </div>
         )}
       </div>
+    </div>
+  )
+}
+
+function ClientOffers({ clientId }: { clientId: string }) {
+  const [offers, setOffers] = useState<Array<{ id: string; fileName: string; createdAt: string }>>([])
+  const [open, setOpen] = useState(false)
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  async function load() {
+    try {
+      setLoading(true)
+      setError(null)
+      const list = await listClientOffers(clientId)
+      setOffers(list)
+    } catch (e: any) {
+      setError(e?.response?.data?.error || 'Nie udało się pobrać ofert')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  return (
+    <div>
+      <button className="btn btn-sm secondary" onClick={() => { setOpen(o => !o); if (!open) load() }}>{open ? 'Ukryj' : 'Pokaż'}</button>
+      {open && (
+        <div className="card" style={{ marginTop: 6 }}>
+          {loading ? <div className="text-sm text-gray-500">Ładowanie…</div> : error ? <div className="text-error text-sm">{error}</div> : (
+            offers.length === 0 ? <div className="text-sm text-gray-500">Brak ofert</div> : (
+              <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'grid', gap: 6 }}>
+                {offers.map(o => (
+                  <li key={o.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span>{o.fileName}</span>
+                    <a className="btn btn-sm" href={downloadOffer(o.id)} target="_blank" rel="noreferrer">Pobierz</a>
+                  </li>
+                ))}
+              </ul>
+            )
+          )}
+        </div>
+      )}
     </div>
   )
 }

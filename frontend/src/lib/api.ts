@@ -83,4 +83,24 @@ export async function deleteClient(id: string) {
   return res.data;
 }
 
+// Offers
+export async function generateOfferPDF(snapshot: any): Promise<Blob> {
+  const res = await api.post(`/api/offers/generate`, snapshot, { responseType: 'blob' })
+  return res.data as Blob
+}
+
+export async function saveOfferForClient(clientId: string, fileName: string | undefined, snapshot: any): Promise<{ id: string; fileName: string }> {
+  const res = await api.post(`/api/offers/save`, { clientId, fileName, snapshot })
+  return res.data
+}
+
+export async function listClientOffers(clientId: string): Promise<Array<{ id: string; fileName: string; createdAt: string }>> {
+  const res = await api.get(`/api/offers/client/${clientId}`)
+  return res.data
+}
+
+export function downloadOffer(offerId: string): string {
+  return `${import.meta.env.VITE_API_BASE || ''}/api/offers/${offerId}/download`
+}
+
 
