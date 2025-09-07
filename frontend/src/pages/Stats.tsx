@@ -187,7 +187,7 @@ function ChartLine({ labels, values, suffix }: { labels: string[]; values: numbe
   const handleLeave = () => setHoverIdx(null)
 
   const hoverXPct = hoverIdx == null ? null : (hoverIdx / n) * 100
-  const hoverYPct = hoverIdx == null ? null : 100 - ((values[hoverIdx] || 0) / max) * 100
+  const _hoverYPct = hoverIdx == null ? null : 100 - ((values[hoverIdx] || 0) / max) * 100
 
   // compute axis ticks aligned to points
   const tickCount = Math.min(8, Math.max(2, labels.length))

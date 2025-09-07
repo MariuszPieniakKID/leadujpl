@@ -443,9 +443,9 @@ export default function CalendarPage() {
           startAccessor="start"
           endAccessor="end"
           view={currentView}
-          onView={v => setCurrentView(v)}
+          onView={(v: any) => setCurrentView(v)}
           date={currentDate}
-          onNavigate={date => setCurrentDate(date)}
+          onNavigate={(date: any) => setCurrentDate(date)}
           defaultView={Views.WEEK}
           views={[Views.MONTH, Views.WEEK, Views.DAY]}
           step={30}
@@ -457,9 +457,9 @@ export default function CalendarPage() {
           popup
           style={{ height: 'calc(100vh - 220px)' }}
           onSelectSlot={onSelect}
-          onSelectEvent={e => openEditModal((e as any).id)}
-          onEventDrop={({ event, start, end }) => onEventDrop((event as any).id, start as Date, end as Date)}
-          onEventResize={({ event, start, end }) => onEventDrop((event as any).id, start as Date, end as Date)}
+          onSelectEvent={(e: any) => openEditModal((e as any).id)}
+          onEventDrop={({ event, start, end }: any) => onEventDrop((event as any).id, start as Date, end as Date)}
+          onEventResize={({ event, start, end }: any) => onEventDrop((event as any).id, start as Date, end as Date)}
           resizable
           culture="pl"
           messages={{
