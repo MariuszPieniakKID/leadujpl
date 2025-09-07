@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { Link } from 'react-router-dom'
 import { Calendar as BigCalendar, Views, type SlotInfo, type View } from 'react-big-calendar'
 import withDragAndDrop from 'react-big-calendar/lib/addons/dragAndDrop'

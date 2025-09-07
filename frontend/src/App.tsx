@@ -1142,10 +1142,10 @@ function App() {
   function NavBar() {
     const user = getUser()
     const [menuOpen, setMenuOpen] = useState(false)
-    function toggleTheme() {
-      const isDark = document.documentElement.classList.toggle('dark')
-      try { localStorage.setItem('theme', isDark ? 'dark' : 'light') } catch {}
-    }
+    // function toggleTheme() {
+    //   const isDark = document.documentElement.classList.toggle('dark')
+    //   try { localStorage.setItem('theme', isDark ? 'dark' : 'light') } catch {}
+    // }
     return (
       <nav className="navbar">
         <div className="brand"><Logo size={22} /></div>

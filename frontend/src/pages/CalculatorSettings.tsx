@@ -74,8 +74,8 @@ export default function CalculatorSettingsPage() {
             <div className="form-group" key={k} style={{ gridColumn: '1 / -1' }}>
               <label className="form-label">{k}</label>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
-                <input className="form-input" type="number" step="0.01" value={Number(pricing.pvPowerPriceD[k] || 0)} onChange={e => setPricing({ ...pricing, pvPowerPriceD: { ...pricing.pvPowerPriceD, [k]: Number(e.target.value || 0) } })} placeholder="Cena baza (netto)" />
-                <input className="form-input" type="number" step="0.01" value={Number(pricing.pvPowerPriceE[k] || 0)} onChange={e => setPricing({ ...pricing, pvPowerPriceE: { ...pricing.pvPowerPriceE, [k]: Number(e.target.value || 0) } })} placeholder="Dopłata grunt (netto)" />
+                <input className="form-input" type="number" step="0.01" value={Number((pricing.pvPowerPriceD as any)[k] || 0)} onChange={e => setPricing({ ...pricing, pvPowerPriceD: { ...(pricing.pvPowerPriceD as any), [k]: Number(e.target.value || 0) } as any })} placeholder="Cena baza (netto)" />
+                <input className="form-input" type="number" step="0.01" value={Number((pricing.pvPowerPriceE as any)[k] || 0)} onChange={e => setPricing({ ...pricing, pvPowerPriceE: { ...(pricing.pvPowerPriceE as any), [k]: Number(e.target.value || 0) } as any })} placeholder="Dopłata grunt (netto)" />
               </div>
             </div>
           ))}
@@ -88,7 +88,7 @@ export default function CalculatorSettingsPage() {
           {inverterKeys.map((k) => (
             <div className="form-group" key={k}>
               <label className="form-label">{k}</label>
-              <input className="form-input" type="number" step="0.01" value={Number(pricing.inverterMap[k] || 0)} onChange={e => setPricing({ ...pricing, inverterMap: { ...pricing.inverterMap, [k]: Number(e.target.value || 0) } })} />
+              <input className="form-input" type="number" step="0.01" value={Number((pricing.inverterMap as any)[k] || 0)} onChange={e => setPricing({ ...pricing, inverterMap: { ...(pricing.inverterMap as any), [k]: Number(e.target.value || 0) } as any })} />
             </div>
           ))}
         </div>
@@ -100,7 +100,7 @@ export default function CalculatorSettingsPage() {
           {batteryKeys.map((k) => (
             <div className="form-group" key={k}>
               <label className="form-label">{k}</label>
-              <input className="form-input" type="number" step="0.01" value={Number(pricing.batteryMap[k] || 0)} onChange={e => setPricing({ ...pricing, batteryMap: { ...pricing.batteryMap, [k]: Number(e.target.value || 0) } })} />
+              <input className="form-input" type="number" step="0.01" value={Number((pricing.batteryMap as any)[k] || 0)} onChange={e => setPricing({ ...pricing, batteryMap: { ...(pricing.batteryMap as any), [k]: Number(e.target.value || 0) } as any })} />
             </div>
           ))}
         </div>
