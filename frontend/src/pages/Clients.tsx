@@ -26,10 +26,9 @@ export default function ClientsPage() {
     setCreateError(null)
     if (!form.firstName || !form.lastName) { setCreateError('Imię i nazwisko są wymagane'); return }
     await createClient({
-      id: '' as any,
       firstName: form.firstName!, lastName: form.lastName!, phone: form.phone || undefined, email: form.email || undefined,
       street: form.street || undefined, city: form.city || undefined, category: form.category || undefined,
-    })
+    } as any)
     setForm({ firstName: '', lastName: '', phone: '', email: '', street: '', city: '', category: '' })
     setIsCreateOpen(false)
     await load()

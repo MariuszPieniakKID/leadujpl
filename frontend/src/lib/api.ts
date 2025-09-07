@@ -58,6 +58,9 @@ export type Client = {
   street?: string | null;
   city?: string | null;
   category?: string | null;
+  pvInstalled?: boolean | null;
+  billRange?: string | null;
+  extraComments?: string | null;
 };
 
 export async function fetchClients() {
