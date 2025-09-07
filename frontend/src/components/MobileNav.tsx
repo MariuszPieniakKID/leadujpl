@@ -1,5 +1,5 @@
 import { NavLink, useLocation } from 'react-router-dom'
-import { getUser, clearAuth } from '../lib/auth'
+import { getUser } from '../lib/auth'
 
 export default function MobileNav() {
   const user = getUser()
@@ -38,24 +38,6 @@ export default function MobileNav() {
           <span>{label}</span>
         </NavLink>
       ))}
-      <button
-        type="button"
-        onClick={() => { clearAuth(); window.location.href = '/login' }}
-        aria-label="Wyloguj"
-        className="logout-tab"
-      >
-        <LogoutIcon />
-        <span>Wyloguj</span>
-      </button>
-      <button
-        type="button"
-        onClick={() => window.dispatchEvent(new Event('show-install-prompt'))}
-        aria-label="Zainstaluj"
-        className="install-tab"
-      >
-        <InstallIcon />
-        <span>Instaluj</span>
-      </button>
     </nav>
   )
 }
@@ -115,26 +97,6 @@ function UserIcon() {
     <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
       <path d="M20 21a8 8 0 0 0-16 0"/>
       <circle cx="12" cy="7" r="4"/>
-    </svg>
-  )
-}
-
-function LogoutIcon() {
-  return (
-    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
-      <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
-      <path d="M16 17l5-5-5-5"/>
-      <path d="M21 12H9"/>
-    </svg>
-  )
-}
-
-function InstallIcon() {
-  return (
-    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
-      <path d="M12 3v12"/>
-      <path d="M7 10l5 5 5-5"/>
-      <path d="M5 21h14"/>
     </svg>
   )
 }

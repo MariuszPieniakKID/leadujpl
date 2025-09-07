@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { clearAuth } from '../lib/auth'
 import api from '../lib/api'
 
 type Me = {
@@ -122,8 +123,9 @@ export default function AccountPage() {
           </div>
         </div>
         {error && <div className="text-error text-sm mt-4 p-3 bg-error-50 rounded border border-error-200">{error}</div>}
-        <div className="modal-footer" style={{ justifyContent: 'flex-start' }}>
+        <div className="modal-footer" style={{ justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
           <button className="primary" onClick={save} disabled={saving}>{saving ? 'Zapisywanie…' : 'Zapisz'}</button>
+          <button className="danger" onClick={() => { clearAuth(); window.location.href = '/login' }}>Wyloguj</button>
         </div>
       </section>
     </div>
