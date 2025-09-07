@@ -435,6 +435,7 @@ export default function CalendarPage() {
       </div>
 
       <div className="calendar-container">
+        <div className="calendar-shell">
         <DndProvider backend={HTML5Backend}>
         <DnDCalendar
           localizer={localizer}
@@ -454,7 +455,7 @@ export default function CalendarPage() {
           scrollToTime={setHours(setMinutes(new Date(), 0), 8)}
           selectable
           popup
-          style={{ height: 'calc(100vh - 220px)' }}
+          style={{ height: '100%' }}
           onSelectSlot={onSelect}
           onSelectEvent={(e: any) => openEditModal((e as any).id)}
           onEventDrop={({ event, start, end }: any) => onEventDrop((event as any).id, start as Date, end as Date)}
@@ -467,6 +468,7 @@ export default function CalendarPage() {
           }}
         />
         </DndProvider>
+        </div>
       </div>
 
       {isCreateOpen && (
@@ -506,21 +508,19 @@ export default function CalendarPage() {
                     <option value="Inne">Inne</option>
                   </select>
                 </div>
-                <div className="form-group">
-                  <label className="form-label">Początek - Data</label>
-                  <input className="form-input" type="date" value={createForm.startDate} onChange={e => setCreateForm({ ...createForm, startDate: e.target.value, endDate: e.target.value })} />
+                <div className="form-group" style={{ gridColumn: '1 / -1' }}>
+                  <label className="form-label">Początek</label>
+                  <div className="datetime-grid">
+                    <input className="form-input" type="date" value={createForm.startDate} onChange={e => setCreateForm({ ...createForm, startDate: e.target.value, endDate: e.target.value })} />
+                    <input className="form-input" type="time" value={createForm.startTime} onChange={e => setCreateForm({ ...createForm, startTime: e.target.value })} />
+                  </div>
                 </div>
-                <div className="form-group">
-                  <label className="form-label">Początek - Godzina</label>
-                  <input className="form-input" type="time" value={createForm.startTime} onChange={e => setCreateForm({ ...createForm, startTime: e.target.value })} />
-                </div>
-                <div className="form-group">
-                  <label className="form-label">Koniec - Data</label>
-                  <input className="form-input" type="date" value={createForm.endDate} onChange={e => setCreateForm({ ...createForm, endDate: e.target.value })} />
-                </div>
-                <div className="form-group">
-                  <label className="form-label">Koniec - Godzina</label>
-                  <input className="form-input" type="time" value={createForm.endTime} onChange={e => setCreateForm({ ...createForm, endTime: e.target.value })} />
+                <div className="form-group" style={{ gridColumn: '1 / -1' }}>
+                  <label className="form-label">Koniec</label>
+                  <div className="datetime-grid">
+                    <input className="form-input" type="date" value={createForm.endDate} onChange={e => setCreateForm({ ...createForm, endDate: e.target.value })} />
+                    <input className="form-input" type="time" value={createForm.endTime} onChange={e => setCreateForm({ ...createForm, endTime: e.target.value })} />
+                  </div>
                 </div>
               </div>
             </div>
