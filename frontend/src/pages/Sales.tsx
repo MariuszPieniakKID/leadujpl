@@ -127,6 +127,15 @@ function AddSalesForm({ onCreated }: { onCreated: () => void }) {
   const [form, setForm] = useState({ firstName: '', lastName: '', email: '', phone: '', password: '' })
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [isMobile, setIsMobile] = useState(false)
+
+  useEffect(() => {
+    const mq = window.matchMedia('(max-width: 768px)')
+    const update = () => setIsMobile(mq.matches)
+    update()
+    mq.addEventListener('change', update)
+    return () => mq.removeEventListener('change', update)
+  }, [])
 
   async function submit() {
     try {
@@ -164,8 +173,8 @@ function AddSalesForm({ onCreated }: { onCreated: () => void }) {
   }
 
   return (
-    <div className="modal-overlay">
-      <div className="modal-content" style={{ maxWidth: '500px' }}>
+    <div className={`modal-overlay${isMobile ? ' sheet' : ''}`}>
+      <div className={`modal-content${isMobile ? ' sheet' : ''}`} style={isMobile ? undefined : { maxWidth: '500px' }}>
         <div className="modal-header">
           <h3 className="modal-title">Nowy handlowiec</h3>
           <button className="secondary" onClick={() => setOpen(false)} style={{ padding: 'var(--space-2)' }}>

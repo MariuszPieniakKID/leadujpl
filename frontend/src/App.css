@@ -1070,6 +1070,19 @@ textarea {
   z-index: var(--z-modal);
   animation: slideUp var(--duration-500) var(--ease-out);
 }
+.modal-overlay.sheet {
+  align-items: flex-end;
+  padding: 0;
+}
+
+.modal-content.sheet {
+  max-height: 88vh;
+  width: 100%;
+  max-width: none;
+  border-radius: var(--radius-3xl) var(--radius-3xl) 0 0;
+  padding-bottom: calc(var(--space-8) + env(safe-area-inset-bottom));
+}
+
 
 @keyframes slideUp {
   from { 
