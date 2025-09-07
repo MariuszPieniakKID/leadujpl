@@ -1045,7 +1045,7 @@ textarea {
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: var(--z-modal-backdrop);
+  z-index: var(--z-maximum);
   padding: var(--space-6);
   animation: fadeIn var(--duration-300) var(--ease-out);
 }
@@ -1067,7 +1067,7 @@ textarea {
   overflow-y: auto;
   padding: var(--space-10);
   position: relative;
-  z-index: var(--z-modal);
+  z-index: calc(var(--z-maximum) + 1);
   animation: slideUp var(--duration-500) var(--ease-out);
 }
 .modal-overlay.sheet {

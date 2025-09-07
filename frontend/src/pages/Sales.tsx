@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import { createPortal } from 'react-dom'
 import api from '../lib/api'
 import { getUser } from '../lib/auth'
 
@@ -172,8 +173,8 @@ function AddSalesForm({ onCreated }: { onCreated: () => void }) {
     )
   }
 
-  return (
-    <div className={`modal-overlay${isMobile ? ' sheet' : ''}`}>
+  return createPortal(
+    <div className={`modal-overlay${isMobile ? ' sheet' : ''}`} role="dialog" aria-modal="true">
       <div className={`modal-content${isMobile ? ' sheet' : ''}`} style={isMobile ? undefined : { maxWidth: '500px' }}>
         <div className="modal-header">
           <h3 className="modal-title">Nowy handlowiec</h3>
@@ -216,7 +217,8 @@ function AddSalesForm({ onCreated }: { onCreated: () => void }) {
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   )
 }
 
