@@ -34,13 +34,34 @@ export default function InstallPrompt() {
     const handler = (e: Event) => {
       e.preventDefault()
       setDeferredPrompt(e as BeforeInstallPromptEvent)
+      ;(window as any).__deferredBeforeInstallPrompt = e as BeforeInstallPromptEvent
       setVisible(true)
     }
     // @ts-ignore: beforeinstallprompt is not fully typed
     window.addEventListener('beforeinstallprompt', handler)
+    
+    const manualShow = async () => {
+      if (isStandalone()) return
+      // Android prompt available
+      const dp = (window as any).__deferredBeforeInstallPrompt as BeforeInstallPromptEvent | undefined
+      if (dp) {
+        try {
+          await dp.prompt()
+          await dp.userChoice
+          setVisible(false)
+          setDeferredPrompt(null)
+          ;(window as any).__deferredBeforeInstallPrompt = undefined
+          return
+        } catch {}
+      }
+      // Fallback: show banner (or iOS tip)
+      setVisible(true)
+    }
+    window.addEventListener('show-install-prompt', manualShow as EventListener)
     return () => {
       // @ts-ignore
       window.removeEventListener('beforeinstallprompt', handler)
+      window.removeEventListener('show-install-prompt', manualShow as EventListener)
     }
   }, [])
 

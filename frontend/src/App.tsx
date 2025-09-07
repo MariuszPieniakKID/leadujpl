@@ -1140,6 +1140,17 @@ function AdminPage() {
 }
 
 function App() {
+  function useIsMobile() {
+    const [isMobile, setIsMobile] = useState(false)
+    useEffect(() => {
+      const mq = window.matchMedia('(max-width: 768px)')
+      const update = () => setIsMobile(mq.matches)
+      update()
+      mq.addEventListener('change', update)
+      return () => mq.removeEventListener('change', update)
+    }, [])
+    return isMobile
+  }
   function NavBar() {
     const user = getUser()
     const [menuOpen, setMenuOpen] = useState(false)
@@ -1175,10 +1186,11 @@ function App() {
   }
   function Shell() {
     const location = useLocation()
+    const isMobile = useIsMobile()
     const showNav = location.pathname !== '/login'
     return (
       <>
-        {showNav && <NavBar />}
+        {showNav && !isMobile && <NavBar />}
         <Routes>
           <Route path="/login" element={<Login />} />
           <Route path="/" element={<Protected><Dashboard /></Protected>} />
