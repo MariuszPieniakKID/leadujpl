@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import axios from 'axios'
+import api from '../lib/api'
 import { saveAuth } from '../lib/auth'
 import Logo from '../components/Logo'
 import { useNavigate } from 'react-router-dom'
@@ -14,7 +14,7 @@ export default function Login() {
     e.preventDefault()
     setError('')
     try {
-      const res = await axios.post('/api/auth/login', { email, password })
+      const res = await api.post('/api/auth/login', { email, password })
       saveAuth(res.data.token, res.data.user)
       navigate('/')
     } catch (e: any) {
