@@ -54,6 +54,7 @@ model User {
   manager   User?    @relation("ManagerToSales", fields: [managerId], references: [id])
   managerId String?
   sales     User[]   @relation("ManagerToSales")
+  offers    Offer[]
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
@@ -118,6 +119,7 @@ model Client {
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
   meetings     Meeting[]
+  offers       Offer[]
   @@index([lastName])
 }
 
@@ -128,4 +130,20 @@ model CalculatorConfig {
   pricing     Json
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+}
+
+model Offer {
+  id         String   @id @default(cuid())
+  client     Client   @relation(fields: [clientId], references: [id])
+  clientId   String
+  owner      User     @relation(fields: [ownerId], references: [id])
+  ownerId    String
+  fileName   String
+  mimeType   String
+  pdf        Bytes
+  snapshot   Json
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  @@index([clientId])
+  @@index([ownerId])
 }
