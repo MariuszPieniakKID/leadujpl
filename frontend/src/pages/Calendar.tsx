@@ -195,7 +195,7 @@ export default function CalendarPage() {
     extraComments: '',
     status: '', // 'Sukces' | 'Porażka' | 'Dogrywka' | ''
   })
-  const [showFollowUpCreate, setShowFollowUpCreate] = useState(false)
+  const [, setShowFollowUpCreate] = useState(false)
   const [editSectionsOpen, setEditSectionsOpen] = useState({ meeting: false, client: false, extra: false })
 
   async function onSelect(slot: SlotInfo) {
@@ -464,7 +464,7 @@ export default function CalendarPage() {
           culture="pl"
           messages={{
             today: 'Dziś', previous: 'Poprzedni', next: 'Następny', month: 'Miesiąc', week: 'Tydzień', day: 'Dzień',
-            showMore: total => `+${total} więcej`
+            showMore: (total: any) => `+${total} więcej`
           }}
         />
         </DndProvider>

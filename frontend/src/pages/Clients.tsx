@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { fetchClients, createClient, updateClient, deleteClient, type Client } from '../lib/api'
+import { fetchClients, createClient, deleteClient, type Client } from '../lib/api'
 
 export default function ClientsPage() {
   const [clients, setClients] = useState<Client[]>([])
