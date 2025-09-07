@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import InstallPrompt from './components/InstallPrompt'
 import { BrowserRouter, Routes, Route, Navigate, NavLink, useLocation, Link } from 'react-router-dom'
 import './App.css'
 
@@ -1200,6 +1201,7 @@ function App() {
     <BrowserRouter>
       <Shell />
       <MobileNav />
+      <InstallPrompt />
     </BrowserRouter>
   )
 }
