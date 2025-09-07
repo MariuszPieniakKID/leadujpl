@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import baseData from '../data/calculatorData.json'
 import api, { generateOfferPDF, saveOfferForClient } from '../lib/api'
 import { getUser } from '../lib/auth'
@@ -129,19 +129,26 @@ export default function CalculatorPage() {
     }
   }
 
-  // search my clients
-  useState(() => {
+  // search my clients (after 3 characters) across all fields
+  useEffect(() => {
     const handler = setTimeout(async () => {
       const q = clientQuery.trim()
-      if (!saveOpen || q.length < 2) { setClientOptions([]); return }
+      if (!saveOpen || selectedClientId) return
+      if (q.length < 3) { setClientOptions([]); return }
       try {
         const res = await api.get('/api/clients/mine')
-        const list = (res.data as any[]).filter(c => (`${c.firstName} ${c.lastName} ${c.phone||''} ${c.email||''} ${c.city||''} ${c.street||''}`).toLowerCase().includes(q.toLowerCase()))
+        const list = (res.data as any[]).filter(c => (
+          `${c.firstName} ${c.lastName} ${c.phone||''} ${c.email||''} ${c.city||''} ${c.street||''}`
+            .toLowerCase()
+            .includes(q.toLowerCase())
+        ))
         setClientOptions(list.slice(0, 10))
-      } catch { setClientOptions([]) }
+      } catch {
+        setClientOptions([])
+      }
     }, 250)
     return () => clearTimeout(handler)
-  })
+  }, [clientQuery, saveOpen, selectedClientId])
 
   return (
     <div className="container">
