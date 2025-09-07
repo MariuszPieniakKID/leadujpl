@@ -2,12 +2,13 @@ FROM node:22-alpine AS base
 WORKDIR /app
 
 COPY package*.json ./
-RUN npm ci --only=production && npm cache clean --force
+# Use npm install to avoid requiring a lockfile in this subpackage
+RUN npm install --omit=dev && npm cache clean --force
 
 FROM node:22-alpine AS build
 WORKDIR /app
 COPY package*.json ./
-RUN npm ci
+RUN npm install
 COPY tsconfig.json ./
 COPY prisma ./prisma
 COPY src ./src
