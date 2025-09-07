@@ -100,7 +100,7 @@ function RangeButton({ current, value, onSelect, children }: { current: Range; v
   )
 }
 
-function ChartLine({ labels, values, suffix }: { labels: string[]; values: number[]; suffix?: string }) {
+function ChartLine({ labels, values, suffix: _suffix }: { labels: string[]; values: number[]; suffix?: string }) {
   const max = Math.max(100, ...values)
   const n = Math.max(1, values.length - 1)
   const pts = values.map((v, i) => {
