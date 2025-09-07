@@ -284,7 +284,7 @@ export default function CalculatorPage() {
               {clientOptions.length > 0 && (
                 <div className="card" style={{ marginTop: 6, maxHeight: 220, overflowY: 'auto' }}>
                   {clientOptions.map((c) => (
-                    <div key={c.id} style={{ padding: 8, cursor: 'pointer' }} onClick={() => { setSelectedClientId(c.id); setClientQuery(`${c.firstName} ${c.lastName}`) }}>
+                    <div key={c.id} style={{ padding: 8, cursor: 'pointer' }} onClick={() => { setSelectedClientId(c.id); setClientQuery(`${c.firstName} ${c.lastName}`); setClientOptions([]) }}>
                       <div style={{ fontWeight: 600 }}>{c.firstName} {c.lastName}</div>
                       <div className="muted" style={{ fontSize: 12 }}>{[c.phone, c.email, c.city, c.street].filter(Boolean).join(' • ')}</div>
                     </div>
