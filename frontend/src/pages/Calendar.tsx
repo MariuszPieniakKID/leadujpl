@@ -1,10 +1,9 @@
 import { useEffect, useMemo, useState } from 'react'
-import BigCalendar from 'react-big-calendar'
+import { Calendar as BigCalendar, Views, dateFnsLocalizer } from 'react-big-calendar'
 import withDragAndDrop from 'react-big-calendar/lib/addons/dragAndDrop'
 import 'react-big-calendar/lib/addons/dragAndDrop/styles.css'
 import 'react-big-calendar/lib/css/react-big-calendar.css'
-const Views: any = (BigCalendar as any).Views || {}
-const dateFnsLocalizer: any = (BigCalendar as any).dateFnsLocalizer
+// use named exports to satisfy bundler
 import { format, parse, startOfWeek, getDay, addHours, setHours, setMinutes } from 'date-fns'
 import { pl } from 'date-fns/locale'
 import type { Locale } from 'date-fns'
