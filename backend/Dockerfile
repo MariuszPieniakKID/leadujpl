@@ -12,7 +12,9 @@ RUN npm install
 COPY tsconfig.json ./
 COPY prisma ./prisma
 COPY src ./src
-RUN npm run prisma:generate && npm run build
+RUN npm run prisma:generate && npm run build \
+  && mkdir -p dist/data \
+  && cp -r src/data/* dist/data/
 
 FROM node:22-alpine AS runtime
 WORKDIR /app
