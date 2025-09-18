@@ -116,6 +116,8 @@ model Client {
   pvInstalled  Boolean?
   billRange    String?
   extraComments String?
+  newRules     Boolean?
+  buildingType String?
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
   meetings     Meeting[]
