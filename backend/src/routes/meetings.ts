@@ -25,7 +25,15 @@ router.get('/', requireAuth, async (req, res) => {
     }
 
     const meetings = await prisma.meeting.findMany({ where: { attendeeId: targetUserId }, orderBy: { scheduledAt: 'asc' } });
-    res.json(meetings);
+    // Auto status for returned payload (derive visual status): Odbyte/Umówione based on time if no explicit status
+    const now = Date.now()
+    const mapped = meetings.map(m => {
+      const hasStatus = (m.status || '').trim().length > 0
+      if (hasStatus) return m
+      const isPast = new Date(m.scheduledAt).getTime() < now
+      return { ...m, status: isPast ? 'Odbyte' : 'Umówione' } as any
+    })
+    res.json(mapped);
   } catch (e) {
     res.status(500).json({ error: (e as Error).message });
   }

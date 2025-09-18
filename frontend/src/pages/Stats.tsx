@@ -49,8 +49,9 @@ export default function StatsPage() {
       const isPast = new Date(m.scheduledAt).getTime() <= now
       if (isPast) past++
       else future++
-      if (m.status === 'Sukces') success++
-      if (m.status === 'Dogrywka') rescheduled++
+      // Sukces = Umowa
+      if ((m.status || '').trim() === 'Umowa') success++
+      if ((m.status || '').trim() === 'Przełożone') rescheduled++
       // @ts-ignore
       const cid = m.clientId as string | undefined
       if (cid) uniqueClients.add(cid)
@@ -80,8 +81,8 @@ export default function StatsPage() {
         <div className="stats-grid">
           <div className="stat-card"><span className="stat-value">{kpi.past}</span><span className="stat-label">Odbyte</span></div>
           <div className="stat-card"><span className="stat-value">{kpi.future}</span><span className="stat-label">Umówione</span></div>
-          <div className="stat-card"><span className="stat-value text-success">{kpi.success}</span><span className="stat-label">Sukcesy</span></div>
-          <div className="stat-card"><span className="stat-value text-warning">{kpi.rescheduled}</span><span className="stat-label">Dogrywki</span></div>
+          <div className="stat-card"><span className="stat-value text-success">{kpi.success}</span><span className="stat-label">Umowy</span></div>
+          <div className="stat-card"><span className="stat-value text-warning">{kpi.rescheduled}</span><span className="stat-label">Przełożone</span></div>
           <div className="stat-card"><span className="stat-value">{kpi.leads}</span><span className="stat-label">Leady</span></div>
           <div className="stat-card"><span className="stat-value">{kpi.skutecznosc}%</span><span className="stat-label">Skuteczność</span></div>
         </div>
@@ -243,7 +244,7 @@ function ChartLine({ labels, values, suffix }: { labels: string[]; values: numbe
 
 function StatusBreakdown({ meetings }: { meetings: Meeting[] }) {
   const counts = useMemo(() => {
-    const c: Record<string, number> = { Sukces: 0, Porażka: 0, Dogrywka: 0, Brak: 0 }
+    const c: Record<string, number> = { Umowa: 0, Spadek: 0, 'Przełożone': 0, Umówione: 0, Odbyte: 0, Brak: 0 }
     for (const m of meetings) {
       const s = m.status && m.status.trim() ? m.status : 'Brak'
       c[s] = (c[s] || 0) + 1

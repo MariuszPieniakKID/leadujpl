@@ -80,7 +80,7 @@ export default function CalendarPage() {
   const events = useMemo(() => meetings.map(m => {
     const start = new Date(m.scheduledAt)
     const end = (m as any).endsAt ? new Date((m as any).endsAt) : addHours(start, 1)
-    return { id: m.id, title: m.notes || 'Spotkanie', start, end }
+    return { id: m.id, title: m.notes || 'Spotkanie', start, end, status: (m as any).status || null, raw: m }
   }), [meetings])
 
   // New meeting modal state
@@ -318,6 +318,7 @@ export default function CalendarPage() {
       await api.patch(`/api/meetings/${eventId}`, {
         scheduledAt: start.toISOString(),
         endsAt: end?.toISOString?.() || undefined,
+        status: 'Przełożone',
       })
       await refreshMeetings()
     } catch {}
@@ -462,6 +463,18 @@ export default function CalendarPage() {
           onEventResize={({ event, start, end }: any) => onEventDrop((event as any).id, start as Date, end as Date)}
           resizable
           culture="pl"
+          eventPropGetter={(event: any) => {
+            const now = Date.now()
+            const isPast = (event.start as Date).getTime() < now
+            const s = (event.status || '').trim()
+            let bg = ''
+            if (s === 'Umowa') bg = '#10b981' // green
+            else if (s === 'Spadek') bg = '#ef4444' // red
+            else if (s === 'Przełożone') bg = '#3b82f6' // blue
+            else if (!isPast) bg = '#f97316' // orange = Umówione
+            else bg = '#facc15' // yellow = Odbyte
+            return { style: { backgroundColor: bg, color: 'white', border: 'none' } }
+          }}
           messages={{
             today: 'Dziś', previous: 'Poprzedni', next: 'Następny', month: 'Miesiąc', week: 'Tydzień', day: 'Dzień',
             showMore: (total: any) => `+${total} więcej`
