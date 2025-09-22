@@ -193,12 +193,10 @@ function ClientStatusAndActions({ clientId }: { clientId: string }) {
         <option value="Sukces">Umowa</option>
         <option value="Porażka">Porażka</option>
       </select>
-      {(status === 'Sukces') && (
-        <label className="btn btn-sm secondary" style={{ margin: 0 }}>
-          {uploading ? 'Wgrywanie…' : 'Dodaj pliki'}
-          <input type="file" multiple onChange={e => onUpload(e.target.files)} style={{ display: 'none' }} />
-        </label>
-      )}
+      <label className="btn btn-sm secondary" style={{ margin: 0 }}>
+        {uploading ? 'Wgrywanie…' : 'Dodaj pliki'}
+        <input type="file" multiple onChange={e => onUpload(e.target.files)} style={{ display: 'none' }} />
+      </label>
       {info && <span className="text-xs text-green-600">{info}</span>}
       {error && <span className="text-xs text-error">{error}</span>}
     </div>
