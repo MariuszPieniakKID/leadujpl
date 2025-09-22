@@ -4,6 +4,7 @@ export type User = {
   firstName: string
   lastName: string
   role: 'ADMIN' | 'MANAGER' | 'SALES_REP'
+  managerId?: string | null
 }
 
 export function saveAuth(token: string, user: User) {

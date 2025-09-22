@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState, useRef } from 'react'
 import baseData from '../data/calculatorData.json'
 import api, { generateOfferPDF, saveOfferForClient } from '../lib/api'
 import { getUser } from '../lib/auth'
@@ -11,7 +11,7 @@ export default function CalculatorPage() {
   const user = getUser()
 
   // Load config from backend
-  useState(() => {
+  useEffect(() => {
     (async () => {
       try {
         const res = await api.get('/api/calculator/config')
@@ -20,7 +20,7 @@ export default function CalculatorPage() {
         setRemoteData(null)
       }
     })()
-  })
+  }, [])
 
   const pvOptions = useMemo(() => Object.keys((data as any).pricing.pvPowerPriceD || {}), [data])
   const batteryOptions = useMemo(() => Object.keys((data as any).pricing.batteryMap || {}), [data])
@@ -352,8 +352,8 @@ function SalesMarginButton() {
   const [percent, setPercent] = useState<number>(() => {
     try { const raw = localStorage.getItem('salesMargin'); return raw ? Number(JSON.parse(raw).percent || 0) : 0 } catch { return 0 }
   })
-  const btnRef = React.useRef<HTMLButtonElement | null>(null)
-  const panelRef = React.useRef<HTMLDivElement | null>(null)
+  const btnRef = useRef<HTMLButtonElement | null>(null)
+  const panelRef = useRef<HTMLDivElement | null>(null)
   const [pos, setPos] = useState<{ top: number; left: number } | null>(null)
   function save() {
     const payload = { amount: Number(amount || 0), percent: Number(percent || 0) }
