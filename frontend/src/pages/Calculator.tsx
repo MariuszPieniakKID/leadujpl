@@ -74,15 +74,9 @@ export default function CalculatorPage() {
     const batteryPrice = form.battery ? Number(prices.batteryMap[form.battery] || 0) : 0
     const backupPrice = form.backup === 'Tak' ? Number(settings['Dodatki: Backup (netto)'] || 0) : 0
     const trenchPrice = form.trench === 'Tak' ? Number(settings['Dodatki: Przekop (netto)'] || 0) : 0
-    const subtotalNet = pvBase + pvGroundExtra + inverterPrice + batteryPrice + backupPrice + trenchPrice
-
-    const grant = (grantOptions.find(g => g.label === form.grant)?.value) || 0
-    const totalAfterGrant = Math.max(subtotalNet - grant, 0)
-    let financed = Math.max(totalAfterGrant - (form.downPayment || 0), 0)
-
-    const rrsoYear = Number(settings['RRSO (rocznie)'] || 0.1)
-    const rateMonthly = rrsoYear / 12
-    // Apply manager margin (for sales assigned to manager)
+    const subtotalPlain = pvBase + pvGroundExtra + inverterPrice + batteryPrice + backupPrice + trenchPrice
+    // Manager margin on subtotal
+    let subtotalNet = subtotalPlain
     try {
       const margins = (data as any).settings?.margins || {}
       const managerId = user?.managerId || null
@@ -90,20 +84,28 @@ export default function CalculatorPage() {
       if (m) {
         const amount = Number(m.amount || 0)
         const percent = Number(m.percent || 0)
-        const uplift = (percent > 0) ? (financed * (percent / 100)) : amount
-        financed = Math.max(financed + Math.max(uplift, 0), 0)
+        const uplift = (percent > 0) ? (subtotalNet * (percent / 100)) : amount
+        subtotalNet = Math.max(subtotalNet + Math.max(uplift, 0), 0)
       }
     } catch {}
-    // Apply sales rep personal margin (independent from manager margin)
+    // Sales margin on subtotal
     if (user && user.role === 'SALES_REP') {
       const sm = getSalesMargin()
       if (sm) {
         const amount = Number(sm.amount || 0)
         const percent = Number(sm.percent || 0)
-        const uplift = (percent > 0) ? (financed * (percent / 100)) : amount
-        financed = Math.max(financed + Math.max(uplift, 0), 0)
+        const uplift = (percent > 0) ? (subtotalNet * (percent / 100)) : amount
+        subtotalNet = Math.max(subtotalNet + Math.max(uplift, 0), 0)
       }
     }
+
+    const grant = (grantOptions.find(g => g.label === form.grant)?.value) || 0
+    const totalAfterGrant = Math.max(subtotalNet - grant, 0)
+    let financed = Math.max(totalAfterGrant - (form.downPayment || 0), 0)
+
+    const rrsoYear = Number(settings['RRSO (rocznie)'] || 0.1)
+    const rateMonthly = rrsoYear / 12
+    // (margins already applied in subtotalNet)
     const monthly = pmt(rateMonthly, form.termMonths, financed)
 
     return {

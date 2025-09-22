@@ -60,7 +60,35 @@ export default function EmbeddedCalculator({ clientId, meetingId, offerId, onSav
     const batteryPrice = form.battery ? Number(prices.batteryMap[form.battery] || 0) : 0
     const backupPrice = form.backup === 'Tak' ? Number(settings['Dodatki: Backup (netto)'] || 0) : 0
     const trenchPrice = form.trench === 'Tak' ? Number(settings['Dodatki: Przekop (netto)'] || 0) : 0
-    const subtotalNet = pvBase + pvGroundExtra + inverterPrice + batteryPrice + backupPrice + trenchPrice
+    const subtotalPlain = pvBase + pvGroundExtra + inverterPrice + batteryPrice + backupPrice + trenchPrice
+
+    // Apply manager margin to subtotal (net price)
+    let subtotalNet = subtotalPlain
+    try {
+      const margins = (data as any).settings?.margins || {}
+      const managerId = user?.managerId || null
+      const m = managerId ? margins[managerId] : null
+      if (m) {
+        const amount = Number(m.amount || 0)
+        const percent = Number(m.percent || 0)
+        const uplift = (percent > 0) ? (subtotalNet * (percent / 100)) : amount
+        subtotalNet = Math.max(subtotalNet + Math.max(uplift, 0), 0)
+      }
+    } catch {}
+
+    // Apply sales personal margin from localStorage (if present)
+    try {
+      if (user && user.role === 'SALES_REP') {
+        const raw = localStorage.getItem('salesMargin')
+        if (raw) {
+          const sm = JSON.parse(raw)
+          const amount = Number(sm.amount || 0)
+          const percent = Number(sm.percent || 0)
+          const uplift = (percent > 0) ? (subtotalNet * (percent / 100)) : amount
+          subtotalNet = Math.max(subtotalNet + Math.max(uplift, 0), 0)
+        }
+      }
+    } catch {}
 
     const grant = (grantOptions.find(g => g.label === form.grant)?.value) || 0
     const totalAfterGrant = Math.max(subtotalNet - grant, 0)
