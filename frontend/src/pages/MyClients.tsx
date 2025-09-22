@@ -83,7 +83,7 @@ export default function MyClientsPage() {
                     <td>{c.phone || <span className="text-gray-400">—</span>}</td>
                     <td>{c.email || <span className="text-gray-400">—</span>}</td>
                     <td>{[c.street, c.city].filter(Boolean).join(', ') || <span className="text-gray-400">—</span>}</td>
-                    <td>{c.category || <span className="text-gray-400">—</span>}</td>
+                    <td>{renderCategory(c.category)}</td>
                     <td>
                       <ClientOffers clientId={c.id} />
                     </td>
@@ -186,6 +186,14 @@ function ClientAttachments({ clientId }: { clientId: string }) {
       )}
     </div>
   )
+}
+
+function renderCategory(category?: string | null) {
+  if (!category || category.trim() === '') return <span className="text-gray-400">—</span>
+  const c = category.toUpperCase()
+  if (c === 'PV') return 'PV'
+  if (c === 'ME') return 'ME'
+  return c
 }
 
 

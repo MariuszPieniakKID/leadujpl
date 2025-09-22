@@ -97,7 +97,11 @@ export default function ClientsPage() {
                 </div>
                 <div className="form-group">
                   <label className="form-label">Kategoria</label>
-                  <input className="form-input" placeholder="Kategoria" value={form.category || ''} onChange={e => setForm({ ...form, category: e.target.value })} />
+                  <select className="form-select" value={form.category || ''} onChange={e => setForm({ ...form, category: e.target.value as any })}>
+                    <option value="">— wybierz —</option>
+                    <option value="PV">PV</option>
+                    <option value="ME">ME</option>
+                  </select>
                 </div>
               </div>
               {createError && <div className="text-error text-sm mt-4 p-3 bg-error-50 rounded border border-error-200">{createError}</div>}
@@ -145,7 +149,7 @@ export default function ClientsPage() {
                     <td>{c.phone || <span className="text-gray-400">—</span>}</td>
                     <td>{c.email || <span className="text-gray-400">—</span>}</td>
                     <td>{[c.street, c.city].filter(Boolean).join(', ') || <span className="text-gray-400">—</span>}</td>
-                    <td>{c.category || <span className="text-gray-400">—</span>}</td>
+                    <td>{renderCategory(c.category)}</td>
                     <td>
                       <ClientAttachments clientId={c.id} />
                     </td>
@@ -206,6 +210,14 @@ function ClientAttachments({ clientId }: { clientId: string }) {
       )}
     </div>
   )
+}
+
+function renderCategory(category?: string | null) {
+  if (!category || category.trim() === '') return <span className="text-gray-400">—</span>
+  const c = category.toUpperCase()
+  if (c === 'PV') return 'PV'
+  if (c === 'ME') return 'ME'
+  return c
 }
 
 
