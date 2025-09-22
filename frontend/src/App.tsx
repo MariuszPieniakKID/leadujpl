@@ -1467,7 +1467,7 @@ function App() {
       <>
         {showNav && !isMobile && <NavBar />}
         <Routes>
-          <Route path="/login" element={<Login />} />
+          <Route path="/login" element={<LoginGuard />} />
           <Route path="/" element={<Protected><Dashboard /></Protected>} />
           <Route path="/calendar" element={<Protected><CalendarPage /></Protected>} />
           <Route path="/clients" element={<Protected roles={['ADMIN','MANAGER']}><ClientsPage /></Protected>} />
@@ -1483,6 +1483,12 @@ function App() {
         </Routes>
       </>
     )
+  }
+  function LoginGuard() {
+    const token = getToken()
+    const user = getUser()
+    if (token && user) return <Navigate to="/" replace />
+    return <Login />
   }
   return (
     <BrowserRouter>

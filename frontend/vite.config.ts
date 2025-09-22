@@ -60,7 +60,7 @@ export default defineConfig({
       manifest: {
         name: 'leaduj',
         short_name: 'leaduj',
-        start_url: '/',
+        start_url: '/?source=pwa',
         scope: '/',
         display: 'standalone',
         background_color: '#0b1220',
