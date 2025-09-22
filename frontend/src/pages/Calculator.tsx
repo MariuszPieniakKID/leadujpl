@@ -7,6 +7,7 @@ import { Link } from 'react-router-dom'
 export default function CalculatorPage() {
   const [remoteData, setRemoteData] = useState<any | null>(null)
   const data = useMemo(() => remoteData || (baseData as any), [remoteData])
+  const user = getUser()
 
   // Load config from backend
   useState(() => {
@@ -47,6 +48,17 @@ export default function CalculatorPage() {
   const prices = (data as any).pricing
   const settings = (data as any).settings
 
+  function getSalesMargin() {
+    try {
+      const raw = localStorage.getItem('salesMargin')
+      if (!raw) return { amount: 0, percent: 0 }
+      const parsed = JSON.parse(raw)
+      return { amount: Number(parsed.amount || 0), percent: Number(parsed.percent || 0) }
+    } catch {
+      return { amount: 0, percent: 0 }
+    }
+  }
+
   function pmt(ratePerPeriod: number, numberOfPayments: number, presentValue: number): number {
     if (ratePerPeriod === 0) return numberOfPayments > 0 ? -(presentValue / numberOfPayments) : 0
     const r = ratePerPeriod
@@ -65,10 +77,32 @@ export default function CalculatorPage() {
 
     const grant = (grantOptions.find(g => g.label === form.grant)?.value) || 0
     const totalAfterGrant = Math.max(subtotalNet - grant, 0)
-    const financed = Math.max(totalAfterGrant - (form.downPayment || 0), 0)
+    let financed = Math.max(totalAfterGrant - (form.downPayment || 0), 0)
 
     const rrsoYear = Number(settings['RRSO (rocznie)'] || 0.1)
     const rateMonthly = rrsoYear / 12
+    // Apply manager margin (for sales assigned to manager)
+    try {
+      const margins = (data as any).settings?.margins || {}
+      const managerId = user?.managerId || null
+      const m = managerId ? margins[managerId] : null
+      if (m) {
+        const amount = Number(m.amount || 0)
+        const percent = Number(m.percent || 0)
+        const uplift = (percent > 0) ? (financed * (percent / 100)) : amount
+        financed = Math.max(financed + Math.max(uplift, 0), 0)
+      }
+    } catch {}
+    // Apply sales rep personal margin (independent from manager margin)
+    if (user && user.role === 'SALES_REP') {
+      const sm = getSalesMargin()
+      if (sm) {
+        const amount = Number(sm.amount || 0)
+        const percent = Number(sm.percent || 0)
+        const uplift = (percent > 0) ? (financed * (percent / 100)) : amount
+        financed = Math.max(financed + Math.max(uplift, 0), 0)
+      }
+    }
     const monthly = pmt(rateMonthly, form.termMonths, financed)
 
     return {
@@ -85,7 +119,7 @@ export default function CalculatorPage() {
       rrsoYear,
       monthly,
     }
-  }, [form, prices, settings, grantOptions])
+  }, [form, prices, settings, grantOptions, data, user])
 
   // const [offerBlob, setOfferBlob] = useState<Blob | null>(null)
   const [saveOpen, setSaveOpen] = useState(false)
@@ -157,11 +191,16 @@ export default function CalculatorPage() {
           <h1 className="page-title">Kalkulator ofertowy</h1>
           <p className="text-gray-600">Wprowadź dane, aby przygotować ofertę</p>
         </div>
-        {(() => { const u = getUser(); return (u && u.role === 'MANAGER') ? (
+        {(() => { const u = getUser(); return (
           <div className="flex items-center gap-4">
-            <Link className="secondary" to="/calculator/settings">Ustawienia</Link>
+            {(u && u.role === 'MANAGER') && (
+              <Link className="secondary" to="/calculator/settings">Ustawienia</Link>
+            )}
+            {(u && u.role === 'SALES_REP') && (
+              <SalesMarginButton />
+            )}
           </div>
-        ) : null })()}
+        ) })()}
       </div>
 
       <section className="card" style={{ maxWidth: 1100 }}>
@@ -298,6 +337,48 @@ export default function CalculatorPage() {
               <button className="primary" disabled={saving || !selectedClientId} onClick={submitSave}>{saving ? 'Zapisywanie…' : 'Zapisz'}</button>
             </div>
           </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
+function SalesMarginButton() {
+  const [open, setOpen] = useState(false)
+  const [amount, setAmount] = useState<number>(() => {
+    try { const raw = localStorage.getItem('salesMargin'); return raw ? Number(JSON.parse(raw).amount || 0) : 0 } catch { return 0 }
+  })
+  const [percent, setPercent] = useState<number>(() => {
+    try { const raw = localStorage.getItem('salesMargin'); return raw ? Number(JSON.parse(raw).percent || 0) : 0 } catch { return 0 }
+  })
+  function save() {
+    const payload = { amount: Number(amount || 0), percent: Number(percent || 0) }
+    localStorage.setItem('salesMargin', JSON.stringify(payload))
+    setOpen(false)
+  }
+  function clear() {
+    localStorage.removeItem('salesMargin')
+    setAmount(0); setPercent(0)
+    setOpen(false)
+  }
+  return (
+    <div style={{ position: 'relative' }}>
+      <button className="secondary" onClick={() => setOpen(o => !o)}>Marża</button>
+      {open && (
+        <div className="card" style={{ position: 'absolute', right: 0, top: '110%', width: 280, zIndex: 10 }}>
+          <div className="form-group">
+            <label className="form-label">Stawka (PLN)</label>
+            <input className="form-input" type="number" step="0.01" value={amount} onChange={e => { setAmount(Number(e.target.value || 0)); if (Number(e.target.value||0) > 0) setPercent(0) }} />
+          </div>
+          <div className="form-group">
+            <label className="form-label">Procent (%)</label>
+            <input className="form-input" type="number" step="0.01" value={percent} onChange={e => { setPercent(Number(e.target.value || 0)); if (Number(e.target.value||0) > 0) setAmount(0) }} />
+          </div>
+          <div className="flex items-center gap-2" style={{ justifyContent: 'flex-end' }}>
+            <button className="secondary" onClick={clear}>Wyczyść</button>
+            <button className="primary" onClick={save}>Zapisz</button>
+          </div>
+          <div className="text-gray-600 text-xs" style={{ marginTop: 8 }}>Ustaw jedną wartość. Obowiązuje tylko dla Twoich obliczeń.</div>
         </div>
       )}
     </div>
