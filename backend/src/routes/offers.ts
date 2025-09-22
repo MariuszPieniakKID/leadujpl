@@ -94,7 +94,7 @@ router.post('/generate', requireAuth, async (req, res) => {
 router.post('/save', requireAuth, async (req, res) => {
   try {
     const current = req.user!
-    const { clientId, meetingId, fileName, snapshot } = req.body as { clientId: string; meetingId?: string; fileName?: string; snapshot: any }
+    const { offerId, clientId, meetingId, fileName, snapshot } = req.body as { offerId?: string; clientId: string; meetingId?: string; fileName?: string; snapshot: any }
     if (!clientId || !snapshot) return res.status(400).json({ error: 'clientId and snapshot required' })
 
     // Render PDF
@@ -171,8 +171,8 @@ router.post('/save', requireAuth, async (req, res) => {
     })
     const pdf = Buffer.concat(chunks)
 
-    const created = await prisma.offer.create({
-      data: {
+    if (offerId) {
+      const updated = await prisma.offer.update({ where: { id: offerId }, data: {
         clientId,
         ...(meetingId ? { meetingId } : {}),
         ownerId: current.id,
@@ -180,9 +180,22 @@ router.post('/save', requireAuth, async (req, res) => {
         mimeType: 'application/pdf',
         pdf,
         snapshot,
-      },
-    })
-    res.status(201).json({ id: created.id, fileName: created.fileName })
+      }})
+      return res.status(200).json({ id: updated.id, fileName: updated.fileName })
+    } else {
+      const created = await prisma.offer.create({
+        data: {
+          clientId,
+          ...(meetingId ? { meetingId } : {}),
+          ownerId: current.id,
+          fileName: fileName || `oferta-${Date.now()}.pdf`,
+          mimeType: 'application/pdf',
+          pdf,
+          snapshot,
+        },
+      })
+      return res.status(201).json({ id: created.id, fileName: created.fileName })
+    }
   } catch (e) {
     res.status(500).json({ error: (e as Error).message })
   }

@@ -209,6 +209,7 @@ export default function CalendarPage() {
   const [offers, setOffers] = useState<Array<{ id: string; fileName: string; createdAt: string }>>([])
   const [calcInitialSnapshot, setCalcInitialSnapshot] = useState<any | null>(null)
   const [calcKey, setCalcKey] = useState<string>('')
+  const [editClientId, setEditClientId] = useState<string | null>(null)
 
   async function loadAttachments(meetingId: string) {
     try {
@@ -385,6 +386,7 @@ export default function CalendarPage() {
         status: m.status || '',
       })
       await loadAttachments(eventId)
+      setEditClientId(m.clientId || null)
       if (m.clientId) {
         try { const offs = await listClientOffers(m.clientId); setOffers(offs) } catch {}
       } else {
@@ -592,6 +594,7 @@ export default function CalendarPage() {
                   </div>
                 )}
               </div>
+              {/* Pola klienta */}
               <div>
                 <label>Imię</label>
                 <input value={createForm.clientFirstName} onChange={e => setCreateForm({ ...createForm, clientFirstName: e.target.value })} />
@@ -622,6 +625,53 @@ export default function CalendarPage() {
                   <option value="PV">PV</option>
                   <option value="ME">ME</option>
                 </select>
+              </div>
+              {/* Sekcja Oferta przeniesiona pod wszystkie pola klienta */}
+              <div style={{ gridColumn: '1 / -1' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <strong>Oferta</strong>
+                  <button className="secondary" disabled={!selectedClientId} onClick={() => setShowCalc(s => !s)}>{showCalc ? 'Ukryj kalkulator' : 'Dodaj ofertę'}</button>
+                </div>
+                {!selectedClientId && <div className="muted" style={{ fontSize: 12, marginTop: 4 }}>Aby dodać ofertę, wybierz najpierw klienta.</div>}
+                {showCalc && (
+                  <div style={{ marginTop: 8 }}>
+                    <EmbeddedCalculator
+                      key={calcKey}
+                      clientId={(selectedClientId || '')}
+                      initialSnapshot={calcInitialSnapshot || undefined}
+                      onSaved={async () => {
+                        setShowCalc(false)
+                        setCalcInitialSnapshot(null)
+                        if (selectedClientId) { try { const offs = await listClientOffers(selectedClientId); setOffers(offs) } catch {} }
+                      }}
+                    />
+                  </div>
+                )}
+                <div className="card" style={{ marginTop: 8 }}>
+                  <div className="flex justify-between items-center mb-2">
+                    <strong>Oferty klienta</strong>
+                  </div>
+                  {offers.length === 0 ? <div className="text-sm text-gray-500">Brak ofert</div> : (
+                    <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'grid', gap: 6 }}>
+                      {offers.map(o => (
+                        <li key={o.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
+                          <span>{o.fileName}</span>
+                          <span style={{ display: 'flex', gap: 6 }}>
+                            <a className="btn btn-sm" href={downloadOffer(o.id)} target="_blank" rel="noreferrer">Pobierz</a>
+                            <button className="btn btn-sm secondary" onClick={async () => {
+                              try {
+                                const meta = await fetchOffer(o.id)
+                                setCalcInitialSnapshot(meta.snapshot)
+                                setCalcKey(o.id)
+                                setShowCalc(true)
+                              } catch {}
+                            }}>Edytuj</button>
+                          </span>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
               </div>
             </div>
             )}
@@ -912,7 +962,12 @@ export default function CalendarPage() {
                 <button className="secondary" onClick={() => setShowCalc(s => !s)}>{showCalc ? 'Ukryj kalkulator' : 'Dodaj ofertę'}</button>
               </div>
               {showCalc && (
-                <EmbeddedCalculator key={calcKey} clientId={((editForm as any).clientId as string) || ''} meetingId={editMeetingId || undefined} initialSnapshot={calcInitialSnapshot || undefined} onSaved={() => setShowCalc(false)} />
+                <EmbeddedCalculator key={calcKey} clientId={(editClientId || '')} meetingId={editMeetingId || undefined} offerId={(() => { const m = offers.find(x => x.id === calcKey); return m ? calcKey : undefined })()} initialSnapshot={calcInitialSnapshot || undefined} onSaved={async () => {
+                  setShowCalc(false)
+                  try {
+                    if (editClientId) { const offs = await listClientOffers(editClientId); setOffers(offs) }
+                  } catch {}
+                }} />
               )}
               <div className="card" style={{ marginTop: 8 }}>
                 <div className="flex justify-between items-center mb-2">

@@ -123,8 +123,8 @@ export async function generateOfferPDF(snapshot: any): Promise<Blob> {
   return res.data as Blob
 }
 
-export async function saveOfferForClient(clientId: string, fileName: string | undefined, snapshot: any, meetingId?: string): Promise<{ id: string; fileName: string }> {
-  const res = await api.post(`/api/offers/save`, { clientId, fileName, snapshot, ...(meetingId ? { meetingId } : {}) })
+export async function saveOfferForClient(clientId: string, fileName: string | undefined, snapshot: any, meetingId?: string, offerId?: string): Promise<{ id: string; fileName: string }> {
+  const res = await api.post(`/api/offers/save`, { clientId, fileName, snapshot, ...(meetingId ? { meetingId } : {}), ...(offerId ? { offerId } : {}) })
   return res.data
 }
 
@@ -139,7 +139,9 @@ export async function listMeetingOffers(meetingId: string): Promise<Array<{ id: 
 }
 
 export function downloadOffer(offerId: string): string {
-  return `${import.meta.env.VITE_API_BASE || ''}/api/offers/${offerId}/download`
+  const token = getToken()
+  const base = import.meta.env.VITE_API_BASE || ''
+  return `${base}/api/offers/${offerId}/download${token ? `?token=${encodeURIComponent(token)}` : ''}`
 }
 
 export async function fetchOffer(offerId: string): Promise<{ id: string; fileName: string; createdAt: string; snapshot: any; clientId: string; ownerId: string }>{

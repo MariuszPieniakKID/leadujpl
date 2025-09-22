@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import baseData from '../data/calculatorData.json'
 import api, { generateOfferPDF, saveOfferForClient } from '../lib/api'
 
-export default function EmbeddedCalculator({ clientId, meetingId, onSaved, initialSnapshot, onSavedSnapshot }: { clientId: string; meetingId?: string; onSaved?: () => void; initialSnapshot?: { form?: any; calc?: any }; onSavedSnapshot?: (snapshot: any) => void }) {
+export default function EmbeddedCalculator({ clientId, meetingId, offerId, onSaved, initialSnapshot, onSavedSnapshot }: { clientId: string; meetingId?: string; offerId?: string; onSaved?: () => void; initialSnapshot?: { form?: any; calc?: any }; onSavedSnapshot?: (snapshot: any) => void }) {
   const [remoteData, setRemoteData] = useState<any | null>(null)
   const data = useMemo(() => remoteData || (baseData as any), [remoteData])
 
@@ -119,7 +119,7 @@ export default function EmbeddedCalculator({ clientId, meetingId, onSaved, initi
       onSavedSnapshot(snapshot)
       return
     }
-    await saveOfferForClient(clientId, undefined, snapshot, meetingId)
+    await saveOfferForClient(clientId, undefined, snapshot, meetingId, offerId)
     onSaved && onSaved()
   }
 

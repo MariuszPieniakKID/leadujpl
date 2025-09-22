@@ -275,6 +275,10 @@ function Dashboard() {
     setClientQuery('')
     setClientOptions([])
     setSelectedClientId(null)
+    setShowCalc(false)
+    setCalcInitialSnapshot(null)
+    setCalcKey('')
+    setOffers([])
     setIsCreateOpen(true)
   }
 
@@ -316,6 +320,7 @@ function Dashboard() {
       billRange: c.billRange || '',
       extraComments: c.extraComments || '',
     }))
+    ;(async () => { try { const offs = await listClientOffers(c.id); setOffers(offs) } catch { setOffers([]) } })()
   }
 
   async function submitCreate() {
@@ -344,6 +349,14 @@ function Dashboard() {
         pvInstalled: createForm.pvInstalled ? (createForm.pvInstalled === 'TAK') : undefined,
         extraComments: createForm.extraComments || undefined,
       }
+      // Mirror-able fields for existing client selection
+      const clientMirror: any = {}
+      if (client.category) clientMirror.category = client.category
+      if (client.newRules !== undefined) clientMirror.newRules = client.newRules
+      if (client.buildingType) clientMirror.buildingType = client.buildingType
+      if (client.billRange) clientMirror.billRange = client.billRange
+      if (client.pvInstalled !== undefined) clientMirror.pvInstalled = client.pvInstalled
+      if (client.extraComments) clientMirror.extraComments = client.extraComments
       const hasClient = Object.values(client).some(v => v && `${v}`.trim() !== '')
       const pvInstalled = createForm.pvInstalled ? (createForm.pvInstalled === 'TAK') : undefined
       const billRange = createForm.billRange || undefined
@@ -354,7 +367,9 @@ function Dashboard() {
         notes: createForm.notes || undefined,
         location: createForm.location || undefined,
         attendeeId,
-        ...(selectedClientId ? { clientId: selectedClientId } : (hasClient ? { client } : {})),
+        ...(selectedClientId
+          ? { clientId: selectedClientId, ...(Object.keys(clientMirror).length > 0 ? { client: clientMirror } : {}) }
+          : (hasClient ? { client } : {})),
         ...(pvInstalled !== undefined ? { pvInstalled } : {}),
         ...(billRange ? { billRange } : {}),
         ...(extraComments ? { extraComments } : {}),
@@ -920,47 +935,7 @@ function Dashboard() {
               </div>
             </div>
 
-            <div style={{ marginTop: 'var(--space-6)', paddingTop: 'var(--space-4)', borderTop: '1px solid var(--gray-200)' }}>
-              <h4 className="text-lg font-semibold text-gray-800 mb-4">Oferta</h4>
-              <button className="secondary" onClick={() => setShowCalc(s => !s)}>{showCalc ? 'Ukryj kalkulator' : 'Dodaj ofertę'}</button>
-              {showCalc && (
-                <EmbeddedCalculator
-                  key={calcKey}
-                  clientId={(selectedClientId || '')}
-                  initialSnapshot={calcInitialSnapshot || undefined}
-                  onSaved={async () => {
-                    setShowCalc(false)
-                    setCalcInitialSnapshot(null)
-                    if (selectedClientId) { try { const offs = await listClientOffers(selectedClientId); setOffers(offs) } catch {} }
-                  }}
-                />
-              )}
-              <div className="card" style={{ marginTop: 8 }}>
-                <div className="flex justify-between items-center mb-2">
-                  <strong>Oferty klienta</strong>
-                </div>
-                {offers.length === 0 ? <div className="text-sm text-gray-500">Brak ofert</div> : (
-                  <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'grid', gap: 6 }}>
-                    {offers.map(o => (
-                      <li key={o.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
-                        <span>{o.fileName}</span>
-                        <span style={{ display: 'flex', gap: 6 }}>
-                          <a className="btn btn-sm" href={downloadOffer(o.id)} target="_blank" rel="noreferrer">Pobierz</a>
-                          <button className="btn btn-sm secondary" onClick={async () => {
-                            try {
-                              const meta = await fetchOffer(o.id)
-                              setCalcInitialSnapshot(meta.snapshot)
-                              setCalcKey(o.id)
-                              setShowCalc(true)
-                            } catch {}
-                          }}>Edytuj</button>
-                        </span>
-                      </li>
-                    ))}
-                  </ul>
-                )}
-              </div>
-            </div>
+            
 
             <div style={{ marginTop: 'var(--space-6)', paddingTop: 'var(--space-4)', borderTop: '1px solid var(--gray-200)' }}>
               <h4 className="text-lg font-semibold text-gray-800 mb-4">Dane klienta (opcjonalnie)</h4>
@@ -972,7 +947,7 @@ function Dashboard() {
                       className="form-input"
                       placeholder="Szukaj po imieniu, nazwisku, telefonie, e-mailu, adresie..."
                       value={clientQuery}
-                      onChange={e => { setClientQuery(e.target.value); setSelectedClientId(null) }}
+                      onChange={e => { setClientQuery(e.target.value); setSelectedClientId(null); setOffers([]) }}
                     />
                     {isSearchingClients && <div className="text-xs text-gray-500 mt-1">Szukam…</div>}
                     {!isSearchingClients && clientOptions.length > 0 && (
@@ -1017,6 +992,53 @@ function Dashboard() {
                   <option value="PV">PV</option>
                   <option value="ME">ME</option>
                 </select>
+              </div>
+              {/* Sekcja Oferta przeniesiona pod wszystkie pola klienta */}
+              <div className="form-group" style={{ gridColumn: '1 / -1', marginTop: 'var(--space-2)' }}>
+                <div className="flex items-center justify-between">
+                  <label className="form-label" style={{ marginBottom: 0 }}>Oferta</label>
+                  <button className="secondary" disabled={!selectedClientId} onClick={() => setShowCalc(s => !s)}>{showCalc ? 'Ukryj kalkulator' : 'Dodaj ofertę'}</button>
+                </div>
+                {!selectedClientId && <div className="text-xs text-gray-500 mt-2">Aby dodać ofertę, wybierz najpierw klienta.</div>}
+                {showCalc && (
+                  <div style={{ marginTop: 8 }}>
+                    <EmbeddedCalculator
+                      key={calcKey}
+                      clientId={(selectedClientId || '')}
+                      initialSnapshot={calcInitialSnapshot || undefined}
+                      onSaved={async () => {
+                        setShowCalc(false)
+                        setCalcInitialSnapshot(null)
+                        if (selectedClientId) { try { const offs = await listClientOffers(selectedClientId); setOffers(offs) } catch {} }
+                      }}
+                    />
+                  </div>
+                )}
+                <div className="card" style={{ marginTop: 8 }}>
+                  <div className="flex justify-between items-center mb-2">
+                    <strong>Oferty klienta</strong>
+                  </div>
+                  {offers.length === 0 ? <div className="text-sm text-gray-500">Brak ofert</div> : (
+                    <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'grid', gap: 6 }}>
+                      {offers.map(o => (
+                        <li key={o.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
+                          <span>{o.fileName}</span>
+                          <span style={{ display: 'flex', gap: 6 }}>
+                            <a className="btn btn-sm" href={downloadOffer(o.id)} target="_blank" rel="noreferrer">Pobierz</a>
+                            <button className="btn btn-sm secondary" onClick={async () => {
+                              try {
+                                const meta = await fetchOffer(o.id)
+                                setCalcInitialSnapshot(meta.snapshot)
+                                setCalcKey(o.id)
+                                setShowCalc(true)
+                              } catch {}
+                            }}>Edytuj</button>
+                          </span>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
               </div>
               </div>
             </div>
@@ -1184,7 +1206,7 @@ function Dashboard() {
                 </div>
                 <div className="form-group">
                   <label className="form-label">Kategoria</label>
-                  <input className="form-input" value={editForm.clientCategory} onChange={e => setEditForm({ ...editForm, clientCategory: e.target.value })} />
+                  <input className="form-input" value={(editForm.clientCategory === 'PV' || editForm.clientCategory === 'ME') ? editForm.clientCategory : '—'} disabled />
                 </div>
               </div>
             </div>
@@ -1233,6 +1255,53 @@ function Dashboard() {
                 </div>
               )
             })()}
+
+            <div style={{ marginTop: 'var(--space-6)', paddingTop: 'var(--space-4)', borderTop: '1px solid var(--gray-200)' }}>
+              <h4 className="text-lg font-semibold text-gray-800 mb-3">Oferta</h4>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                <span className="muted" style={{ fontSize: 12 }}>Dodaj lub edytuj ofertę powiązaną ze spotkaniem</span>
+                <button className="secondary" onClick={() => setShowCalc(s => !s)}>{showCalc ? 'Ukryj kalkulator' : 'Dodaj ofertę'}</button>
+              </div>
+              {showCalc && (
+                <EmbeddedCalculator
+                  key={calcKey}
+                  clientId={(editClientId || '')}
+                  meetingId={editMeetingId || undefined}
+                  offerId={(() => { const m = offers.find(x => x.id === calcKey); return m ? calcKey : undefined })()}
+                  initialSnapshot={calcInitialSnapshot || undefined}
+                  onSaved={async () => {
+                    setShowCalc(false)
+                    setCalcInitialSnapshot(null)
+                    if (editClientId) { try { const offs = await listClientOffers(editClientId); setOffers(offs) } catch {} }
+                  }}
+                />
+              )}
+              <div className="card" style={{ marginTop: 8 }}>
+                <div className="flex justify-between items-center mb-2">
+                  <strong>Oferty klienta</strong>
+                </div>
+                {offers.length === 0 ? <div className="text-sm text-gray-500">Brak ofert</div> : (
+                  <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'grid', gap: 6 }}>
+                    {offers.map(o => (
+                      <li key={o.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
+                        <span>{o.fileName}</span>
+                        <span style={{ display: 'flex', gap: 6 }}>
+                          <a className="btn btn-sm" href={downloadOffer(o.id)} target="_blank" rel="noreferrer">Pobierz</a>
+                          <button className="btn btn-sm secondary" onClick={async () => {
+                            try {
+                              const meta = await fetchOffer(o.id)
+                              setCalcInitialSnapshot(meta.snapshot)
+                              setCalcKey(o.id)
+                              setShowCalc(true)
+                            } catch {}
+                          }}>Edytuj</button>
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            </div>
 
             <div style={{ marginTop: 'var(--space-6)', paddingTop: 'var(--space-4)', borderTop: '1px solid var(--gray-200)' }}>
               <h4 className="text-lg font-semibold text-gray-800 mb-3">Załączniki</h4>
