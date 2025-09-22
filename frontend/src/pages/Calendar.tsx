@@ -611,8 +611,8 @@ export default function CalendarPage() {
       </div>
 
       {isCreateOpen && (
-        <div className="modal-overlay">
-          <div className="modal-content" style={{ maxWidth: '900px' }}>
+        <div className="modal-overlay sheet">
+          <div className="modal-content sheet" style={{ maxWidth: '900px' }}>
             <div className="modal-header">
               <h3 className="modal-title">Nowe spotkanie</h3>
               <button className="secondary" onClick={() => setIsCreateOpen(false)} style={{ padding: 'var(--space-2)' }}>

@@ -949,8 +949,8 @@ function Dashboard() {
       {user?.role !== 'MANAGER' && !loading && <div className="text-center text-gray-500 mt-6 text-sm">Leady w systemie: {leads.length}</div>}
 
       {isCreateOpen && (
-        <div className="modal-overlay">
-          <div className="modal-content" style={{ maxWidth: '800px' }}>
+        <div className="modal-overlay sheet">
+          <div className="modal-content sheet" style={{ maxWidth: '800px' }}>
             <div className="modal-header">
               <h3 className="modal-title">Nowe spotkanie</h3>
               <button className="secondary" onClick={() => setIsCreateOpen(false)} style={{ padding: 'var(--space-2)' }}>
