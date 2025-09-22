@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import baseData from '../data/calculatorData.json'
 import api, { generateOfferPDF, saveOfferForClient } from '../lib/api'
 
-export default function EmbeddedCalculator({ clientId, meetingId, onSaved, initialSnapshot }: { clientId: string; meetingId?: string; onSaved?: () => void; initialSnapshot?: { form?: any; calc?: any } }) {
+export default function EmbeddedCalculator({ clientId, meetingId, onSaved, initialSnapshot, onSavedSnapshot }: { clientId: string; meetingId?: string; onSaved?: () => void; initialSnapshot?: { form?: any; calc?: any }; onSavedSnapshot?: (snapshot: any) => void }) {
   const [remoteData, setRemoteData] = useState<any | null>(null)
   const data = useMemo(() => remoteData || (baseData as any), [remoteData])
 
@@ -115,6 +115,10 @@ export default function EmbeddedCalculator({ clientId, meetingId, onSaved, initi
 
   async function onSave() {
     const snapshot = { form, calc }
+    if (onSavedSnapshot) {
+      onSavedSnapshot(snapshot)
+      return
+    }
     await saveOfferForClient(clientId, undefined, snapshot, meetingId)
     onSaved && onSaved()
   }
@@ -217,7 +221,7 @@ export default function EmbeddedCalculator({ clientId, meetingId, onSaved, initi
       </div>
 
       <div className="modal-footer" style={{ justifyContent: 'flex-end' }}>
-        <button className="secondary" onClick={onSave}>Zapisz do klienta</button>
+        <button className="secondary" onClick={onSave}>{onSavedSnapshot ? 'Dodaj do spotkania' : 'Zapisz do klienta'}</button>
         <button className="primary" onClick={onGeneratePDF}>Generuj PDF</button>
       </div>
     </div>

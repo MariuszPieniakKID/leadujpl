@@ -924,11 +924,16 @@ function Dashboard() {
               <h4 className="text-lg font-semibold text-gray-800 mb-4">Oferta</h4>
               <button className="secondary" onClick={() => setShowCalc(s => !s)}>{showCalc ? 'Ukryj kalkulator' : 'Dodaj ofertę'}</button>
               {showCalc && (
-                <EmbeddedCalculator key={calcKey} clientId={(editClientId || '')} meetingId={editMeetingId || undefined} initialSnapshot={calcInitialSnapshot || undefined} onSaved={async () => {
-                  setShowCalc(false)
-                  setCalcInitialSnapshot(null)
-                  if (editClientId) { try { const offs = await listClientOffers(editClientId); setOffers(offs) } catch {} }
-                }} />
+                <EmbeddedCalculator
+                  key={calcKey}
+                  clientId={(selectedClientId || '')}
+                  initialSnapshot={calcInitialSnapshot || undefined}
+                  onSaved={async () => {
+                    setShowCalc(false)
+                    setCalcInitialSnapshot(null)
+                    if (selectedClientId) { try { const offs = await listClientOffers(selectedClientId); setOffers(offs) } catch {} }
+                  }}
+                />
               )}
               <div className="card" style={{ marginTop: 8 }}>
                 <div className="flex justify-between items-center mb-2">
