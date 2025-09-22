@@ -109,6 +109,7 @@ export default function CalendarPage() {
     newRules: '',
     buildingType: '',
   })
+  const [geoLoading, setGeoLoading] = useState(false)
   const [createSectionsOpen, setCreateSectionsOpen] = useState({ meeting: true, client: true, extra: true })
 
   // Client autocomplete state (create modal)
@@ -294,6 +295,31 @@ export default function CalendarPage() {
     setClientQuery(`${c.firstName} ${c.lastName}${c.phone ? ' • ' + c.phone : ''}`.trim())
     setClientOptions([])
     applyClientToForm(c)
+  }
+
+  async function fillCreateAddressFromGeolocation() {
+    try {
+      if (!('geolocation' in navigator)) { alert('Geolokalizacja nie jest dostępna'); return }
+      setGeoLoading(true)
+      const position = await new Promise<GeolocationPosition>((resolve, reject) => {
+        navigator.geolocation.getCurrentPosition(resolve, reject, { enableHighAccuracy: true, timeout: 15000, maximumAge: 15000 })
+      })
+      const { latitude, longitude } = position.coords
+      const url = `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${encodeURIComponent(latitude)}&lon=${encodeURIComponent(longitude)}&zoom=18&addressdetails=1&accept-language=pl`
+      const res = await fetch(url, { headers: { 'Accept': 'application/json' } })
+      if (!res.ok) throw new Error('Reverse geocoding failed')
+      const data: any = await res.json()
+      const addr = data?.address || {}
+      const road = addr.road || addr.footway || addr.pedestrian || ''
+      const house = addr.house_number || ''
+      const city = addr.city || addr.town || addr.village || addr.hamlet || addr.suburb || ''
+      const street = [road, house].filter(Boolean).join(' ')
+      setCreateForm(f => ({ ...f, clientStreet: street || f.clientStreet, clientCity: city || f.clientCity }))
+    } catch (e: any) {
+      alert('Nie udało się pobrać lokalizacji. Upewnij się, że zezwoliłeś na dostęp do lokalizacji.')
+    } finally {
+      setGeoLoading(false)
+    }
   }
 
   async function submitCreate() {
@@ -618,6 +644,9 @@ export default function CalendarPage() {
               <div>
                 <label>Miasto</label>
                 <input value={createForm.clientCity} onChange={e => setCreateForm({ ...createForm, clientCity: e.target.value })} />
+              </div>
+              <div style={{ gridColumn: '1 / -1' }}>
+                <button className="secondary" onClick={fillCreateAddressFromGeolocation} disabled={geoLoading}>{geoLoading ? 'Pobieram położenie…' : 'Dodaj położenie'}</button>
               </div>
               <div>
                 <label>Kategoria</label>

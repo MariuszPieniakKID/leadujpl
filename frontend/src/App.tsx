@@ -73,6 +73,7 @@ function Dashboard() {
   const [clientOptions, setClientOptions] = useState<Client[]>([])
   const [isSearchingClients, setIsSearchingClients] = useState(false)
   const [selectedClientId, setSelectedClientId] = useState<string | null>(null)
+  const [geoLoading, setGeoLoading] = useState(false)
   const [teamUsers, setTeamUsers] = useState<Array<{ id: string; firstName: string; lastName: string }>>([])
   const [selectedTeamUserId, setSelectedTeamUserId] = useState<string | null>(null)
   const [managerUpcoming, setManagerUpcoming] = useState<Array<{ id: string; date: string; time: string; place: string; topic: string }>>([])
@@ -321,6 +322,31 @@ function Dashboard() {
       extraComments: c.extraComments || '',
     }))
     ;(async () => { try { const offs = await listClientOffers(c.id); setOffers(offs) } catch { setOffers([]) } })()
+  }
+
+  async function fillCreateAddressFromGeolocation() {
+    try {
+      if (!('geolocation' in navigator)) { alert('Geolokalizacja nie jest dostępna'); return }
+      setGeoLoading(true)
+      const position = await new Promise<GeolocationPosition>((resolve, reject) => {
+        navigator.geolocation.getCurrentPosition(resolve, reject, { enableHighAccuracy: true, timeout: 15000, maximumAge: 15000 })
+      })
+      const { latitude, longitude } = position.coords
+      const url = `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${encodeURIComponent(latitude)}&lon=${encodeURIComponent(longitude)}&zoom=18&addressdetails=1&accept-language=pl`
+      const res = await fetch(url, { headers: { 'Accept': 'application/json' } })
+      if (!res.ok) throw new Error('Reverse geocoding failed')
+      const data: any = await res.json()
+      const addr = data?.address || {}
+      const road = addr.road || addr.footway || addr.pedestrian || ''
+      const house = addr.house_number || ''
+      const city = addr.city || addr.town || addr.village || addr.hamlet || addr.suburb || ''
+      const street = [road, house].filter(Boolean).join(' ')
+      setCreateForm(f => ({ ...f, clientStreet: street || f.clientStreet, clientCity: city || f.clientCity }))
+    } catch (e: any) {
+      alert('Nie udało się pobrać lokalizacji. Upewnij się, że zezwoliłeś na dostęp do lokalizacji.')
+    } finally {
+      setGeoLoading(false)
+    }
   }
 
   async function submitCreate() {
@@ -985,6 +1011,9 @@ function Dashboard() {
                 <div className="form-group">
                   <label className="form-label">Miasto</label>
                   <input className="form-input" value={createForm.clientCity} onChange={e => setCreateForm({ ...createForm, clientCity: e.target.value })} />
+                </div>
+                <div className="form-group" style={{ gridColumn: '1 / -1' }}>
+                  <button className="secondary" onClick={fillCreateAddressFromGeolocation} disabled={geoLoading}>{geoLoading ? 'Pobieram położenie…' : 'Dodaj położenie'}</button>
                 </div>
               <div className="form-group">
                 <label className="form-label">Kategoria</label>
