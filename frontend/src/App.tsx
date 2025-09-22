@@ -1000,17 +1000,34 @@ function Dashboard() {
                     <option value="> 2000">powyżej 2000</option>
                   </select>
                 </div>
+              <div className="form-group">
+                <label className="form-label">Rodzaj zabudowy</label>
+                <div className="radio-group">
+                  <label className="radio-item">
+                    <input type="radio" name="buildingTypeCreateDash" checked={createForm.buildingType === 'Dom'} onChange={() => setCreateForm({ ...createForm, buildingType: 'Dom' })} />
+                    <span>Dom</span>
+                  </label>
+                  <label className="radio-item">
+                    <input type="radio" name="buildingTypeCreateDash" checked={createForm.buildingType === 'Gospodarstwo'} onChange={() => setCreateForm({ ...createForm, buildingType: 'Gospodarstwo' })} />
+                    <span>Gospodarstwo</span>
+                  </label>
+                </div>
+              </div>
+              {createForm.pvInstalled === 'TAK' && (
                 <div className="form-group">
-                  <label className="form-label">Rodzaj zabudowy</label>
+                  <label className="form-label">Nowe zasady (net-billing)</label>
                   <div className="radio-group">
                     <label className="radio-item">
-                      <input type="radio" name="buildingTypeCreateDash" checked={createForm.buildingType === 'Dom'} onChange={() => setCreateForm({ ...createForm, buildingType: 'Dom' })} /> Dom
+                      <input type="radio" name="newRulesCreateDash" checked={createForm.newRules === 'TAK'} onChange={() => setCreateForm({ ...createForm, newRules: 'TAK' })} />
+                      <span>TAK (nowe)</span>
                     </label>
                     <label className="radio-item">
-                      <input type="radio" name="buildingTypeCreateDash" checked={createForm.buildingType === 'Gospodarstwo'} onChange={() => setCreateForm({ ...createForm, buildingType: 'Gospodarstwo' })} /> Gospodarstwo
+                      <input type="radio" name="newRulesCreateDash" checked={createForm.newRules === 'NIE'} onChange={() => setCreateForm({ ...createForm, newRules: 'NIE' })} />
+                      <span>NIE (stare)</span>
                     </label>
                   </div>
                 </div>
+              )}
                 <div className="form-group" style={{ gridColumn: '1 / -1' }}>
                   <label className="form-label">Komentarz/uwagi</label>
                   <textarea className="form-textarea" rows={3} value={createForm.extraComments} onChange={e => setCreateForm({ ...createForm, extraComments: e.target.value })} />

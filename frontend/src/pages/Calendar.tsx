@@ -658,17 +658,19 @@ export default function CalendarPage() {
                   </label>
                 </div>
               </div>
+              {createForm.pvInstalled === 'TAK' && (
               <div>
                 <label>Nowe zasady (net-billing)</label>
                 <div>
                   <label style={{ marginRight: 12 }}>
-                    <input type="radio" name="newRulesCreateCal" checked={createForm.newRules === 'TAK'} onChange={() => setCreateForm({ ...createForm, newRules: 'TAK' })} /> TAK
+                    <input type="radio" name="newRulesCreateCal" checked={createForm.newRules === 'TAK'} onChange={() => setCreateForm({ ...createForm, newRules: 'TAK' })} /> TAK (nowe)
                   </label>
                   <label>
-                    <input type="radio" name="newRulesCreateCal" checked={createForm.newRules === 'NIE'} onChange={() => setCreateForm({ ...createForm, newRules: 'NIE' })} /> NIE
+                    <input type="radio" name="newRulesCreateCal" checked={createForm.newRules === 'NIE'} onChange={() => setCreateForm({ ...createForm, newRules: 'NIE' })} /> NIE (stare)
                   </label>
                 </div>
               </div>
+              )}
               <div style={{ gridColumn: '1 / -1' }}>
                 <label>Komentarz/uwagi</label>
                 <textarea rows={3} value={createForm.extraComments} onChange={e => setCreateForm({ ...createForm, extraComments: e.target.value })} />
