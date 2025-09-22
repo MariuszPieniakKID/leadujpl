@@ -296,11 +296,21 @@ function ClientAttachments({ clientId }: { clientId: string }) {
     }
   }
 
+  // Auto-open and reload when any upload happens for this client
+  useEffect(() => {
+    function handler(e: any) {
+      if (e?.detail?.clientId === clientId) {
+        setOpen(true)
+        load()
+      }
+    }
+    window.addEventListener('client-attachments-uploaded', handler as any)
+    return () => window.removeEventListener('client-attachments-uploaded', handler as any)
+  }, [clientId])
+
   return (
     <div>
       <button className="btn btn-sm secondary" onClick={() => { setOpen(o => !o); if (!open) load() }}>{open ? 'Ukryj' : 'Pokaż'}</button>
-      {/* Auto-refresh when files uploaded elsewhere for this client */}
-      <EventListener clientId={clientId} onFire={load} />
       {open && (
         <div className="card" style={{ marginTop: 6 }}>
           {loading ? <div className="text-sm text-gray-500">Ładowanie…</div> : error ? <div className="text-error text-sm">{error}</div> : (
@@ -330,18 +340,5 @@ function renderCategory(category?: string | null) {
   if (c === 'PV') return 'PV'
   if (c === 'ME') return 'ME'
   return <span className="text-gray-400">—</span>
-}
-
-
-// Lightweight event listener component to refresh attachments list when upload happens elsewhere
-function EventListener({ clientId, onFire }: { clientId: string; onFire: () => void }) {
-  useEffect(() => {
-    function handler(e: any) {
-      if (e?.detail?.clientId === clientId) onFire()
-    }
-    window.addEventListener('client-attachments-uploaded', handler as any)
-    return () => window.removeEventListener('client-attachments-uploaded', handler as any)
-  }, [clientId, onFire])
-  return null
 }
 

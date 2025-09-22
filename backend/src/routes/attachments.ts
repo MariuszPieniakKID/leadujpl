@@ -44,7 +44,7 @@ router.get('/meeting/:meetingId', requireAuth, async (req, res) => {
 router.get('/client/:clientId', requireAuth, async (req, res) => {
   try {
     const { clientId } = req.params
-    const list = await prisma.attachment.findMany({ where: { clientId }, select: { id: true, fileName: true, mimeType: true, createdAt: true, meetingId: true } })
+    const list = await prisma.attachment.findMany({ where: { clientId }, select: { id: true, fileName: true, mimeType: true, createdAt: true, meetingId: true }, orderBy: { createdAt: 'desc' } })
     res.json(list)
   } catch (e) {
     res.status(500).json({ error: (e as Error).message })
