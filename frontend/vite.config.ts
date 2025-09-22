@@ -8,7 +8,7 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: 'autoUpdate',
-      includeAssets: ['vite.svg'],
+      includeAssets: ['leady_logo.png'],
       workbox: {
         clientsClaim: true,
         skipWaiting: true,
@@ -66,8 +66,8 @@ export default defineConfig({
         background_color: '#0b1220',
         theme_color: '#7c3aed',
         icons: [
-          { src: '/vite.svg', sizes: '192x192', type: 'image/svg+xml', purpose: 'any maskable' },
-          { src: '/vite.svg', sizes: '512x512', type: 'image/svg+xml', purpose: 'any maskable' },
+          { src: '/leady_logo.png', sizes: '192x192', type: 'image/png', purpose: 'any maskable' },
+          { src: '/leady_logo.png', sizes: '512x512', type: 'image/png', purpose: 'any maskable' },
         ],
       },
     }),
