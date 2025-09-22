@@ -13,7 +13,7 @@ import { DndProvider } from 'react-dnd'
 import { HTML5Backend } from 'react-dnd-html5-backend'
 import api, { listMeetingAttachments, type AttachmentItem, viewAttachmentUrl, downloadAttachmentUrl, uploadAttachments } from '../lib/api'
 import EmbeddedCalculator from '../components/EmbeddedCalculator'
-import { listClientOffers, listMeetingOffers, downloadOffer, fetchOffer } from '../lib/api'
+import { listClientOffers, downloadOffer, fetchOffer } from '../lib/api'
 import type { Client } from '../lib/api'
 import { getUser } from '../lib/auth'
 
