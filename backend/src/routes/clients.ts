@@ -6,9 +6,25 @@ const prisma = new PrismaClient();
 const router = Router();
 
 // List clients - manager/admin only
-router.get('/', requireAuth, requireManagerOrAdmin, async (_req, res) => {
+router.get('/', requireAuth, requireManagerOrAdmin, async (req, res) => {
   try {
-    const clients = await prisma.client.findMany({ orderBy: [{ lastName: 'asc' }, { firstName: 'asc' }] });
+    const q = (req.query.q as string | undefined)?.trim()
+    const status = (req.query.status as string | undefined)?.trim()
+    const where: any = {}
+    if (q && q.length > 0) {
+      where.OR = [
+        { firstName: { contains: q, mode: 'insensitive' } },
+        { lastName: { contains: q, mode: 'insensitive' } },
+        { phone: { contains: q, mode: 'insensitive' } },
+        { email: { contains: q, mode: 'insensitive' } },
+        { city: { contains: q, mode: 'insensitive' } },
+        { street: { contains: q, mode: 'insensitive' } },
+      ]
+    }
+    if (status && status.length > 0) {
+      where.meetings = { some: { status } }
+    }
+    const clients = await prisma.client.findMany({ where, orderBy: [{ lastName: 'asc' }, { firstName: 'asc' }] });
     res.json(clients);
   } catch (e) {
     res.status(500).json({ error: (e as Error).message });

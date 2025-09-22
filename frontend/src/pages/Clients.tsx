@@ -6,10 +6,13 @@ export default function ClientsPage() {
   const [loading, setLoading] = useState(false)
   const [form, setForm] = useState<Partial<Client>>({ firstName: '', lastName: '', phone: '', email: '', street: '', city: '', category: '' })
 
+  const [query, setQuery] = useState('')
+  const [status, setStatus] = useState('')
+
   async function load() {
     setLoading(true)
     try {
-      const data = await fetchClients()
+      const data = await fetchClients({ q: query || undefined, status: status || undefined })
       setClients(data)
     } finally {
       setLoading(false)
@@ -48,6 +51,23 @@ export default function ClientsPage() {
           <p className="text-gray-600">Zarządzaj bazą klientów</p>
         </div>
         <div className="flex items-center gap-4">
+          <div className="form-group" style={{ margin: 0 }}>
+            <label className="form-label">Szukaj</label>
+            <input className="form-input" placeholder="Nazwisko, telefon, e-mail, adres" value={query} onChange={e => setQuery(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') load() }} />
+          </div>
+          <div className="form-group" style={{ margin: 0 }}>
+            <label className="form-label">Status spotkania</label>
+            <select className="form-select" value={status} onChange={e => setStatus(e.target.value)}>
+              <option value="">Wszystkie</option>
+              <option value="Sukces">Sukces</option>
+              <option value="Porażka">Porażka</option>
+              <option value="Dogrywka">Dogrywka</option>
+              <option value="Przełożone">Przełożone</option>
+              <option value="Umówione">Umówione</option>
+              <option value="Odbyte">Odbyte</option>
+            </select>
+          </div>
+          <button className="secondary" onClick={load}>Filtruj</button>
           <span className="text-sm text-gray-500">{clients.length} klientów</span>
           <button className="primary" onClick={() => setIsCreateOpen(true)}>
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">

@@ -63,8 +63,8 @@ export type Client = {
   extraComments?: string | null;
 };
 
-export async function fetchClients() {
-  const res = await api.get<Client[]>('/api/clients');
+export async function fetchClients(params?: { q?: string; status?: string }) {
+  const res = await api.get<Client[]>('/api/clients', { params });
   return res.data;
 }
 
