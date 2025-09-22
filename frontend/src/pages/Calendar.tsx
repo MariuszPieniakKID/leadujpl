@@ -99,11 +99,13 @@ export default function CalendarPage() {
     clientEmail: '',
     clientStreet: '',
     clientCity: '',
-    clientCategory: '',
+    clientCategory: 'PV',
     pvInstalled: '', // '' | 'TAK' | 'NIE'
     billRange: '',
     extraComments: '',
     contactConsent: false,
+    newRules: '',
+    buildingType: '',
   })
   const [createSectionsOpen, setCreateSectionsOpen] = useState({ meeting: true, client: true, extra: true })
 
@@ -148,7 +150,7 @@ export default function CalendarPage() {
     setCreateForm(f => ({
       ...f,
       notes: '',
-      location: '',
+      location: 'U klienta',
       startDate: toLocalDateValue(start),
       startTime: toLocalTimeValue(start),
       endDate: toLocalDateValue(end),
@@ -159,10 +161,12 @@ export default function CalendarPage() {
       clientEmail: '',
       clientStreet: '',
       clientCity: '',
-      clientCategory: '',
+      clientCategory: 'PV',
       pvInstalled: '',
       billRange: '',
       extraComments: '',
+      newRules: '',
+      buildingType: '',
       contactConsent: false,
     }))
     setSelectedClientId(null)
@@ -304,6 +308,11 @@ export default function CalendarPage() {
         street: createForm.clientStreet || undefined,
         city: createForm.clientCity || undefined,
         category: createForm.clientCategory || undefined,
+        newRules: createForm.newRules === 'TAK' ? true : (createForm.newRules === 'NIE' ? false : undefined),
+        buildingType: createForm.buildingType || undefined,
+        billRange: createForm.billRange || undefined,
+        pvInstalled: createForm.pvInstalled ? (createForm.pvInstalled === 'TAK') : undefined,
+        extraComments: createForm.extraComments || undefined,
       }
       // Only send client if any field provided
       const hasClient = Object.values(client).some(v => v && `${v}`.trim() !== '')
@@ -611,7 +620,10 @@ export default function CalendarPage() {
               </div>
               <div>
                 <label>Kategoria</label>
-                <input value={createForm.clientCategory} onChange={e => setCreateForm({ ...createForm, clientCategory: e.target.value })} />
+                <select value={createForm.clientCategory} onChange={e => setCreateForm({ ...createForm, clientCategory: e.target.value })}>
+                  <option value="PV">PV</option>
+                  <option value="ME">ME</option>
+                </select>
               </div>
             </div>
             )}
@@ -647,6 +659,28 @@ export default function CalendarPage() {
                   <option value="800 - 1000">800 - 1000</option>
                   <option value="> 1000">powyżej 1000</option>
                 </select>
+              </div>
+              <div>
+                <label>Rodzaj zabudowy</label>
+                <div>
+                  <label style={{ marginRight: 12 }}>
+                    <input type="radio" name="buildingTypeCreateCal" checked={createForm.buildingType === 'Dom'} onChange={() => setCreateForm({ ...createForm, buildingType: 'Dom' })} /> Dom
+                  </label>
+                  <label>
+                    <input type="radio" name="buildingTypeCreateCal" checked={createForm.buildingType === 'Gospodarstwo'} onChange={() => setCreateForm({ ...createForm, buildingType: 'Gospodarstwo' })} /> Gospodarstwo
+                  </label>
+                </div>
+              </div>
+              <div>
+                <label>Nowe zasady (net-billing)</label>
+                <div>
+                  <label style={{ marginRight: 12 }}>
+                    <input type="radio" name="newRulesCreateCal" checked={createForm.newRules === 'TAK'} onChange={() => setCreateForm({ ...createForm, newRules: 'TAK' })} /> TAK
+                  </label>
+                  <label>
+                    <input type="radio" name="newRulesCreateCal" checked={createForm.newRules === 'NIE'} onChange={() => setCreateForm({ ...createForm, newRules: 'NIE' })} /> NIE
+                  </label>
+                </div>
               </div>
               <div style={{ gridColumn: '1 / -1' }}>
                 <label>Komentarz/uwagi</label>
