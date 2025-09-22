@@ -1,3 +1,5 @@
+import { getToken } from './auth'
+
 export type PendingRequest = {
   id: string
   method: 'POST' | 'PUT' | 'PATCH' | 'DELETE'
@@ -68,9 +70,10 @@ export function newLocalId(prefix: 'client' | 'meeting' | 'offer' | 'att') {
 }
 
 async function sendRequest(pr: PendingRequest): Promise<Response> {
+  const token = getToken()
   const res = await fetch(pr.url, {
     method: pr.method,
-    headers: { 'Content-Type': 'application/json', ...(pr.headers || {}) },
+    headers: { 'Content-Type': 'application/json', ...(pr.headers || {}), ...(token ? { Authorization: `Bearer ${token}` } : {}) },
     body: pr.body ? JSON.stringify(pr.body) : undefined,
   })
   return res
@@ -93,6 +96,7 @@ export async function processQueue() {
         // keep in queue
       }
     }
+    await processUploads()
     try { window.dispatchEvent(new CustomEvent('offline-sync-complete')) } catch {}
   } catch {}
 }
@@ -106,4 +110,41 @@ export function startOfflineSync() {
     // Try once on startup
     setTimeout(() => { processQueue().catch(() => {}) }, 1000)
   }
+}
+
+// Binary uploads (attachments, offers) processing when online
+export async function processUploads() {
+  const token = getToken()
+  const base = (import.meta as any).env?.VITE_API_BASE || ''
+  // Attachments
+  try {
+    const atts = await offlineStore.getAll<any>('attachments')
+    for (const a of atts) {
+      if (a.uploaded) continue
+      const form = new FormData()
+      form.append('meetingId', a.meetingId)
+      form.append('clientId', a.clientId)
+      const blob: Blob = a.data
+      form.append('files', blob, a.fileName)
+      const res = await fetch(`${base}/api/attachments/upload`, { method: 'POST', headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}) }, body: form })
+      if (res.ok) {
+        await offlineStore.delete('attachments', a.id)
+      }
+    }
+  } catch {}
+  // Offers
+  try {
+    const offers = await offlineStore.getAll<any>('offers')
+    for (const o of offers) {
+      if (o.uploaded) continue
+      const res = await fetch(`${base}/api/offers/save`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+        body: JSON.stringify({ clientId: o.clientId, fileName: o.fileName, snapshot: o.snapshot, ...(o.meetingId ? { meetingId: o.meetingId } : {}), ...(o.offerId ? { offerId: o.offerId } : {}) })
+      })
+      if (res.ok) {
+        await offlineStore.delete('offers', o.id)
+      }
+    }
+  } catch {}
 }

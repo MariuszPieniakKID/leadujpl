@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
 import api, { listClientOffers, downloadOffer, listClientAttachments, type AttachmentItem, viewAttachmentUrl, downloadAttachmentUrl, getClientLatestStatus, setClientLatestStatus, uploadAttachments, deleteAttachment, fetchUsers, type AppUserSummary } from '../lib/api'
+import { offlineStore, pendingQueue, newLocalId } from '../lib/offline'
 import { getUser } from '../lib/auth'
 import EmbeddedCalculator from '../components/EmbeddedCalculator'
 
@@ -235,9 +236,15 @@ function ClientStatusAndActions({ clientId }: { clientId: string }) {
   async function onChangeStatus(next: string) {
     try {
       setError(null)
-      const res = await setClientLatestStatus(clientId, next as any)
-      setStatus(res.status)
-      setMeetingId(res.meetingId)
+      if (navigator.onLine) {
+        const res = await setClientLatestStatus(clientId, next as any)
+        setStatus(res.status)
+        setMeetingId(res.meetingId)
+      } else {
+        // Queue PATCH and optimistically update UI
+        await pendingQueue.enqueue({ id: newLocalId('att'), method: 'PATCH', url: (import.meta.env.VITE_API_BASE || '') + `/api/clients/${clientId}/status`, body: { status: next }, headers: {}, createdAt: Date.now(), entityStore: 'meetings' })
+        setStatus(next)
+      }
       setInfo('Zapisano status')
       setTimeout(() => setInfo(null), 1500)
     } catch (e: any) {
@@ -250,7 +257,14 @@ function ClientStatusAndActions({ clientId }: { clientId: string }) {
     if (!meetingId) { setError('Brak spotkania do przypisania plików'); return }
     try {
       setUploading(true)
-      await uploadAttachments(meetingId, clientId, Array.from(files))
+      if (navigator.onLine) {
+        await uploadAttachments(meetingId, clientId, Array.from(files))
+      } else {
+        for (const f of Array.from(files)) {
+          const id = newLocalId('att')
+          await offlineStore.put('attachments', { id, meetingId, clientId, fileName: f.name, data: f, uploaded: false })
+        }
+      }
       setInfo('Dodano pliki')
       try { window.dispatchEvent(new CustomEvent('client-attachments-uploaded', { detail: { clientId } })) } catch {}
       setTimeout(() => setInfo(null), 1500)

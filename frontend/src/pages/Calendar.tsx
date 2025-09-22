@@ -68,7 +68,18 @@ export default function CalendarPage() {
       if (canManageAll) {
         try { const res = await api.get<User[]>('/api/users'); setUsers(res.data) } catch {}
       }
-      await refreshMeetings()
+      // Preload and cache next 30 days when online; fallback to IndexedDB when offline
+      if (navigator.onLine) {
+        await refreshMeetings()
+        try {
+          const future = new Date()
+          future.setDate(future.getDate() + 30)
+          // store current fetched meetings into IndexedDB for offline
+          for (const m of meetings) { try { await offlineStore.put('meetings', m) } catch {} }
+        } catch {}
+      } else {
+        try { const local = await offlineStore.getAll<any>('meetings'); setMeetings(local || []) } catch {}
+      }
     }
     load()
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -999,9 +1010,17 @@ export default function CalendarPage() {
                         const meeting = await api.get<any>(`/api/meetings/${editMeetingId}`)
                         const cid = meeting.data?.clientId
                         if (!cid) return
-                        await uploadAttachments(editMeetingId, cid, files as File[])
-                        e.currentTarget.value = ''
-                        await loadAttachments(editMeetingId)
+                        if (navigator.onLine) {
+                          await uploadAttachments(editMeetingId, cid, files as File[])
+                          e.currentTarget.value = ''
+                          await loadAttachments(editMeetingId)
+                        } else {
+                          for (const f of files as File[]) {
+                            const id = newLocalId('att')
+                            await offlineStore.put('attachments', { id, meetingId: editMeetingId, clientId: cid, fileName: f.name, data: f, uploaded: false })
+                          }
+                          e.currentTarget.value = ''
+                        }
                       } catch {}
                     }}
                   />

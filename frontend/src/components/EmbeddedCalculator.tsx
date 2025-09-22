@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import baseData from '../data/calculatorData.json'
 import api, { generateOfferPDF, saveOfferForClient } from '../lib/api'
+import { offlineStore, newLocalId } from '../lib/offline'
 import { getUser } from '../lib/auth'
 
 export default function EmbeddedCalculator({ clientId, meetingId, offerId, onSaved, initialSnapshot, onSavedSnapshot }: { clientId: string; meetingId?: string; offerId?: string; onSaved?: () => void; initialSnapshot?: { form?: any; calc?: any }; onSavedSnapshot?: (snapshot: any) => void }) {
@@ -164,7 +165,12 @@ export default function EmbeddedCalculator({ clientId, meetingId, offerId, onSav
       onSavedSnapshot(snapshot)
       return
     }
-    await saveOfferForClient(clientId, undefined, snapshot, meetingId, offerId)
+    if (navigator.onLine) {
+      await saveOfferForClient(clientId, undefined, snapshot, meetingId, offerId)
+    } else {
+      const id = newLocalId('offer')
+      await offlineStore.put('offers', { id, clientId, fileName: 'oferta.pdf', snapshot, meetingId, uploaded: false })
+    }
     onSaved && onSaved()
   }
 
