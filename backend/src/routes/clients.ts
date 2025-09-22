@@ -124,6 +124,48 @@ router.delete('/:id', requireAuth, requireManagerOrAdmin, async (req, res) => {
   }
 });
 
+// Get latest meeting status for a client (for current user) and its meetingId
+router.get('/:id/status', requireAuth, async (req, res) => {
+  try {
+    const current = req.user!
+    const { id } = req.params
+    const meeting = await prisma.meeting.findFirst({
+      where: { clientId: id, attendeeId: current.id },
+      orderBy: { scheduledAt: 'desc' },
+      select: { id: true, status: true },
+    })
+    if (!meeting) return res.json({ meetingId: null, status: null })
+    return res.json({ meetingId: meeting.id, status: meeting.status || null })
+  } catch (e) {
+    res.status(500).json({ error: (e as Error).message })
+  }
+})
+
+// Update latest meeting status for a client (for current user)
+router.patch('/:id/status', requireAuth, async (req, res) => {
+  try {
+    const current = req.user!
+    const { id } = req.params
+    let { status } = req.body as { status?: string }
+    if (!status) return res.status(400).json({ error: 'status is required' })
+    // Normalize: treat "Umowa" as "Sukces"
+    if (status === 'Umowa') status = 'Sukces'
+    if (!['Sukces', 'Porażka', 'Dogrywka', 'Przełożone', 'Umówione', 'Odbyte'].includes(status)) {
+      return res.status(400).json({ error: 'invalid status' })
+    }
+    const meeting = await prisma.meeting.findFirst({
+      where: { clientId: id, attendeeId: current.id },
+      orderBy: { scheduledAt: 'desc' },
+      select: { id: true },
+    })
+    if (!meeting) return res.status(404).json({ error: 'No meeting for client' })
+    const updated = await prisma.meeting.update({ where: { id: meeting.id }, data: { status } })
+    return res.json({ meetingId: updated.id, status: updated.status || null })
+  } catch (e) {
+    res.status(500).json({ error: (e as Error).message })
+  }
+})
+
 export default router;
 
 

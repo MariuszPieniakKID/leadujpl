@@ -83,6 +83,17 @@ export async function deleteClient(id: string) {
   return res.data;
 }
 
+// Client latest meeting status helpers
+export async function getClientLatestStatus(clientId: string): Promise<{ meetingId: string | null; status: string | null }> {
+  const res = await api.get(`/api/clients/${clientId}/status`)
+  return res.data
+}
+
+export async function setClientLatestStatus(clientId: string, status: 'Umowa' | 'Sukces' | 'Porażka' | 'Dogrywka' | 'Przełożone' | 'Umówione' | 'Odbyte'): Promise<{ meetingId: string | null; status: string | null }> {
+  const res = await api.patch(`/api/clients/${clientId}/status`, { status })
+  return res.data
+}
+
 // Attachments
 export async function uploadAttachments(meetingId: string, clientId: string, files: File[]) {
   const form = new FormData()

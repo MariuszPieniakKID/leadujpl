@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
-import api, { listClientOffers, downloadOffer, listClientAttachments, type AttachmentItem, viewAttachmentUrl, downloadAttachmentUrl } from '../lib/api'
+import api, { listClientOffers, downloadOffer, listClientAttachments, type AttachmentItem, viewAttachmentUrl, downloadAttachmentUrl, getClientLatestStatus, setClientLatestStatus, uploadAttachments } from '../lib/api'
 import EmbeddedCalculator from '../components/EmbeddedCalculator'
 
 type Client = {
@@ -94,6 +94,7 @@ export default function MyClientsPage() {
                   <th>E-mail</th>
                   <th>Adres</th>
                   <th>Kategoria</th>
+                  <th>Status</th>
                   <th>Oferty</th>
                   <th>Załączniki</th>
                 </tr>
@@ -108,6 +109,9 @@ export default function MyClientsPage() {
                     <td>{[c.street, c.city].filter(Boolean).join(', ') || <span className="text-gray-400">—</span>}</td>
                     <td>{renderCategory(c.category)}</td>
                     <td>
+                      <ClientStatusAndActions clientId={c.id} />
+                    </td>
+                    <td>
                       <ClientOffers clientId={c.id} />
                     </td>
                     <td>
@@ -120,6 +124,82 @@ export default function MyClientsPage() {
           </div>
         )}
       </div>
+    </div>
+  )
+}
+
+function ClientStatusAndActions({ clientId }: { clientId: string }) {
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const [status, setStatus] = useState<string | null>(null)
+  const [meetingId, setMeetingId] = useState<string | null>(null)
+  const [uploading, setUploading] = useState(false)
+  const [info, setInfo] = useState<string | null>(null)
+
+  async function load() {
+    try {
+      setLoading(true)
+      setError(null)
+      const s = await getClientLatestStatus(clientId)
+      setStatus(s.status)
+      setMeetingId(s.meetingId)
+    } catch (e: any) {
+      setError(e?.response?.data?.error || 'Nie udało się pobrać statusu')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  useEffect(() => { load() }, [clientId])
+
+  async function onChangeStatus(next: string) {
+    try {
+      setError(null)
+      const res = await setClientLatestStatus(clientId, next as any)
+      setStatus(res.status)
+      setMeetingId(res.meetingId)
+      setInfo('Zapisano status')
+      setTimeout(() => setInfo(null), 1500)
+    } catch (e: any) {
+      setError(e?.response?.data?.error || 'Nie udało się zapisać statusu')
+    }
+  }
+
+  async function onUpload(files: FileList | null) {
+    if (!files || files.length === 0) return
+    if (!meetingId) { setError('Brak spotkania do przypisania plików'); return }
+    try {
+      setUploading(true)
+      await uploadAttachments(meetingId, clientId, Array.from(files))
+      setInfo('Dodano pliki')
+      setTimeout(() => setInfo(null), 1500)
+    } catch (e: any) {
+      setError(e?.response?.data?.error || 'Nie udało się wgrać plików')
+    } finally {
+      setUploading(false)
+    }
+  }
+
+  if (loading) return <span className="text-sm text-gray-500">Ładowanie…</span>
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+      <select className="form-select" value={status || ''} onChange={e => onChangeStatus(e.target.value)}>
+        <option value="">—</option>
+        <option value="Umówione">Umówione</option>
+        <option value="Odbyte">Odbyte</option>
+        <option value="Dogrywka">Dogrywka</option>
+        <option value="Przełożone">Przełożone</option>
+        <option value="Sukces">Umowa</option>
+        <option value="Porażka">Porażka</option>
+      </select>
+      {(status === 'Sukces') && (
+        <label className="btn btn-sm secondary" style={{ margin: 0 }}>
+          {uploading ? 'Wgrywanie…' : 'Dodaj pliki'}
+          <input type="file" multiple onChange={e => onUpload(e.target.files)} style={{ display: 'none' }} />
+        </label>
+      )}
+      {info && <span className="text-xs text-green-600">{info}</span>}
+      {error && <span className="text-xs text-error">{error}</span>}
     </div>
   )
 }
