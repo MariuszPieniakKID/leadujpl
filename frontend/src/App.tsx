@@ -21,6 +21,7 @@ import ManagerStatsPage from './pages/ManagerStats'
 import { clearAuth, getToken, getUser } from './lib/auth'
 import MobileNav from './components/MobileNav'
 import Logo from './components/Logo'
+import SyncStatus from './components/SyncStatus'
 
 function QuickTile({ label, to, icon }: { label: string; to: string; icon: React.ReactNode }) {
   return (
@@ -693,6 +694,7 @@ function Dashboard() {
         <section className="actions-bar" style={{ gridColumn: '1 / -1' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--space-3)' }}>
             <h3 className="card-title" style={{ fontSize: 'var(--text-2xl)', fontWeight: 800, margin: 0, background: 'linear-gradient(135deg, var(--gray-900) 0%, var(--gray-700) 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>Szybkie akcje</h3>
+            <SyncStatus />
           </div>
           <div className="quick-grid">
             <QuickTile label="Kalendarz" to="/calendar" icon={(

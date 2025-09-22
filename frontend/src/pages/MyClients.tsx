@@ -36,15 +36,21 @@ export default function MyClientsPage() {
       if (isAdmin) {
         const res = await api.get<Client[]>('/api/clients', { params: { q: query || undefined, status: status || undefined, managerId: managerId || undefined } })
         setClients(res.data)
+        try { for (const c of res.data) { await offlineStore.put('clients', c as any) } } catch {}
       } else if (isManager && scope === 'team') {
         const res = await api.get<Client[]>('/api/clients', { params: { q: query || undefined, status: status || undefined, scope: 'team' } })
         setClients(res.data)
+        try { for (const c of res.data) { await offlineStore.put('clients', c as any) } } catch {}
       } else {
         const res = await api.get<Client[]>('/api/clients/mine', { params: { q: query || undefined, status: status || undefined } })
         setClients(res.data)
+        try { for (const c of res.data) { await offlineStore.put('clients', c as any) } } catch {}
       }
     } catch (e: any) {
-      setError(e?.response?.data?.error || e?.message || 'Nie udało się pobrać klientów')
+      // Fallback offline
+      try { const local = await offlineStore.getAll<Client>('clients'); setClients(local || []); setError(null) } catch {
+        setError(e?.response?.data?.error || e?.message || 'Nie udało się pobrać klientów')
+      }
     } finally {
       setLoading(false)
     }

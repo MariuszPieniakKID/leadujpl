@@ -97,6 +97,7 @@ export async function processQueue() {
       }
     }
     await processUploads()
+    try { localStorage.setItem('offline_last_sync', String(Date.now())) } catch {}
     try { window.dispatchEvent(new CustomEvent('offline-sync-complete')) } catch {}
   } catch {}
 }
@@ -147,4 +148,8 @@ export async function processUploads() {
       }
     }
   } catch {}
+}
+
+export async function getPendingCount(): Promise<number> {
+  try { const items = await pendingQueue.list(); return items?.length || 0 } catch { return 0 }
 }

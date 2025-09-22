@@ -422,11 +422,12 @@ export default function CalendarPage() {
 
   async function onEventDrop(eventId: string, start: Date, end: Date) {
     try {
-      await api.patch(`/api/meetings/${eventId}`, {
-        scheduledAt: start.toISOString(),
-        endsAt: end?.toISOString?.() || undefined,
-        status: 'Przełożone',
-      })
+      const payload: any = { scheduledAt: start.toISOString(), endsAt: end?.toISOString?.() || undefined, status: 'Przełożone' }
+      if (navigator.onLine) {
+        await api.patch(`/api/meetings/${eventId}`, payload)
+      } else {
+        await pendingQueue.enqueue({ id: newLocalId('att'), method: 'PATCH', url: (import.meta.env.VITE_API_BASE || '') + `/api/meetings/${eventId}`, body: payload, headers: {}, createdAt: Date.now(), entityStore: 'meetings' })
+      }
       await refreshMeetings()
     } catch {}
   }
@@ -498,7 +499,11 @@ export default function CalendarPage() {
       }
       const hasClient = Object.values(client).some(v => v && `${v}`.trim() !== '')
       if (hasClient) payload.client = client
-      await api.patch(`/api/meetings/${editMeetingId}`, payload)
+      if (navigator.onLine) {
+        await api.patch(`/api/meetings/${editMeetingId}`, payload)
+      } else {
+        await pendingQueue.enqueue({ id: newLocalId('att'), method: 'PATCH', url: (import.meta.env.VITE_API_BASE || '') + `/api/meetings/${editMeetingId}`, body: payload, headers: {}, createdAt: Date.now(), entityStore: 'meetings' })
+      }
       setIsEditOpen(false)
       setEditMeetingId(null)
       await refreshMeetings()
@@ -510,7 +515,11 @@ export default function CalendarPage() {
   async function deleteMeeting() {
     if (!editMeetingId) return
     try {
-      await api.delete(`/api/meetings/${editMeetingId}`)
+      if (navigator.onLine) {
+        await api.delete(`/api/meetings/${editMeetingId}`)
+      } else {
+        await pendingQueue.enqueue({ id: newLocalId('att'), method: 'DELETE', url: (import.meta.env.VITE_API_BASE || '') + `/api/meetings/${editMeetingId}`, headers: {}, createdAt: Date.now(), entityStore: 'meetings' })
+      }
       setIsEditOpen(false)
       setEditMeetingId(null)
       await refreshMeetings()
