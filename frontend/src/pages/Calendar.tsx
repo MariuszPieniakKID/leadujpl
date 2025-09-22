@@ -12,6 +12,7 @@ type View = any
 import { DndProvider } from 'react-dnd'
 import { HTML5Backend } from 'react-dnd-html5-backend'
 import api, { listMeetingAttachments, type AttachmentItem, viewAttachmentUrl, downloadAttachmentUrl, uploadAttachments } from '../lib/api'
+import EmbeddedCalculator from '../components/EmbeddedCalculator'
 import type { Client } from '../lib/api'
 import { getUser } from '../lib/auth'
 
@@ -203,6 +204,7 @@ export default function CalendarPage() {
   const [attachments, setAttachments] = useState<AttachmentItem[]>([])
   const [attachmentsLoading, setAttachmentsLoading] = useState(false)
   const [attachmentsError, setAttachmentsError] = useState<string | null>(null)
+  const [showCalc, setShowCalc] = useState(false)
 
   async function loadAttachments(meetingId: string) {
     try {
@@ -892,6 +894,21 @@ export default function CalendarPage() {
                     </li>
                   ))}
                 </ul>
+              )}
+            </div>
+
+            <div style={{ marginTop: 12, paddingTop: 8, borderTop: '1px solid var(--gray-200)' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <strong>Oferta</strong>
+                <button className="secondary" onClick={() => setShowCalc(s => !s)}>{showCalc ? 'Ukryj kalkulator' : 'Dodaj ofertę'}</button>
+              </div>
+              {showCalc && (
+                <EmbeddedCalculator clientId={(() => {
+                  // Meeting details contain clientId in previously fetched object
+                  // Fallback: require selecting client elsewhere
+                  const id = (editForm as any).clientId as string | undefined
+                  return id || ''
+                })()} onSaved={() => setShowCalc(false)} />
               )}
             </div>
 

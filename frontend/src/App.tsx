@@ -7,6 +7,7 @@ import { fetchLeads } from './lib/api'
 import api, { uploadAttachments, listMeetingAttachments, type AttachmentItem, viewAttachmentUrl, downloadAttachmentUrl } from './lib/api'
 import type { Client } from './lib/api'
 import Login from './pages/Login'
+import EmbeddedCalculator from './components/EmbeddedCalculator'
 import CalendarPage from './pages/Calendar'
 import ClientsPage from './pages/Clients'
 import SalesPage from './pages/Sales'
@@ -393,6 +394,7 @@ function Dashboard() {
   const [attachments, setAttachments] = useState<AttachmentItem[]>([])
   const [attachmentsLoading, setAttachmentsLoading] = useState(false)
   const [attachmentsError, setAttachmentsError] = useState<string | null>(null)
+  const [showCalc, setShowCalc] = useState(false)
 
   async function loadAttachments(meetingId: string) {
     try {
@@ -906,6 +908,21 @@ function Dashboard() {
                 <label className="form-label">Koniec - Godzina</label>
                 <input className="form-input" type="time" value={createForm.endTime} onChange={e => setCreateForm({ ...createForm, endTime: e.target.value })} />
               </div>
+            </div>
+
+            <div style={{ marginTop: 'var(--space-6)', paddingTop: 'var(--space-4)', borderTop: '1px solid var(--gray-200)' }}>
+              <h4 className="text-lg font-semibold text-gray-800 mb-4">Oferta</h4>
+              <button className="secondary" onClick={() => setShowCalc(s => !s)}>{showCalc ? 'Ukryj kalkulator' : 'Dodaj ofertę'}</button>
+              {showCalc && (
+                <EmbeddedCalculator clientId={(() => {
+                  // resolve client id: if present in meeting details use that, otherwise require selection later
+                  // For simplicity, fetch again if needed
+                  return selectedClientId || ''
+                })()} onSaved={async () => {
+                  setShowCalc(false)
+                  // nothing more to do; offers list visible w MyKlienci
+                }} />
+              )}
             </div>
 
             <div style={{ marginTop: 'var(--space-6)', paddingTop: 'var(--space-4)', borderTop: '1px solid var(--gray-200)' }}>
