@@ -379,8 +379,9 @@ function Dashboard() {
       const road = addr.road || addr.footway || addr.pedestrian || ''
       const house = addr.house_number || ''
       const city = addr.city || addr.town || addr.village || addr.hamlet || addr.suburb || ''
+      const postal = addr.postcode || ''
       const street = [road, house].filter(Boolean).join(' ')
-      setCreateForm(f => ({ ...f, clientStreet: street || f.clientStreet, clientCity: city || f.clientCity }))
+      setCreateForm(f => ({ ...f, clientStreet: street || f.clientStreet, clientCity: city || f.clientCity, postalCode: postal || f.postalCode }))
     } catch (e: any) {
       alert('Nie udało się pobrać lokalizacji. Upewnij się, że zezwoliłeś na dostęp do lokalizacji.')
     } finally {
