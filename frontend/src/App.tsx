@@ -258,6 +258,14 @@ function Dashboard() {
     const pad = (n: number) => n.toString().padStart(2, '0')
     return `${pad(date.getHours())}:${pad(date.getMinutes())}`
   }
+  function roundToNextFullHour(d: Date): Date {
+    const x = new Date(d)
+    if (x.getMinutes() > 0 || x.getSeconds() > 0 || x.getMilliseconds() > 0) {
+      x.setHours(x.getHours() + 1)
+    }
+    x.setMinutes(0, 0, 0)
+    return x
+  }
   function toLocalInputValue(date: Date) {
     const pad = (n: number) => n.toString().padStart(2, '0')
     const yyyy = date.getFullYear()
@@ -277,7 +285,7 @@ function Dashboard() {
 
   function openCreate() {
     setCreateError(null)
-    const start = new Date()
+    const start = roundToNextFullHour(new Date())
     const end = new Date(start.getTime() + 60 * 60 * 1000)
     setCreateForm(f => ({
       ...f,
@@ -285,7 +293,7 @@ function Dashboard() {
       location: 'U klienta',
       startDate: toLocalDateValue(start),
       startTime: toLocalTimeValue(start),
-      endDate: toLocalDateValue(end),
+      endDate: toLocalDateValue(start),
       endTime: toLocalTimeValue(end),
       clientFirstName: '',
       clientLastName: '',
@@ -938,20 +946,19 @@ function Dashboard() {
               )}
               {/* Temat i Lokalizacja: ustawiane automatycznie (notatka = klient, lokalizacja = U klienta) */}
               <div className="form-group">
-                <label className="form-label">Początek - Data</label>
+                <label className="form-label">Data</label>
                 <input className="form-input" type="date" value={createForm.startDate} onChange={e => setCreateForm({ ...createForm, startDate: e.target.value, endDate: e.target.value })} />
               </div>
               <div className="form-group">
-                <label className="form-label">Początek - Godzina</label>
-                <input className="form-input" type="time" value={createForm.startTime} onChange={e => setCreateForm({ ...createForm, startTime: e.target.value })} />
-              </div>
-              <div className="form-group">
-                <label className="form-label">Koniec - Data</label>
-                <input className="form-input" type="date" value={createForm.endDate} onChange={e => setCreateForm({ ...createForm, endDate: e.target.value })} />
-              </div>
-              <div className="form-group">
-                <label className="form-label">Koniec - Godzina</label>
-                <input className="form-input" type="time" value={createForm.endTime} onChange={e => setCreateForm({ ...createForm, endTime: e.target.value })} />
+                <label className="form-label">Godzina</label>
+                <input className="form-input" type="time" step={3600} value={createForm.startTime} onChange={e => {
+                  const hh = e.target.value.replace(/:\d{2}$/,'') + ':00'
+                  const [y, m, d] = createForm.startDate.split('-').map(Number)
+                  const [H] = hh.split(':').map(Number)
+                  const start = new Date(y, (m || 1) - 1, d || 1, H || 0, 0, 0, 0)
+                  const end = new Date(start.getTime() + 60 * 60 * 1000)
+                  setCreateForm({ ...createForm, startTime: hh, endDate: toLocalDateValue(start), endTime: toLocalTimeValue(end) })
+                }} />
               </div>
             </div>
 

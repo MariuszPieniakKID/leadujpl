@@ -138,6 +138,29 @@ export default function CalendarPage() {
     return `${pad(date.getHours())}:${pad(date.getMinutes())}`
   }
 
+  function roundToNextFullHour(d: Date): Date {
+    const x = new Date(d)
+    if (x.getMinutes() > 0 || x.getSeconds() > 0 || x.getMilliseconds() > 0) {
+      x.setHours(x.getHours() + 1)
+    }
+    x.setMinutes(0, 0, 0)
+    return x
+  }
+
+  function computeEndForStart(dateStr: string, timeStr: string): { endDate: string; endTime: string } {
+    if (!dateStr || !timeStr) return { endDate: dateStr, endTime: timeStr }
+    const [y, m, d] = dateStr.split('-').map(Number)
+    const [hh] = timeStr.split(':').map(Number)
+    const start = new Date(y, (m || 1) - 1, d || 1, hh || 0, 0, 0, 0)
+    const end = new Date(start)
+    end.setHours(end.getHours() + 1)
+    // Keep same day; clamp if crosses midnight
+    const sameDay = end.getFullYear() === start.getFullYear() && end.getMonth() === start.getMonth() && end.getDate() === start.getDate()
+    const endDate = toLocalDateValue(start)
+    const endTime = sameDay ? toLocalTimeValue(end) : '23:00'
+    return { endDate, endTime }
+  }
+
   function composeIsoFromLocal(dateStr: string, timeStr: string) {
     if (!dateStr || !timeStr) return null as unknown as string
     const [y, m, d] = dateStr.split('-').map(Number)
@@ -148,7 +171,7 @@ export default function CalendarPage() {
 
   function openCreateNow() {
     setCreateError(null)
-    const start = new Date()
+    const start = roundToNextFullHour(new Date())
     const end = addHours(start, 1)
     setCreateForm(f => ({
       ...f,
@@ -156,7 +179,7 @@ export default function CalendarPage() {
       location: 'U klienta',
       startDate: toLocalDateValue(start),
       startTime: toLocalTimeValue(start),
-      endDate: toLocalDateValue(end),
+      endDate: toLocalDateValue(start),
       endTime: toLocalTimeValue(end),
       clientFirstName: '',
       clientLastName: '',
@@ -227,15 +250,15 @@ export default function CalendarPage() {
 
   async function onSelect(slot: SlotInfo) {
     setCreateError(null)
-    const start = slot.start as Date
-    const end = (slot.end as Date) || addHours(start, 1)
+    const start = roundToNextFullHour(slot.start as Date)
+    const end = addHours(start, 1)
     setCreateForm(f => ({
       ...f,
       notes: '',
       location: '',
       startDate: toLocalDateValue(start),
       startTime: toLocalTimeValue(start),
-      endDate: toLocalDateValue(end),
+      endDate: toLocalDateValue(start),
       endTime: toLocalTimeValue(end),
       clientFirstName: '',
       clientLastName: '',
@@ -573,19 +596,21 @@ export default function CalendarPage() {
             {createSectionsOpen.meeting && (
             <div className="section-content">
               <div className="form-grid-2">
-                <div className="form-group" style={{ gridColumn: '1 / -1' }}>
-                  <label className="form-label">Początek</label>
-                  <div className="datetime-grid">
-                    <input className="form-input" type="date" value={createForm.startDate} onChange={e => setCreateForm({ ...createForm, startDate: e.target.value, endDate: e.target.value })} />
-                    <input className="form-input" type="time" value={createForm.startTime} onChange={e => setCreateForm({ ...createForm, startTime: e.target.value })} />
-                  </div>
+                <div className="form-group">
+                  <label className="form-label">Data</label>
+                  <input className="form-input" type="date" value={createForm.startDate} onChange={e => {
+                    const startDate = e.target.value
+                    const next = { ...createForm, startDate, endDate: startDate }
+                    setCreateForm(next)
+                  }} />
                 </div>
-                <div className="form-group" style={{ gridColumn: '1 / -1' }}>
-                  <label className="form-label">Koniec</label>
-                  <div className="datetime-grid">
-                    <input className="form-input" type="date" value={createForm.endDate} onChange={e => setCreateForm({ ...createForm, endDate: e.target.value })} />
-                    <input className="form-input" type="time" value={createForm.endTime} onChange={e => setCreateForm({ ...createForm, endTime: e.target.value })} />
-                  </div>
+                <div className="form-group">
+                  <label className="form-label">Godzina</label>
+                  <input className="form-input" type="time" step={3600} value={createForm.startTime} onChange={e => {
+                    const startTime = e.target.value.replace(/:\d{2}$/,'') + ':00'
+                    const { endDate, endTime } = computeEndForStart(createForm.startDate, startTime)
+                    setCreateForm({ ...createForm, startTime, endDate, endTime })
+                  }} />
                 </div>
               </div>
             </div>
