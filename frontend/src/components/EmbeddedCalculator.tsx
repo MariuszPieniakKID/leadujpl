@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import baseData from '../data/calculatorData.json'
 import api, { generateOfferPDF, saveOfferForClient } from '../lib/api'
 
-export default function EmbeddedCalculator({ clientId, onSaved }: { clientId: string; onSaved?: () => void }) {
+export default function EmbeddedCalculator({ clientId, onSaved, initialSnapshot }: { clientId: string; onSaved?: () => void; initialSnapshot?: { form?: any; calc?: any } }) {
   const [remoteData, setRemoteData] = useState<any | null>(null)
   const data = useMemo(() => remoteData || (baseData as any), [remoteData])
 
@@ -83,6 +83,24 @@ export default function EmbeddedCalculator({ clientId, onSaved }: { clientId: st
       monthly,
     }
   }, [form, prices, settings, grantOptions])
+
+  useEffect(() => {
+    if (initialSnapshot && initialSnapshot.form) {
+      const f = initialSnapshot.form
+      setForm(prev => ({
+        ...prev,
+        systemType: f.systemType || prev.systemType,
+        pvSet: f.pvSet || '',
+        battery: f.battery || '',
+        inverter: f.inverter || '',
+        backup: f.backup || prev.backup,
+        trench: f.trench || prev.trench,
+        grant: f.grant || prev.grant,
+        downPayment: f.downPayment != null ? Number(f.downPayment) : prev.downPayment,
+        termMonths: f.termMonths != null ? Number(f.termMonths) : prev.termMonths,
+      }))
+    }
+  }, [initialSnapshot])
 
   async function onGeneratePDF() {
     const snapshot = { form, calc }

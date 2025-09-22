@@ -203,6 +203,22 @@ router.get('/client/:clientId', requireAuth, async (req, res) => {
   }
 })
 
+router.get('/:id', requireAuth, async (req, res) => {
+  try {
+    const current = req.user!
+    const { id } = req.params
+    const offer = await prisma.offer.findUnique({ where: { id }, include: { client: { include: { meetings: true } } } })
+    if (!offer) return res.status(404).json({ error: 'Not found' })
+    if (current.role !== 'ADMIN' && current.role !== 'MANAGER') {
+      const can = offer.client.meetings.some(m => m.attendeeId === current.id)
+      if (!can && offer.ownerId !== current.id) return res.status(403).json({ error: 'Forbidden' })
+    }
+    res.json({ id: offer.id, fileName: offer.fileName, createdAt: offer.createdAt, snapshot: offer.snapshot, clientId: offer.clientId, ownerId: offer.ownerId })
+  } catch (e) {
+    res.status(500).json({ error: (e as Error).message })
+  }
+})
+
 router.get('/:id/download', requireAuth, async (req, res) => {
   try {
     const current = req.user!

@@ -137,4 +137,9 @@ export function downloadOffer(offerId: string): string {
   return `${import.meta.env.VITE_API_BASE || ''}/api/offers/${offerId}/download`
 }
 
+export async function fetchOffer(offerId: string): Promise<{ id: string; fileName: string; createdAt: string; snapshot: any; clientId: string; ownerId: string }>{
+  const res = await api.get(`/api/offers/${offerId}`)
+  return res.data
+}
+
 

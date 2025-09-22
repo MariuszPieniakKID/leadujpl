@@ -4,7 +4,7 @@ import { BrowserRouter, Routes, Route, Navigate, NavLink, useLocation, Link } fr
 import './App.css'
 
 import { fetchLeads } from './lib/api'
-import api, { uploadAttachments, listMeetingAttachments, type AttachmentItem, viewAttachmentUrl, downloadAttachmentUrl } from './lib/api'
+import api, { uploadAttachments, listMeetingAttachments, type AttachmentItem, viewAttachmentUrl, downloadAttachmentUrl, listClientOffers, downloadOffer, fetchOffer } from './lib/api'
 import type { Client } from './lib/api'
 import Login from './pages/Login'
 import EmbeddedCalculator from './components/EmbeddedCalculator'
@@ -395,6 +395,10 @@ function Dashboard() {
   const [attachmentsLoading, setAttachmentsLoading] = useState(false)
   const [attachmentsError, setAttachmentsError] = useState<string | null>(null)
   const [showCalc, setShowCalc] = useState(false)
+  const [offers, setOffers] = useState<Array<{ id: string; fileName: string; createdAt: string }>>([])
+  const [editClientId, setEditClientId] = useState<string | null>(null)
+  const [calcInitialSnapshot, setCalcInitialSnapshot] = useState<any | null>(null)
+  const [calcKey, setCalcKey] = useState<string>('')
 
   async function loadAttachments(meetingId: string) {
     try {
@@ -436,6 +440,12 @@ function Dashboard() {
         extraComments: m.extraComments || '',
         status: m.status || '',
       })
+      setEditClientId(m.clientId || null)
+      if (m.clientId) {
+        try { const offs = await listClientOffers(m.clientId); setOffers(offs) } catch {}
+      } else {
+        setOffers([])
+      }
       await loadAttachments(meetingId)
     } catch (e: any) {
       setEditError(e?.response?.data?.error || e?.message || 'Nie udało się pobrać szczegółów')
@@ -914,15 +924,37 @@ function Dashboard() {
               <h4 className="text-lg font-semibold text-gray-800 mb-4">Oferta</h4>
               <button className="secondary" onClick={() => setShowCalc(s => !s)}>{showCalc ? 'Ukryj kalkulator' : 'Dodaj ofertę'}</button>
               {showCalc && (
-                <EmbeddedCalculator clientId={(() => {
-                  // resolve client id: if present in meeting details use that, otherwise require selection later
-                  // For simplicity, fetch again if needed
-                  return selectedClientId || ''
-                })()} onSaved={async () => {
+                <EmbeddedCalculator key={calcKey} clientId={(editClientId || '')} initialSnapshot={calcInitialSnapshot || undefined} onSaved={async () => {
                   setShowCalc(false)
-                  // nothing more to do; offers list visible w MyKlienci
+                  setCalcInitialSnapshot(null)
+                  if (editClientId) { try { const offs = await listClientOffers(editClientId); setOffers(offs) } catch {} }
                 }} />
               )}
+              <div className="card" style={{ marginTop: 8 }}>
+                <div className="flex justify-between items-center mb-2">
+                  <strong>Oferty klienta</strong>
+                </div>
+                {offers.length === 0 ? <div className="text-sm text-gray-500">Brak ofert</div> : (
+                  <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'grid', gap: 6 }}>
+                    {offers.map(o => (
+                      <li key={o.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
+                        <span>{o.fileName}</span>
+                        <span style={{ display: 'flex', gap: 6 }}>
+                          <a className="btn btn-sm" href={downloadOffer(o.id)} target="_blank" rel="noreferrer">Pobierz</a>
+                          <button className="btn btn-sm secondary" onClick={async () => {
+                            try {
+                              const meta = await fetchOffer(o.id)
+                              setCalcInitialSnapshot(meta.snapshot)
+                              setCalcKey(o.id)
+                              setShowCalc(true)
+                            } catch {}
+                          }}>Edytuj</button>
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
             </div>
 
             <div style={{ marginTop: 'var(--space-6)', paddingTop: 'var(--space-4)', borderTop: '1px solid var(--gray-200)' }}>

@@ -205,6 +205,9 @@ export default function CalendarPage() {
   const [attachmentsLoading, setAttachmentsLoading] = useState(false)
   const [attachmentsError, setAttachmentsError] = useState<string | null>(null)
   const [showCalc, setShowCalc] = useState(false)
+  const [offers, setOffers] = useState<Array<{ id: string; fileName: string; createdAt: string }>>([])
+  const [calcInitialSnapshot, setCalcInitialSnapshot] = useState<any | null>(null)
+  const [calcKey, setCalcKey] = useState<string>('')
 
   async function loadAttachments(meetingId: string) {
     try {
@@ -903,12 +906,7 @@ export default function CalendarPage() {
                 <button className="secondary" onClick={() => setShowCalc(s => !s)}>{showCalc ? 'Ukryj kalkulator' : 'Dodaj ofertę'}</button>
               </div>
               {showCalc && (
-                <EmbeddedCalculator clientId={(() => {
-                  // Meeting details contain clientId in previously fetched object
-                  // Fallback: require selecting client elsewhere
-                  const id = (editForm as any).clientId as string | undefined
-                  return id || ''
-                })()} onSaved={() => setShowCalc(false)} />
+                <EmbeddedCalculator key={calcKey} clientId={((editForm as any).clientId as string) || ''} initialSnapshot={calcInitialSnapshot || undefined} onSaved={() => setShowCalc(false)} />
               )}
             </div>
 
