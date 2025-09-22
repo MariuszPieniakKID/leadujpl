@@ -136,7 +136,9 @@ export default function MyClientsPage() {
             </div>
           )}
           <button className="secondary" onClick={load}>Filtruj</button>
-          <button className="primary" onClick={exportCsv}>Eksport CSV</button>
+          {(user && user.role === 'ADMIN') && (
+            <button className="primary" onClick={exportCsv}>Eksport CSV</button>
+          )}
           <span className="text-sm text-gray-500">{clients.length} klientów</span>
         </div>
       </div>
