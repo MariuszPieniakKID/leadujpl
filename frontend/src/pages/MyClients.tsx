@@ -95,8 +95,8 @@ export default function MyClientsPage() {
                   <th>Adres</th>
                   <th>Kategoria</th>
                   <th>Status</th>
-                  <th>Oferty</th>
                   <th>Załączniki</th>
+                  <th>Oferty</th>
                 </tr>
               </thead>
               <tbody>
@@ -112,10 +112,10 @@ export default function MyClientsPage() {
                       <ClientStatusAndActions clientId={c.id} />
                     </td>
                     <td>
-                      <ClientOffers clientId={c.id} />
+                      <ClientAttachments clientId={c.id} />
                     </td>
                     <td>
-                      <ClientAttachments clientId={c.id} />
+                      <ClientOffers clientId={c.id} />
                     </td>
                   </tr>
                 ))}
