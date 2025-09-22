@@ -186,6 +186,34 @@ function Dashboard() {
       }))
   }, [meetings])
 
+  async function navigateToMeeting(meetingId: string) {
+    try {
+      const res = await api.get(`/api/meetings/${meetingId}`)
+      const m: any = res.data
+      const street = m?.client?.street || ''
+      const city = m?.client?.city || ''
+      let address = [street, city].filter((s: string) => s && s.trim() !== '').join(', ')
+      if (!address) {
+        const loc = (m?.location || '').trim()
+        if (loc && loc.toLowerCase() !== 'u klienta' && loc !== '—') address = loc
+      }
+      if (!address) {
+        alert('Brak adresu klienta do nawigacji.')
+        return
+      }
+      const query = encodeURIComponent(address)
+      const ua = navigator.userAgent || ''
+      const isIOS = /iPad|iPhone|iPod/.test(ua)
+      const isAndroid = /Android/.test(ua)
+      let url = `https://www.google.com/maps/search/?api=1&query=${query}`
+      if (isIOS) url = `maps://?q=${query}`
+      else if (isAndroid) url = `geo:0,0?q=${query}`
+      window.location.href = url
+    } catch {
+      alert('Nie udało się przygotować nawigacji.')
+    }
+  }
+
   
 
   useEffect(() => {
@@ -808,6 +836,7 @@ function Dashboard() {
                       <div className="meeting-location">{m.place}</div>
                     </div>
                   </div>
+                  <button className="btn btn-sm secondary" onClick={(e) => { e.stopPropagation(); navigateToMeeting(m.id) }}>Nawiguj</button>
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ color: 'var(--gray-400)' }}>
                     <path d="m9 18 6-6-6-6"/>
                   </svg>
