@@ -128,7 +128,7 @@ function ClientOffers({ clientId }: { clientId: string }) {
   const [open, setOpen] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [showCalc, setShowCalc] = useState(false)
+  const [showCalcModal, setShowCalcModal] = useState(false)
 
   async function load() {
     try {
@@ -145,20 +145,18 @@ function ClientOffers({ clientId }: { clientId: string }) {
 
   return (
     <div>
-      <button className="btn btn-sm secondary" onClick={() => { const next = !open; setOpen(next); if (next) { setShowCalc(false); load() } }}>{open ? 'Ukryj' : 'Pokaż'}</button>
+      <button className="btn btn-sm secondary" onClick={() => { const next = !open; setOpen(next); if (next) { setShowCalcModal(false); load() } }}>{open ? 'Ukryj' : 'Pokaż'}</button>
       {open && (
         <div className="card" style={{ marginTop: 6 }}>
           {loading ? <div className="text-sm text-gray-500">Ładowanie…</div> : error ? <div className="text-error text-sm">{error}</div> : (
             offers.length === 0 ? (
               <div>
-                {!showCalc ? (
+                {!showCalcModal ? (
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <div className="text-sm text-gray-500">Brak ofert</div>
-                    <button className="btn btn-sm primary" onClick={() => setShowCalc(true)}>Dodaj ofertę</button>
+                    <button className="btn btn-sm primary" onClick={() => setShowCalcModal(true)}>Dodaj ofertę</button>
                   </div>
-                ) : (
-                  <EmbeddedCalculator clientId={clientId} onSaved={async () => { setShowCalc(false); await load() }} />
-                )}
+                ) : null}
               </div>
             ) : (
               <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'grid', gap: 6 }}>
@@ -171,6 +169,22 @@ function ClientOffers({ clientId }: { clientId: string }) {
               </ul>
             )
           )}
+        </div>
+      )}
+
+      {showCalcModal && (
+        <div className="modal-overlay">
+          <div className="modal-content" style={{ maxWidth: '1000px', width: '95vw' }}>
+            <div className="modal-header">
+              <h3 className="modal-title">Dodaj ofertę</h3>
+              <button className="secondary" onClick={() => setShowCalcModal(false)} style={{ padding: 'var(--space-2)' }}>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M18 6L6 18M6 6l12 12"/>
+                </svg>
+              </button>
+            </div>
+            <EmbeddedCalculator clientId={clientId} onSaved={async () => { setShowCalcModal(false); await load() }} />
+          </div>
         </div>
       )}
     </div>
