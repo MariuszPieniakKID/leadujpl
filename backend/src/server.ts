@@ -10,6 +10,7 @@ import clientsRouter from './routes/clients';
 import calculatorRouter from './routes/calculator';
 import offersRouter from './routes/offers';
 import { PrismaClient } from '@prisma/client';
+import attachmentsRouter from './routes/attachments';
 
 dotenv.config();
 
@@ -27,6 +28,7 @@ app.use('/api/users', usersRouter);
 app.use('/api/meetings', meetingsRouter);
 app.use('/api/clients', clientsRouter);
 app.use('/api/calculator', calculatorRouter);
+app.use('/api/attachments', attachmentsRouter);
 app.use('/api/offers', offersRouter);
 
 app.get('/health', async (_req, res) => {

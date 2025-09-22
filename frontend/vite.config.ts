@@ -61,16 +61,16 @@ export default defineConfig({
     }),
   ],
   server: {
-    port: 3005,
+    port: 3004,
     strictPort: true,
     hmr: { overlay: false },
     proxy: {
       '/api': {
-        target: 'http://localhost:3006',
+        target: 'http://localhost:3005',
         changeOrigin: true,
       },
       '/health': {
-        target: 'http://localhost:3006',
+        target: 'http://localhost:3005',
         changeOrigin: true,
       },
     },

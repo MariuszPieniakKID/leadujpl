@@ -149,3 +149,21 @@ model Offer {
   @@index([clientId])
   @@index([ownerId])
 }
+
+model Attachment {
+  id         String   @id @default(cuid())
+  meeting    Meeting  @relation(fields: [meetingId], references: [id])
+  meetingId  String
+  client     Client   @relation(fields: [clientId], references: [id])
+  clientId   String
+  owner      User     @relation(fields: [ownerId], references: [id])
+  ownerId    String
+  fileName   String
+  mimeType   String
+  data       Bytes
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  @@index([meetingId])
+  @@index([clientId])
+  @@index([ownerId])
+}

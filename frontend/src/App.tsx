@@ -4,7 +4,7 @@ import { BrowserRouter, Routes, Route, Navigate, NavLink, useLocation, Link } fr
 import './App.css'
 
 import { fetchLeads } from './lib/api'
-import api from './lib/api'
+import api, { uploadAttachments } from './lib/api'
 import type { Client } from './lib/api'
 import Login from './pages/Login'
 import CalendarPage from './pages/Calendar'
@@ -60,11 +60,13 @@ function Dashboard() {
     clientEmail: '',
     clientStreet: '',
     clientCity: '',
-    clientCategory: '',
+    clientCategory: 'PV',
     pvInstalled: '',
     billRange: '',
     extraComments: '',
     contactConsent: false,
+    newRules: '',
+    buildingType: '',
   })
   const [clientQuery, setClientQuery] = useState('')
   const [clientOptions, setClientOptions] = useState<Client[]>([])
@@ -250,7 +252,7 @@ function Dashboard() {
     setCreateForm(f => ({
       ...f,
       notes: '',
-      location: '',
+      location: 'U klienta',
       startDate: toLocalDateValue(start),
       startTime: toLocalTimeValue(start),
       endDate: toLocalDateValue(end),
@@ -261,11 +263,13 @@ function Dashboard() {
       clientEmail: '',
       clientStreet: '',
       clientCity: '',
-      clientCategory: '',
+      clientCategory: 'PV',
       pvInstalled: '',
       billRange: '',
       extraComments: '',
       contactConsent: false,
+      newRules: '',
+      buildingType: '',
     }))
     setClientQuery('')
     setClientOptions([])
@@ -299,13 +303,14 @@ function Dashboard() {
     setClientOptions([])
     setCreateForm(f => ({
       ...f,
+      notes: `${c.firstName} ${c.lastName}`.trim(),
       clientFirstName: c.firstName || '',
       clientLastName: c.lastName || '',
       clientPhone: c.phone || '',
       clientEmail: c.email || '',
       clientStreet: c.street || '',
       clientCity: c.city || '',
-      clientCategory: c.category || '',
+      clientCategory: c.category || 'PV',
       pvInstalled: c.pvInstalled === true ? 'TAK' : (c.pvInstalled === false ? 'NIE' : ''),
       billRange: c.billRange || '',
       extraComments: c.extraComments || '',
@@ -332,6 +337,11 @@ function Dashboard() {
         street: createForm.clientStreet || undefined,
         city: createForm.clientCity || undefined,
         category: createForm.clientCategory || undefined,
+        newRules: createForm.newRules === 'TAK' ? true : (createForm.newRules === 'NIE' ? false : undefined),
+        buildingType: createForm.buildingType || undefined,
+        billRange: createForm.billRange || undefined,
+        pvInstalled: createForm.pvInstalled ? (createForm.pvInstalled === 'TAK') : undefined,
+        extraComments: createForm.extraComments || undefined,
       }
       const hasClient = Object.values(client).some(v => v && `${v}`.trim() !== '')
       const pvInstalled = createForm.pvInstalled ? (createForm.pvInstalled === 'TAK') : undefined
@@ -810,7 +820,7 @@ function Dashboard() {
                     <div className="flex items-center gap-3">
                       <div className="flex items-center gap-2">
                       {(() => {
-                        const color = m.status === 'Sukces' ? '#16a34a' : m.status === 'Porażka' ? '#dc2626' : m.status === 'Dogrywka' ? '#f59e0b' : '#94a3b8'
+                        const color = m.status === 'Umowa' ? '#16a34a' : m.status === 'Spadek' ? '#dc2626' : m.status === 'Przełożone' ? '#3b82f6' : '#94a3b8'
                         return <span title={m.status || 'brak statusu'} className="status-dot" style={{ background: color }} />
                       })()}
                       </div>
@@ -862,20 +872,7 @@ function Dashboard() {
                   </select>
                 </div>
               )}
-              <div className="form-group">
-                <label className="form-label">Temat/Notatka</label>
-                <input className="form-input" value={createForm.notes} onChange={e => setCreateForm({ ...createForm, notes: e.target.value })} placeholder="Np. Spotkanie z klientem" />
-              </div>
-              <div className="form-group">
-                <label className="form-label">Lokalizacja</label>
-                <select className="form-select" value={createForm.location} onChange={e => setCreateForm({ ...createForm, location: e.target.value })}>
-                  <option value="">— wybierz —</option>
-                  <option value="U klienta">U klienta</option>
-                  <option value="Biuro">Biuro</option>
-                  <option value="Zdalne">Zdalne</option>
-                  <option value="Inne">Inne</option>
-                </select>
-              </div>
+              {/* Temat i Lokalizacja: ustawiane automatycznie (notatka = klient, lokalizacja = U klienta) */}
               <div className="form-group">
                 <label className="form-label">Początek - Data</label>
                 <input className="form-input" type="date" value={createForm.startDate} onChange={e => setCreateForm({ ...createForm, startDate: e.target.value, endDate: e.target.value })} />
@@ -943,10 +940,13 @@ function Dashboard() {
                   <label className="form-label">Miasto</label>
                   <input className="form-input" value={createForm.clientCity} onChange={e => setCreateForm({ ...createForm, clientCity: e.target.value })} />
                 </div>
-                <div className="form-group">
-                  <label className="form-label">Kategoria</label>
-                  <input className="form-input" value={createForm.clientCategory} onChange={e => setCreateForm({ ...createForm, clientCategory: e.target.value })} />
-                </div>
+              <div className="form-group">
+                <label className="form-label">Kategoria</label>
+                <select className="form-select" value={createForm.clientCategory} onChange={e => setCreateForm({ ...createForm, clientCategory: e.target.value })}>
+                  <option value="PV">PV</option>
+                  <option value="ME">ME</option>
+                </select>
+              </div>
               </div>
             </div>
 
@@ -976,8 +976,23 @@ function Dashboard() {
                     <option value="350 - 500">350 - 500</option>
                     <option value="500 - 800">500 - 800</option>
                     <option value="800 - 1000">800 - 1000</option>
-                    <option value="> 1000">powyżej 1000</option>
+                    <option value="1000 - 1300">1000 - 1300</option>
+                    <option value="1300 - 1500">1300 - 1500</option>
+                    <option value="1500 - 1800">1500 - 1800</option>
+                    <option value="1800 - 2000">1800 - 2000</option>
+                    <option value="> 2000">powyżej 2000</option>
                   </select>
+                </div>
+                <div className="form-group">
+                  <label className="form-label">Rodzaj zabudowy</label>
+                  <div className="radio-group">
+                    <label className="radio-item">
+                      <input type="radio" name="buildingTypeCreateDash" checked={createForm.buildingType === 'Dom'} onChange={() => setCreateForm({ ...createForm, buildingType: 'Dom' })} /> Dom
+                    </label>
+                    <label className="radio-item">
+                      <input type="radio" name="buildingTypeCreateDash" checked={createForm.buildingType === 'Gospodarstwo'} onChange={() => setCreateForm({ ...createForm, buildingType: 'Gospodarstwo' })} /> Gospodarstwo
+                    </label>
+                  </div>
                 </div>
                 <div className="form-group" style={{ gridColumn: '1 / -1' }}>
                   <label className="form-label">Komentarz/uwagi</label>
@@ -1096,18 +1111,36 @@ function Dashboard() {
                   <h4 className="text-lg font-semibold text-gray-800 mb-4">Status spotkania</h4>
                   <div className="radio-group">
                     <label className="radio-item">
-                      <input type="radio" name="meetingStatusDash" checked={editForm.status === 'Sukces'} onChange={() => setEditForm({ ...editForm, status: 'Sukces' })} />
-                      <span>Sukces !</span>
+                      <input type="radio" name="meetingStatusDash" checked={editForm.status === 'Umowa'} onChange={() => setEditForm({ ...editForm, status: 'Umowa' })} />
+                      <span>Umowa</span>
                     </label>
                     <label className="radio-item">
-                      <input type="radio" name="meetingStatusDash" checked={editForm.status === 'Porażka'} onChange={() => setEditForm({ ...editForm, status: 'Porażka' })} />
-                      <span>Porażka</span>
+                      <input type="radio" name="meetingStatusDash" checked={editForm.status === 'Spadek'} onChange={() => setEditForm({ ...editForm, status: 'Spadek' })} />
+                      <span>Spadek</span>
                     </label>
                     <label className="radio-item">
-                      <input type="radio" name="meetingStatusDash" checked={editForm.status === 'Dogrywka'} onChange={() => setEditForm({ ...editForm, status: 'Dogrywka' })} />
-                      <span>Dogrywka</span>
+                      <input type="radio" name="meetingStatusDash" checked={editForm.status === 'Przełożone'} onChange={() => setEditForm({ ...editForm, status: 'Przełożone' })} />
+                      <span>Przełożone</span>
                     </label>
                   </div>
+                  {editForm.status === 'Umowa' && (
+                    <div style={{ marginTop: 12 }}>
+                      <label className="form-label">Załącz pliki (zdjęcia/dokumenty)</label>
+                      <input type="file" multiple accept="image/*,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document" onChange={async (e) => {
+                        const files = Array.from(e.currentTarget.files || [])
+                        if (files.length === 0) return
+                        try {
+                          const meetingId = editMeetingId!
+                          // Try to resolve client id from editForm fields requires fetch; fallback: reload meeting details
+                          const meeting = await api.get<any>(`/api/meetings/${editMeetingId}`)
+                          const cid = meeting.data?.clientId
+                          if (!cid) return
+                          await uploadAttachments(meetingId, cid, files as File[])
+                          e.currentTarget.value = ''
+                        } catch {}
+                      }} />
+                    </div>
+                  )}
                 </div>
               )
             })()}

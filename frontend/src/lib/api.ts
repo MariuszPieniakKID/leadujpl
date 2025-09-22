@@ -83,6 +83,16 @@ export async function deleteClient(id: string) {
   return res.data;
 }
 
+// Attachments
+export async function uploadAttachments(meetingId: string, clientId: string, files: File[]) {
+  const form = new FormData()
+  form.append('meetingId', meetingId)
+  form.append('clientId', clientId)
+  for (const f of files) form.append('files', f)
+  const res = await api.post(`/api/attachments/upload`, form, { headers: { 'Content-Type': 'multipart/form-data' } })
+  return res.data as { count: number }
+}
+
 // Offers
 export async function generateOfferPDF(snapshot: any): Promise<Blob> {
   const res = await api.post(`/api/offers/generate`, snapshot, { responseType: 'blob' })
