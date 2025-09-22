@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { createPortal } from 'react-dom'
 import api, { listClientOffers, downloadOffer, listClientAttachments, type AttachmentItem, viewAttachmentUrl, downloadAttachmentUrl } from '../lib/api'
 import EmbeddedCalculator from '../components/EmbeddedCalculator'
 
@@ -172,8 +173,8 @@ function ClientOffers({ clientId }: { clientId: string }) {
         </div>
       )}
 
-      {showCalcModal && (
-        <div style={{ position: 'fixed', inset: 0, zIndex: 10000, display: 'flex', alignItems: 'flex-start', justifyContent: 'center', padding: 24 }}>
+      {showCalcModal && createPortal(
+        <div style={{ position: 'fixed', inset: 0, zIndex: 2147483647, display: 'flex', alignItems: 'flex-start', justifyContent: 'center', padding: 24 }}>
           <div onClick={() => setShowCalcModal(false)} style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.25)' }} />
           <div onClick={e => e.stopPropagation()} style={{ position: 'relative', background: '#fff', width: 'min(1000px, 95vw)', maxHeight: '90vh', overflow: 'auto', border: '1px solid var(--gray-200)', borderRadius: 8, boxShadow: '0 10px 30px rgba(0,0,0,0.15)' }}>
             <div className="modal-header">
@@ -188,7 +189,8 @@ function ClientOffers({ clientId }: { clientId: string }) {
               <EmbeddedCalculator clientId={clientId} onSaved={async () => { setShowCalcModal(false); await load() }} />
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   )
