@@ -852,8 +852,8 @@ export default function CalendarPage() {
       )}
 
       {isEditOpen && (
-        <div className="modal-overlay">
-          <div className="modal-content" style={{ maxWidth: '720px' }}>
+        <div className="modal-overlay sheet">
+          <div className="modal-content sheet" style={{ maxWidth: '720px' }}>
             <div className="modal-header">
               <h3 className="modal-title">Szczegóły spotkania</h3>
               <button className="secondary" onClick={() => { setIsEditOpen(false); setEditMeetingId(null) }} style={{ padding: 'var(--space-2)' }}>
