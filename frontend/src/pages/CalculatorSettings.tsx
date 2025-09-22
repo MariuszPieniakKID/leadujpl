@@ -94,7 +94,7 @@ export default function CalculatorSettingsPage() {
             />
           </div>
         </div>
-        <div className="text-gray-600 text-sm">Ustaw jedno z pól: stawka albo procent. Użyte będzie to, które jest > 0.</div>
+        <div className="text-gray-600 text-sm">Ustaw jedno z pól: stawka albo procent. Użyte będzie to, które jest &gt; 0.</div>
       </section>
 
       <section className="card" style={{ marginBottom: 16 }}>
