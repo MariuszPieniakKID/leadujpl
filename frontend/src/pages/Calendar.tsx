@@ -268,6 +268,7 @@ export default function CalendarPage() {
   function applyClientToForm(c: Client) {
     setCreateForm(f => ({
       ...f,
+      notes: `${c.firstName || ''} ${c.lastName || ''}`.trim(),
       clientFirstName: c.firstName || '',
       clientLastName: c.lastName || '',
       clientPhone: c.phone || '',
@@ -533,20 +534,6 @@ export default function CalendarPage() {
             {createSectionsOpen.meeting && (
             <div className="section-content">
               <div className="form-grid-2">
-                <div className="form-group">
-                  <label className="form-label">Temat/Notatka</label>
-                  <input className="form-input" value={createForm.notes} onChange={e => setCreateForm({ ...createForm, notes: e.target.value })} placeholder="Np. Spotkanie z klientem" />
-                </div>
-                <div className="form-group">
-                  <label className="form-label">Lokalizacja</label>
-                  <select className="form-select" value={createForm.location} onChange={e => setCreateForm({ ...createForm, location: e.target.value })}>
-                    <option value="">— wybierz —</option>
-                    <option value="U klienta">U klienta</option>
-                    <option value="Biuro">Biuro</option>
-                    <option value="Zdalne">Zdalne</option>
-                    <option value="Inne">Inne</option>
-                  </select>
-                </div>
                 <div className="form-group" style={{ gridColumn: '1 / -1' }}>
                   <label className="form-label">Początek</label>
                   <div className="datetime-grid">
