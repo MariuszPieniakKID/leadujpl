@@ -45,6 +45,32 @@ export default function MyClientsPage() {
 
   useEffect(() => { load() }, [])
 
+  function exportCsv() {
+    if (!clients || clients.length === 0) {
+      alert('Brak danych do eksportu')
+      return
+    }
+    const headers = ['Imię', 'Nazwisko', 'Telefon', 'E-mail', 'Adres', 'Kategoria']
+    const rows = clients.map(c => {
+      const address = [c.street, c.city].filter(Boolean).join(', ')
+      const cat = (c.category && c.category.toUpperCase()) === 'PV' ? 'PV' : (c.category && c.category.toUpperCase()) === 'ME' ? 'ME' : ''
+      return [c.firstName || '', c.lastName || '', c.phone || '', c.email || '', address, cat]
+    })
+    const escapeCell = (v: string) => '"' + String(v).replace(/"/g, '""') + '"'
+    const sep = ';'
+    const lines = [headers.map(escapeCell).join(sep), ...rows.map(r => r.map(escapeCell).join(sep))]
+    const csv = '\ufeff' + lines.join('\n')
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
+    const a = document.createElement('a')
+    const url = URL.createObjectURL(blob)
+    a.href = url
+    const scopeLabel = (user && user.role === 'MANAGER' && scope === 'team') ? 'zespol' : 'moi'
+    const statusLabel = status || 'all'
+    a.download = `klienci_${scopeLabel}_${statusLabel}.csv`
+    a.click()
+    URL.revokeObjectURL(url)
+  }
+
   return (
     <div className="container">
       <div className="page-header">
@@ -79,6 +105,7 @@ export default function MyClientsPage() {
             </div>
           )}
           <button className="secondary" onClick={load}>Filtruj</button>
+          <button className="primary" onClick={exportCsv}>Eksport CSV</button>
           <span className="text-sm text-gray-500">{clients.length} klientów</span>
         </div>
       </div>
