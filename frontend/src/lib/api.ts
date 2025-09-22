@@ -123,13 +123,18 @@ export async function generateOfferPDF(snapshot: any): Promise<Blob> {
   return res.data as Blob
 }
 
-export async function saveOfferForClient(clientId: string, fileName: string | undefined, snapshot: any): Promise<{ id: string; fileName: string }> {
-  const res = await api.post(`/api/offers/save`, { clientId, fileName, snapshot })
+export async function saveOfferForClient(clientId: string, fileName: string | undefined, snapshot: any, meetingId?: string): Promise<{ id: string; fileName: string }> {
+  const res = await api.post(`/api/offers/save`, { clientId, fileName, snapshot, ...(meetingId ? { meetingId } : {}) })
   return res.data
 }
 
-export async function listClientOffers(clientId: string): Promise<Array<{ id: string; fileName: string; createdAt: string }>> {
+export async function listClientOffers(clientId: string): Promise<Array<{ id: string; fileName: string; createdAt: string; meetingId?: string }>> {
   const res = await api.get(`/api/offers/client/${clientId}`)
+  return res.data
+}
+
+export async function listMeetingOffers(meetingId: string): Promise<Array<{ id: string; fileName: string; createdAt: string }>> {
+  const res = await api.get(`/api/offers/meeting/${meetingId}`)
   return res.data
 }
 

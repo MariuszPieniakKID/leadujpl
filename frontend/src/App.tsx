@@ -924,7 +924,7 @@ function Dashboard() {
               <h4 className="text-lg font-semibold text-gray-800 mb-4">Oferta</h4>
               <button className="secondary" onClick={() => setShowCalc(s => !s)}>{showCalc ? 'Ukryj kalkulator' : 'Dodaj ofertę'}</button>
               {showCalc && (
-                <EmbeddedCalculator key={calcKey} clientId={(editClientId || '')} initialSnapshot={calcInitialSnapshot || undefined} onSaved={async () => {
+                <EmbeddedCalculator key={calcKey} clientId={(editClientId || '')} meetingId={editMeetingId || undefined} initialSnapshot={calcInitialSnapshot || undefined} onSaved={async () => {
                   setShowCalc(false)
                   setCalcInitialSnapshot(null)
                   if (editClientId) { try { const offs = await listClientOffers(editClientId); setOffers(offs) } catch {} }

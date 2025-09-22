@@ -141,6 +141,8 @@ model Offer {
   id         String   @id @default(cuid())
   client     Client   @relation(fields: [clientId], references: [id])
   clientId   String
+  meeting    Meeting? @relation(fields: [meetingId], references: [id])
+  meetingId  String?
   owner      User     @relation(fields: [ownerId], references: [id])
   ownerId    String
   fileName   String
@@ -151,6 +153,7 @@ model Offer {
   updatedAt  DateTime @updatedAt
   @@index([clientId])
   @@index([ownerId])
+  @@index([meetingId])
 }
 
 model Attachment {

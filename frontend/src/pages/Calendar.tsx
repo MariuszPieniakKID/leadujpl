@@ -13,6 +13,7 @@ import { DndProvider } from 'react-dnd'
 import { HTML5Backend } from 'react-dnd-html5-backend'
 import api, { listMeetingAttachments, type AttachmentItem, viewAttachmentUrl, downloadAttachmentUrl, uploadAttachments } from '../lib/api'
 import EmbeddedCalculator from '../components/EmbeddedCalculator'
+import { listClientOffers, listMeetingOffers, downloadOffer, fetchOffer } from '../lib/api'
 import type { Client } from '../lib/api'
 import { getUser } from '../lib/auth'
 
@@ -384,6 +385,11 @@ export default function CalendarPage() {
         status: m.status || '',
       })
       await loadAttachments(eventId)
+      if (m.clientId) {
+        try { const offs = await listClientOffers(m.clientId); setOffers(offs) } catch {}
+      } else {
+        setOffers([])
+      }
     } catch (e: any) {
       setEditError(e?.response?.data?.error || e?.message || 'Nie udało się pobrać szczegółów')
     } finally {
@@ -906,8 +912,33 @@ export default function CalendarPage() {
                 <button className="secondary" onClick={() => setShowCalc(s => !s)}>{showCalc ? 'Ukryj kalkulator' : 'Dodaj ofertę'}</button>
               </div>
               {showCalc && (
-                <EmbeddedCalculator key={calcKey} clientId={((editForm as any).clientId as string) || ''} initialSnapshot={calcInitialSnapshot || undefined} onSaved={() => setShowCalc(false)} />
+                <EmbeddedCalculator key={calcKey} clientId={((editForm as any).clientId as string) || ''} meetingId={editMeetingId || undefined} initialSnapshot={calcInitialSnapshot || undefined} onSaved={() => setShowCalc(false)} />
               )}
+              <div className="card" style={{ marginTop: 8 }}>
+                <div className="flex justify-between items-center mb-2">
+                  <strong>Oferty klienta</strong>
+                </div>
+                {offers.length === 0 ? <div className="text-sm text-gray-500">Brak ofert</div> : (
+                  <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'grid', gap: 6 }}>
+                    {offers.map(o => (
+                      <li key={o.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
+                        <span>{o.fileName}</span>
+                        <span style={{ display: 'flex', gap: 6 }}>
+                          <a className="btn btn-sm" href={downloadOffer(o.id)} target="_blank" rel="noreferrer">Pobierz</a>
+                          <button className="btn btn-sm secondary" onClick={async () => {
+                            try {
+                              const meta = await fetchOffer(o.id)
+                              setCalcInitialSnapshot(meta.snapshot)
+                              setCalcKey(o.id)
+                              setShowCalc(true)
+                            } catch {}
+                          }}>Edytuj</button>
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
             </div>
 
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer', padding: '6px 0', marginTop: 8 }} onClick={() => setEditSectionsOpen(s => ({ ...s, extra: !s.extra }))}>

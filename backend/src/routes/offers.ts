@@ -94,7 +94,7 @@ router.post('/generate', requireAuth, async (req, res) => {
 router.post('/save', requireAuth, async (req, res) => {
   try {
     const current = req.user!
-    const { clientId, fileName, snapshot } = req.body as { clientId: string; fileName?: string; snapshot: any }
+    const { clientId, meetingId, fileName, snapshot } = req.body as { clientId: string; meetingId?: string; fileName?: string; snapshot: any }
     if (!clientId || !snapshot) return res.status(400).json({ error: 'clientId and snapshot required' })
 
     // Render PDF
@@ -174,6 +174,7 @@ router.post('/save', requireAuth, async (req, res) => {
     const created = await prisma.offer.create({
       data: {
         clientId,
+        ...(meetingId ? { meetingId } : {}),
         ownerId: current.id,
         fileName: fileName || `oferta-${Date.now()}.pdf`,
         mimeType: 'application/pdf',
@@ -196,7 +197,23 @@ router.get('/client/:clientId', requireAuth, async (req, res) => {
       const count = await prisma.client.count({ where: { id: clientId, meetings: { some: { attendeeId: current.id } } } })
       if (count === 0) return res.json([])
     }
-    const offers = await prisma.offer.findMany({ where: { clientId }, orderBy: { createdAt: 'desc' }, select: { id: true, fileName: true, createdAt: true } })
+    const offers = await prisma.offer.findMany({ where: { clientId }, orderBy: { createdAt: 'desc' }, select: { id: true, fileName: true, createdAt: true, meetingId: true } })
+    res.json(offers)
+  } catch (e) {
+    res.status(500).json({ error: (e as Error).message })
+  }
+})
+
+router.get('/meeting/:meetingId', requireAuth, async (req, res) => {
+  try {
+    const current = req.user!
+    const { meetingId } = req.params
+    const meeting = await prisma.meeting.findUnique({ where: { id: meetingId } })
+    if (!meeting) return res.json([])
+    if (current.role !== 'ADMIN' && current.role !== 'MANAGER' && meeting.attendeeId !== current.id) {
+      return res.json([])
+    }
+    const offers = await prisma.offer.findMany({ where: { meetingId }, orderBy: { createdAt: 'desc' }, select: { id: true, fileName: true, createdAt: true, meetingId: true } })
     res.json(offers)
   } catch (e) {
     res.status(500).json({ error: (e as Error).message })
