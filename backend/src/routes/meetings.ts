@@ -179,7 +179,7 @@ router.patch('/:id', requireAuth, async (req, res) => {
         }
       }
     }
-    const { scheduledAt, endsAt, location, notes, client, pvInstalled, billRange, extraComments, status } = req.body as { scheduledAt?: string; endsAt?: string; location?: string; notes?: string; client?: { firstName?: string; lastName?: string; phone?: string; email?: string; street?: string; city?: string; category?: string; newRules?: boolean; buildingType?: string; billRange?: string; extraComments?: string; pvInstalled?: boolean }; pvInstalled?: boolean; billRange?: string; extraComments?: string; status?: string };
+    const { scheduledAt, endsAt, location, notes, client, pvInstalled, billRange, extraComments, status } = req.body as { scheduledAt?: string; endsAt?: string; location?: string; notes?: string; client?: { firstName?: string; lastName?: string; phone?: string; email?: string; street?: string; city?: string; postalCode?: string; category?: string; newRules?: boolean; buildingType?: string; billRange?: string; extraComments?: string; pvInstalled?: boolean }; pvInstalled?: boolean; billRange?: string; extraComments?: string; status?: string };
 
     const patchData: any = {
       ...(scheduledAt ? { scheduledAt: new Date(scheduledAt) } : {}),
