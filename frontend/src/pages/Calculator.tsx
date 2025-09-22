@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import baseData from '../data/calculatorData.json'
 import api, { generateOfferPDF, saveOfferForClient } from '../lib/api'
 import { getUser } from '../lib/auth'
+import { createPortal } from 'react-dom'
 import { Link } from 'react-router-dom'
 
 export default function CalculatorPage() {
@@ -351,6 +352,9 @@ function SalesMarginButton() {
   const [percent, setPercent] = useState<number>(() => {
     try { const raw = localStorage.getItem('salesMargin'); return raw ? Number(JSON.parse(raw).percent || 0) : 0 } catch { return 0 }
   })
+  const btnRef = React.useRef<HTMLButtonElement | null>(null)
+  const panelRef = React.useRef<HTMLDivElement | null>(null)
+  const [pos, setPos] = useState<{ top: number; left: number } | null>(null)
   function save() {
     const payload = { amount: Number(amount || 0), percent: Number(percent || 0) }
     localStorage.setItem('salesMargin', JSON.stringify(payload))
@@ -361,11 +365,37 @@ function SalesMarginButton() {
     setAmount(0); setPercent(0)
     setOpen(false)
   }
+  function toggle() {
+    if (!open) {
+      const r = btnRef.current?.getBoundingClientRect()
+      if (r) {
+        const width = 280
+        const left = Math.max(8, Math.min(window.innerWidth - width - 8, r.right - width))
+        const top = r.bottom + 8
+        setPos({ top, left })
+      }
+    }
+    setOpen(o => !o)
+  }
+  // Close on outside click or ESC
+  useEffect(() => {
+    if (!open) return
+    function onDown(e: MouseEvent) {
+      const t = e.target as Node
+      if (!panelRef.current || panelRef.current.contains(t)) return
+      if (btnRef.current && btnRef.current.contains(t)) return
+      setOpen(false)
+    }
+    function onEsc(e: KeyboardEvent) { if (e.key === 'Escape') setOpen(false) }
+    window.addEventListener('mousedown', onDown)
+    window.addEventListener('keydown', onEsc)
+    return () => { window.removeEventListener('mousedown', onDown); window.removeEventListener('keydown', onEsc) }
+  }, [open])
   return (
-    <div style={{ position: 'relative' }}>
-      <button className="secondary" onClick={() => setOpen(o => !o)}>Marża</button>
-      {open && (
-        <div className="card" style={{ position: 'absolute', right: 0, top: '110%', width: 280, zIndex: 10 }}>
+    <>
+      <button ref={btnRef} className="secondary" onClick={toggle}>Marża</button>
+      {open && pos && createPortal(
+        <div className="card" ref={panelRef} style={{ position: 'fixed', top: pos.top, left: pos.left, width: 280, zIndex: 2147483647 }}>
           <div className="form-group">
             <label className="form-label">Stawka (PLN)</label>
             <input className="form-input" type="number" step="0.01" value={amount} onChange={e => { setAmount(Number(e.target.value || 0)); if (Number(e.target.value||0) > 0) setPercent(0) }} />
@@ -379,9 +409,10 @@ function SalesMarginButton() {
             <button className="primary" onClick={save}>Zapisz</button>
           </div>
           <div className="text-gray-600 text-xs" style={{ marginTop: 8 }}>Ustaw jedną wartość. Obowiązuje tylko dla Twoich obliczeń.</div>
-        </div>
+        </div>,
+        document.body
       )}
-    </div>
+    </>
   )
 }
 
