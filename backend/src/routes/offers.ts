@@ -206,11 +206,15 @@ router.get('/client/:clientId', requireAuth, async (req, res) => {
     const current = req.user!
     const { clientId } = req.params
     // Only list offers related to clients that have meetings with current user (or admin/manager see all)
+    let where: any = { clientId }
     if (current.role !== 'ADMIN' && current.role !== 'MANAGER') {
       const count = await prisma.client.count({ where: { id: clientId, meetings: { some: { attendeeId: current.id } } } })
-      if (count === 0) return res.json([])
+      if (count === 0) {
+        // Fallback: show offers created by the current user for this client
+        where = { clientId, ownerId: current.id }
+      }
     }
-    const offers = await prisma.offer.findMany({ where: { clientId }, orderBy: { createdAt: 'desc' }, select: { id: true, fileName: true, createdAt: true, meetingId: true } })
+    const offers = await prisma.offer.findMany({ where, orderBy: { createdAt: 'desc' }, select: { id: true, fileName: true, createdAt: true, meetingId: true } })
     res.json(offers)
   } catch (e) {
     res.status(500).json({ error: (e as Error).message })
