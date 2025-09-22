@@ -173,8 +173,8 @@ function ClientOffers({ clientId }: { clientId: string }) {
       )}
 
       {showCalcModal && (
-        <div className="modal-overlay">
-          <div className="modal-content" style={{ maxWidth: '1000px', width: '95vw' }}>
+        <div style={{ position: 'fixed', inset: 0, zIndex: 1000, display: 'flex', alignItems: 'flex-start', justifyContent: 'center', padding: 24 }}>
+          <div style={{ background: '#fff', width: 'min(1000px, 95vw)', maxHeight: '90vh', overflow: 'auto', border: '1px solid var(--gray-200)', borderRadius: 8, boxShadow: '0 10px 30px rgba(0,0,0,0.15)' }}>
             <div className="modal-header">
               <h3 className="modal-title">Dodaj ofertę</h3>
               <button className="secondary" onClick={() => setShowCalcModal(false)} style={{ padding: 'var(--space-2)' }}>
@@ -183,7 +183,9 @@ function ClientOffers({ clientId }: { clientId: string }) {
                 </svg>
               </button>
             </div>
-            <EmbeddedCalculator clientId={clientId} onSaved={async () => { setShowCalcModal(false); await load() }} />
+            <div style={{ padding: 12 }}>
+              <EmbeddedCalculator clientId={clientId} onSaved={async () => { setShowCalcModal(false); await load() }} />
+            </div>
           </div>
         </div>
       )}
