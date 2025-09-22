@@ -16,12 +16,14 @@ export default function MyClientsPage() {
   const [clients, setClients] = useState<Client[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [query, setQuery] = useState('')
+  const [status, setStatus] = useState('')
 
   async function load() {
     setLoading(true)
     setError(null)
     try {
-      const res = await api.get<Client[]>('/api/clients/mine')
+      const res = await api.get<Client[]>('/api/clients/mine', { params: { q: query || undefined, status: status || undefined } })
       setClients(res.data)
     } catch (e: any) {
       setError(e?.response?.data?.error || e?.message || 'Nie udało się pobrać klientów')
@@ -39,7 +41,26 @@ export default function MyClientsPage() {
           <h1 className="page-title">Moi klienci</h1>
           <p className="text-gray-600">Klienci z Twoimi spotkaniami</p>
         </div>
-        <span className="text-sm text-gray-500">{clients.length} klientów</span>
+        <div className="flex items-center gap-4">
+          <div className="form-group" style={{ margin: 0 }}>
+            <label className="form-label">Szukaj</label>
+            <input className="form-input" placeholder="Nazwisko, telefon, e-mail, adres" value={query} onChange={e => setQuery(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') load() }} />
+          </div>
+          <div className="form-group" style={{ margin: 0 }}>
+            <label className="form-label">Status spotkania</label>
+            <select className="form-select" value={status} onChange={e => setStatus(e.target.value)}>
+              <option value="">Wszystkie</option>
+              <option value="Sukces">Sukces</option>
+              <option value="Porażka">Porażka</option>
+              <option value="Dogrywka">Dogrywka</option>
+              <option value="Przełożone">Przełożone</option>
+              <option value="Umówione">Umówione</option>
+              <option value="Odbyte">Odbyte</option>
+            </select>
+          </div>
+          <button className="secondary" onClick={load}>Filtruj</button>
+          <span className="text-sm text-gray-500">{clients.length} klientów</span>
+        </div>
       </div>
 
       {error && (
@@ -193,7 +214,7 @@ function renderCategory(category?: string | null) {
   const c = category.toUpperCase()
   if (c === 'PV') return 'PV'
   if (c === 'ME') return 'ME'
-  return c
+  return <span className="text-gray-400">—</span>
 }
 
 

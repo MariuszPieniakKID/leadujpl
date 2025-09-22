@@ -237,7 +237,7 @@ function renderCategory(category?: string | null) {
   const c = category.toUpperCase()
   if (c === 'PV') return 'PV'
   if (c === 'ME') return 'ME'
-  return c
+  return <span className="text-gray-400">—</span>
 }
 
 

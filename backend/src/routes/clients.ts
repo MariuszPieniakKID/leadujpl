@@ -35,8 +35,21 @@ router.get('/', requireAuth, requireManagerOrAdmin, async (req, res) => {
 router.get('/mine', requireAuth, async (req, res) => {
   try {
     const current = req.user!
+    const q = (req.query.q as string | undefined)?.trim()
+    const status = (req.query.status as string | undefined)?.trim()
+    const where: any = { meetings: { some: { attendeeId: current.id, ...(status ? { status } : {}) } } }
+    if (q && q.length > 0) {
+      where.OR = [
+        { firstName: { contains: q, mode: 'insensitive' } },
+        { lastName: { contains: q, mode: 'insensitive' } },
+        { phone: { contains: q, mode: 'insensitive' } },
+        { email: { contains: q, mode: 'insensitive' } },
+        { city: { contains: q, mode: 'insensitive' } },
+        { street: { contains: q, mode: 'insensitive' } },
+      ]
+    }
     const clients = await prisma.client.findMany({
-      where: { meetings: { some: { attendeeId: current.id } } },
+      where,
       orderBy: [{ lastName: 'asc' }, { firstName: 'asc' }],
     })
     res.json(clients)
