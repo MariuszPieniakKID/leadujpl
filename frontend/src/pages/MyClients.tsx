@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
 import api, { listClientOffers, downloadOffer, listClientAttachments, type AttachmentItem, viewAttachmentUrl, downloadAttachmentUrl, getClientLatestStatus, setClientLatestStatus, uploadAttachments, deleteAttachment } from '../lib/api'
+import { getUser } from '../lib/auth'
 import EmbeddedCalculator from '../components/EmbeddedCalculator'
 
 type Client = {
@@ -20,13 +21,21 @@ export default function MyClientsPage() {
   const [error, setError] = useState<string | null>(null)
   const [query, setQuery] = useState('')
   const [status, setStatus] = useState('')
+  const [scope, setScope] = useState<'mine' | 'team'>('mine')
+  const user = getUser()
 
   async function load() {
     setLoading(true)
     setError(null)
     try {
-      const res = await api.get<Client[]>('/api/clients/mine', { params: { q: query || undefined, status: status || undefined } })
-      setClients(res.data)
+      const isManager = user && user.role === 'MANAGER'
+      if (isManager && scope === 'team') {
+        const res = await api.get<Client[]>('/api/clients', { params: { q: query || undefined, status: status || undefined, scope: 'team' } })
+        setClients(res.data)
+      } else {
+        const res = await api.get<Client[]>('/api/clients/mine', { params: { q: query || undefined, status: status || undefined } })
+        setClients(res.data)
+      }
     } catch (e: any) {
       setError(e?.response?.data?.error || e?.message || 'Nie udało się pobrać klientów')
     } finally {
@@ -60,6 +69,15 @@ export default function MyClientsPage() {
               <option value="Odbyte">Odbyte</option>
             </select>
           </div>
+          {(user && user.role === 'MANAGER') && (
+            <div className="form-group" style={{ margin: 0 }}>
+              <label className="form-label">Zakres</label>
+              <select className="form-select" value={scope} onChange={e => setScope(e.target.value as any)}>
+                <option value="mine">Moi klienci</option>
+                <option value="team">Klienci mojego zespołu</option>
+              </select>
+            </div>
+          )}
           <button className="secondary" onClick={load}>Filtruj</button>
           <span className="text-sm text-gray-500">{clients.length} klientów</span>
         </div>

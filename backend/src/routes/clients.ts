@@ -8,9 +8,15 @@ const router = Router();
 // List clients - manager/admin only
 router.get('/', requireAuth, requireManagerOrAdmin, async (req, res) => {
   try {
+    const current = req.user!
     const q = (req.query.q as string | undefined)?.trim()
     const status = (req.query.status as string | undefined)?.trim()
+    const scope = (req.query.scope as string | undefined)?.trim()
     const where: any = {}
+    // For managers, scope=team shows clients from meetings of their sales reps
+    if (scope === 'team' && current.role === 'MANAGER') {
+      where.meetings = { some: { attendee: { managerId: current.id } } }
+    }
     if (q && q.length > 0) {
       where.OR = [
         { firstName: { contains: q, mode: 'insensitive' } },
@@ -22,7 +28,13 @@ router.get('/', requireAuth, requireManagerOrAdmin, async (req, res) => {
       ]
     }
     if (status && status.length > 0) {
-      where.meetings = { some: { status } }
+      const meetingsFilter = { some: { status } }
+      if (where.meetings) {
+        // combine filters if scope=team already set
+        where.meetings = { AND: [where.meetings, meetingsFilter] }
+      } else {
+        where.meetings = meetingsFilter
+      }
     }
     const clients = await prisma.client.findMany({ where, orderBy: [{ lastName: 'asc' }, { firstName: 'asc' }] });
     res.json(clients);
