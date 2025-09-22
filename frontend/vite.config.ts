@@ -27,6 +27,12 @@ export default defineConfig({
                 maxEntries: 200,
                 maxAgeSeconds: 60 * 60 * 24,
               },
+              backgroundSync: {
+                name: 'api-write-queue',
+                options: {
+                  maxRetentionTime: 24 * 60, // minutes
+                }
+              }
             },
           },
           {
@@ -41,6 +47,12 @@ export default defineConfig({
                 maxEntries: 200,
                 maxAgeSeconds: 60 * 60 * 24,
               },
+              backgroundSync: {
+                name: 'railway-write-queue',
+                options: {
+                  maxRetentionTime: 24 * 60,
+                }
+              }
             },
           },
         ],

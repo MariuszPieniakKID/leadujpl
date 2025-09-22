@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { fetchClients, createClient, deleteClient, type Client, listClientAttachments, type AttachmentItem, viewAttachmentUrl, downloadAttachmentUrl } from '../lib/api'
+import { offlineStore, pendingQueue, newLocalId } from '../lib/offline'
 
 export default function ClientsPage() {
   const [clients, setClients] = useState<Client[]>([])
@@ -28,11 +29,18 @@ export default function ClientsPage() {
     e.preventDefault()
     setCreateError(null)
     if (!form.firstName || !form.lastName) { setCreateError('Imię i nazwisko są wymagane'); return }
-    await createClient({
+    const payload = {
       firstName: form.firstName!, lastName: form.lastName!, phone: form.phone || undefined, email: form.email || undefined,
       street: form.street || undefined, city: form.city || undefined, postalCode: form.postalCode || undefined, category: form.category || undefined,
-    } as any)
-    setForm({ firstName: '', lastName: '', phone: '', email: '', street: '', city: '', category: '' })
+    } as any
+    if (navigator.onLine) {
+      await createClient(payload)
+    } else {
+      const localId = newLocalId('client')
+      await offlineStore.put('clients', { id: localId, ...payload })
+      await pendingQueue.enqueue({ id: newLocalId('att'), method: 'POST', url: (import.meta.env.VITE_API_BASE || '') + '/api/clients', body: payload, headers: {}, createdAt: Date.now(), entityStore: 'clients', localId })
+    }
+    setForm({ firstName: '', lastName: '', phone: '', email: '', street: '', city: '', postalCode: '', category: '' })
     setIsCreateOpen(false)
     await load()
   }

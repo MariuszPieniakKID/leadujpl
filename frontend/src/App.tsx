@@ -5,6 +5,7 @@ import './App.css'
 
 import { fetchLeads } from './lib/api'
 import api, { uploadAttachments, listMeetingAttachments, type AttachmentItem, viewAttachmentUrl, downloadAttachmentUrl, listClientOffers, downloadOffer, fetchOffer } from './lib/api'
+import { offlineStore, pendingQueue, newLocalId } from './lib/offline'
 import type { Client } from './lib/api'
 import Login from './pages/Login'
 import EmbeddedCalculator from './components/EmbeddedCalculator'
@@ -429,7 +430,7 @@ function Dashboard() {
       const pvInstalled = createForm.pvInstalled ? (createForm.pvInstalled === 'TAK') : undefined
       const billRange = createForm.billRange || undefined
       const extraComments = createForm.extraComments || undefined
-      await api.post('/api/meetings', {
+      const payload = {
         scheduledAt,
         endsAt,
         notes: createForm.notes || undefined,
@@ -442,7 +443,14 @@ function Dashboard() {
         ...(billRange ? { billRange } : {}),
         ...(extraComments ? { extraComments } : {}),
         contactConsent: true,
-      })
+      }
+      if (navigator.onLine) {
+        await api.post('/api/meetings', payload)
+      } else {
+        const localId = newLocalId('meeting')
+        await offlineStore.put('meetings', { id: localId, scheduledAt, endsAt, notes: payload.notes, location: payload.location, attendeeId })
+        await pendingQueue.enqueue({ id: newLocalId('att'), method: 'POST', url: (import.meta.env.VITE_API_BASE || '') + '/api/meetings', body: payload, headers: {}, createdAt: Date.now(), entityStore: 'meetings', localId })
+      }
       setIsCreateOpen(false)
       const res = await api.get<any[]>('/api/meetings')
       setMeetings(res.data)
