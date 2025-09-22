@@ -68,8 +68,12 @@ router.post('/generate', requireAuth, async (req, res) => {
     if (form.trench === 'Tak') row('Przekop', calc.trenchPrice || 0)
     doc.moveDown(0.25)
     row('Suma netto', calc.subtotalNet || 0, true)
+
+    doc.moveDown(0.75)
+    doc.fontSize(14).text('Rozliczenie')
+    doc.moveDown(0.5)
     row('Dotacja', `- ${pln(calc.grant || 0)}`)
-    row('Wklad wlasny', `- ${pln(form.downPayment || 0)}`)
+    row('Wkład własny', `- ${pln(form.downPayment || 0)}`)
     doc.moveDown(0.25)
     row('Kwota finansowana', calc.financed || 0, true)
 
@@ -150,8 +154,12 @@ router.post('/save', requireAuth, async (req, res) => {
       if (form.trench === 'Tak') row('Przekop', calc.trenchPrice || 0)
       doc.moveDown(0.25)
       row('Suma netto', calc.subtotalNet || 0, true)
+
+      doc.moveDown(0.75)
+      doc.fontSize(14).text('Rozliczenie')
+      doc.moveDown(0.5)
       row('Dotacja', `- ${pln(calc.grant || 0)}`)
-      row('Wklad wlasny', `- ${pln(form.downPayment || 0)}`)
+      row('Wkład własny', `- ${pln(form.downPayment || 0)}`)
       doc.moveDown(0.25)
       row('Kwota finansowana', calc.financed || 0, true)
 
