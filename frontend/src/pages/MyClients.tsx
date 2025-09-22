@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import api, { listClientOffers, downloadOffer, listClientAttachments, type AttachmentItem, viewAttachmentUrl, downloadAttachmentUrl } from '../lib/api'
+import EmbeddedCalculator from '../components/EmbeddedCalculator'
 
 type Client = {
   id: string
@@ -127,6 +128,7 @@ function ClientOffers({ clientId }: { clientId: string }) {
   const [open, setOpen] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [showCalc, setShowCalc] = useState(false)
 
   async function load() {
     try {
@@ -143,11 +145,22 @@ function ClientOffers({ clientId }: { clientId: string }) {
 
   return (
     <div>
-      <button className="btn btn-sm secondary" onClick={() => { setOpen(o => !o); if (!open) load() }}>{open ? 'Ukryj' : 'Pokaż'}</button>
+      <button className="btn btn-sm secondary" onClick={() => { const next = !open; setOpen(next); if (next) { setShowCalc(false); load() } }}>{open ? 'Ukryj' : 'Pokaż'}</button>
       {open && (
         <div className="card" style={{ marginTop: 6 }}>
           {loading ? <div className="text-sm text-gray-500">Ładowanie…</div> : error ? <div className="text-error text-sm">{error}</div> : (
-            offers.length === 0 ? <div className="text-sm text-gray-500">Brak ofert</div> : (
+            offers.length === 0 ? (
+              <div>
+                {!showCalc ? (
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div className="text-sm text-gray-500">Brak ofert</div>
+                    <button className="btn btn-sm primary" onClick={() => setShowCalc(true)}>Dodaj ofertę</button>
+                  </div>
+                ) : (
+                  <EmbeddedCalculator clientId={clientId} onSaved={async () => { setShowCalc(false); await load() }} />
+                )}
+              </div>
+            ) : (
               <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'grid', gap: 6 }}>
                 {offers.map(o => (
                   <li key={o.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
