@@ -12,6 +12,9 @@ export default function CalculatorSettingsPage() {
 
   const [settings, setSettings] = useState<Record<string, any>>(() => ({ ...(baseData as any).settings }))
   const [pricing, setPricing] = useState<PricingData>(() => ({ ...(baseData as any).pricing }))
+  const managerId = user?.id
+  const marginMap = (settings?.margins as Record<string, { amount?: number; percent?: number }>) || {}
+  const myMargin = marginMap[managerId || ''] || { amount: 0, percent: 0 }
 
   // Load from backend
   useEffect(() => {
@@ -54,6 +57,45 @@ export default function CalculatorSettingsPage() {
           <button className="primary" onClick={save}>Zapisz</button>
         </div>
       </div>
+
+      {/* Marża managera dla handlowców przypisanych do tego managera */}
+      <section className="card" style={{ marginBottom: 16 }}>
+        <h3 style={{ marginTop: 0 }}>Marża</h3>
+        <p className="text-gray-600" style={{ marginBottom: 8 }}>Dla Twoich handlowców (przypisanych do Ciebie).</p>
+        <div className="form-grid-2">
+          <div className="form-group">
+            <label className="form-label">Stawka (PLN)</label>
+            <input
+              className="form-input"
+              type="number"
+              step="0.01"
+              value={Number(myMargin.amount || 0)}
+              onChange={e => {
+                const amount = Number(e.target.value || 0)
+                const next = { ...marginMap, [managerId!]: { amount, percent: 0 } }
+                setSettings({ ...settings, margins: next })
+              }}
+              placeholder="np. 500.00"
+            />
+          </div>
+          <div className="form-group">
+            <label className="form-label">Procent (%)</label>
+            <input
+              className="form-input"
+              type="number"
+              step="0.01"
+              value={Number(myMargin.percent || 0)}
+              onChange={e => {
+                const percent = Number(e.target.value || 0)
+                const next = { ...marginMap, [managerId!]: { amount: 0, percent } }
+                setSettings({ ...settings, margins: next })
+              }}
+              placeholder="np. 5"
+            />
+          </div>
+        </div>
+        <div className="text-gray-600 text-sm">Ustaw jedno z pól: stawka albo procent. Użyte będzie to, które jest > 0.</div>
+      </section>
 
       <section className="card" style={{ marginBottom: 16 }}>
         <h3 style={{ marginTop: 0 }}>Parametry (USTAWIENIA)</h3>

@@ -1,10 +1,12 @@
 import { useEffect, useMemo, useState } from 'react'
 import baseData from '../data/calculatorData.json'
 import api, { generateOfferPDF, saveOfferForClient } from '../lib/api'
+import { getUser } from '../lib/auth'
 
 export default function EmbeddedCalculator({ clientId, meetingId, offerId, onSaved, initialSnapshot, onSavedSnapshot }: { clientId: string; meetingId?: string; offerId?: string; onSaved?: () => void; initialSnapshot?: { form?: any; calc?: any }; onSavedSnapshot?: (snapshot: any) => void }) {
   const [remoteData, setRemoteData] = useState<any | null>(null)
   const data = useMemo(() => remoteData || (baseData as any), [remoteData])
+  const user = getUser()
 
   useEffect(() => {
     (async () => {
@@ -66,7 +68,22 @@ export default function EmbeddedCalculator({ clientId, meetingId, offerId, onSav
 
     const rrsoYear = Number(settings['RRSO (rocznie)'] || 0.1)
     const rateMonthly = rrsoYear / 12
-    const monthly = pmt(rateMonthly, form.termMonths, financed)
+    let monthly = pmt(rateMonthly, form.termMonths, financed)
+
+    // Manager margin for assigned sales reps: apply on final numbers
+    try {
+      const margins = (data as any).settings?.margins || {}
+      const managerId = user?.managerId || null
+      const m = managerId ? margins[managerId] : null
+      if (m) {
+        const amount = Number(m.amount || 0)
+        const percent = Number(m.percent || 0)
+        const base = financed
+        const uplift = (percent > 0) ? (base * (percent / 100)) : amount
+        const newFinanced = Math.max(base + Math.max(uplift, 0), 0)
+        monthly = pmt(rateMonthly, form.termMonths, newFinanced)
+      }
+    } catch {}
 
     return {
       pvBase,
@@ -82,7 +99,7 @@ export default function EmbeddedCalculator({ clientId, meetingId, offerId, onSav
       rrsoYear,
       monthly,
     }
-  }, [form, prices, settings, grantOptions])
+  }, [form, prices, settings, grantOptions, data, user])
 
   useEffect(() => {
     if (initialSnapshot && initialSnapshot.form) {
