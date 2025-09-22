@@ -572,7 +572,11 @@ function Dashboard() {
       if (editForm.pvInstalled) payload.pvInstalled = editForm.pvInstalled === 'TAK'
       if (editForm.billRange) payload.billRange = editForm.billRange
       if (editForm.extraComments) payload.extraComments = editForm.extraComments
-      await api.patch(`/api/meetings/${editMeetingId}`, payload)
+      if (navigator.onLine) {
+        await api.patch(`/api/meetings/${editMeetingId}`, payload)
+      } else {
+        await pendingQueue.enqueue({ id: newLocalId('att'), method: 'PATCH', url: (import.meta.env.VITE_API_BASE || '') + `/api/meetings/${editMeetingId}`, body: payload, headers: {}, createdAt: Date.now(), entityStore: 'meetings' })
+      }
       setIsEditOpen(false)
       setEditMeetingId(null)
       const res = await api.get<any[]>('/api/meetings')
@@ -585,7 +589,11 @@ function Dashboard() {
   async function deleteMeeting() {
     if (!editMeetingId) return
     try {
-      await api.delete(`/api/meetings/${editMeetingId}`)
+      if (navigator.onLine) {
+        await api.delete(`/api/meetings/${editMeetingId}`)
+      } else {
+        await pendingQueue.enqueue({ id: newLocalId('att'), method: 'DELETE', url: (import.meta.env.VITE_API_BASE || '') + `/api/meetings/${editMeetingId}`, headers: {}, createdAt: Date.now(), entityStore: 'meetings' })
+      }
       setIsEditOpen(false)
       setEditMeetingId(null)
       const res = await api.get<any[]>('/api/meetings')
@@ -602,6 +610,9 @@ function Dashboard() {
       <div className="dashboard-compact">
         <div className="dashboard-compact-left">
           <span className="muted">Witaj{user ? `, ${user.firstName}` : ''}!</span>
+          {!navigator.onLine && (
+            <span className="text-warning" style={{ marginLeft: 8, fontSize: 12 }}>Jesteś offline – zmiany zsynchronizują się po odzyskaniu internetu</span>
+          )}
         </div>
         <div className="dashboard-compact-right">
           <button className="primary btn-sm" onClick={openCreate}>

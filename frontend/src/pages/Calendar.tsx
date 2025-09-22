@@ -538,6 +538,9 @@ export default function CalendarPage() {
           <p className="text-gray-600">Zarządzaj swoimi spotkaniami</p>
         </div>
         <div className="flex items-center gap-4">
+          {!navigator.onLine && (
+            <span className="text-warning" style={{ fontSize: 12 }}>Jesteś offline – zmiany zsynchronizują się po odzyskaniu internetu</span>
+          )}
           {canManageAll && (
             <div className="form-group" style={{ minWidth: '200px', margin: 0 }}>
               <label className="form-label">Kalendarz użytkownika</label>
