@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
-import api, { listClientOffers, downloadOffer, listClientAttachments, type AttachmentItem, viewAttachmentUrl, downloadAttachmentUrl, getClientLatestStatus, setClientLatestStatus, uploadAttachments, deleteAttachment } from '../lib/api'
+import api, { listClientOffers, downloadOffer, listClientAttachments, type AttachmentItem, viewAttachmentUrl, downloadAttachmentUrl, getClientLatestStatus, setClientLatestStatus, uploadAttachments, deleteAttachment, fetchUsers, type AppUserSummary } from '../lib/api'
 import { getUser } from '../lib/auth'
 import EmbeddedCalculator from '../components/EmbeddedCalculator'
 
@@ -22,6 +22,8 @@ export default function MyClientsPage() {
   const [query, setQuery] = useState('')
   const [status, setStatus] = useState('')
   const [scope, setScope] = useState<'mine' | 'team'>('mine')
+  const [managers, setManagers] = useState<AppUserSummary[]>([])
+  const [managerId, setManagerId] = useState<string>('')
   const user = getUser()
 
   async function load() {
@@ -29,7 +31,11 @@ export default function MyClientsPage() {
     setError(null)
     try {
       const isManager = user && user.role === 'MANAGER'
-      if (isManager && scope === 'team') {
+      const isAdmin = user && user.role === 'ADMIN'
+      if (isAdmin) {
+        const res = await api.get<Client[]>('/api/clients', { params: { q: query || undefined, status: status || undefined, managerId: managerId || undefined } })
+        setClients(res.data)
+      } else if (isManager && scope === 'team') {
         const res = await api.get<Client[]>('/api/clients', { params: { q: query || undefined, status: status || undefined, scope: 'team' } })
         setClients(res.data)
       } else {
@@ -44,6 +50,20 @@ export default function MyClientsPage() {
   }
 
   useEffect(() => { load() }, [])
+
+  // Load managers list for admin filter
+  useEffect(() => {
+    const isAdmin = user && user.role === 'ADMIN'
+    if (!isAdmin) return
+    ;(async () => {
+      try {
+        const users = await fetchUsers()
+        setManagers(users.filter(u => u.role === 'MANAGER'))
+      } catch (e) {
+        // ignore
+      }
+    })()
+  }, [user?.role])
 
   function exportCsv() {
     if (!clients || clients.length === 0) {
@@ -101,6 +121,17 @@ export default function MyClientsPage() {
               <select className="form-select" value={scope} onChange={e => setScope(e.target.value as any)}>
                 <option value="mine">Moi klienci</option>
                 <option value="team">Klienci mojego zespołu</option>
+              </select>
+            </div>
+          )}
+          {(user && user.role === 'ADMIN') && (
+            <div className="form-group" style={{ margin: 0 }}>
+              <label className="form-label">Manager</label>
+              <select className="form-select" value={managerId} onChange={e => setManagerId(e.target.value)}>
+                <option value="">Wszyscy</option>
+                {managers.map(m => (
+                  <option key={m.id} value={m.id}>{m.firstName} {m.lastName}</option>
+                ))}
               </select>
             </div>
           )}
@@ -180,6 +211,7 @@ function ClientStatusAndActions({ clientId }: { clientId: string }) {
   const [meetingId, setMeetingId] = useState<string | null>(null)
   const [uploading, setUploading] = useState(false)
   const [info, setInfo] = useState<string | null>(null)
+  const user = getUser()
 
   async function load() {
     try {
@@ -227,6 +259,10 @@ function ClientStatusAndActions({ clientId }: { clientId: string }) {
   }
 
   if (loading) return <span className="text-sm text-gray-500">Ładowanie…</span>
+  // Admin has read-only view here
+  if (user && user.role === 'ADMIN') {
+    return <span className="text-sm text-gray-500">—</span>
+  }
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
       <select className="form-select" value={status || ''} onChange={e => onChangeStatus(e.target.value)}>

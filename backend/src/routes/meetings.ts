@@ -10,9 +10,32 @@ router.get('/', requireAuth, async (req, res) => {
   try {
     const currentUser = req.user!;
     const filterUserId = (req.query.userId as string | undefined) || undefined;
+    const managerId = (req.query.managerId as string | undefined) || undefined;
+
+    // Admin can fetch all meetings or filter by managerId
+    if (currentUser.role === 'ADMIN') {
+      let where: any = {};
+      if (filterUserId) {
+        where.attendeeId = filterUserId;
+      } else if (managerId) {
+        where.attendee = { managerId };
+      } else {
+        // all meetings
+      }
+      const meetingsRaw = await prisma.meeting.findMany({ where, orderBy: { scheduledAt: 'asc' } });
+      const now = Date.now()
+      const mapped = meetingsRaw.map(m => {
+        const hasStatus = (m.status || '').trim().length > 0
+        if (hasStatus) return m
+        const isPast = new Date(m.scheduledAt).getTime() < now
+        return { ...m, status: isPast ? 'Odbyte' : 'Umówione' } as any
+      })
+      return res.json(mapped);
+    }
+
     // Managers can only see meetings for themselves or sales reps assigned to them
     let targetUserId = currentUser.id;
-    if (filterUserId && (currentUser.role === 'ADMIN' || currentUser.role === 'MANAGER')) {
+    if (filterUserId && (currentUser.role === 'MANAGER')) {
       targetUserId = filterUserId;
     }
 

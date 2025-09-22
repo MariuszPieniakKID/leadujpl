@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import api from '../lib/api'
+import api, { fetchUsers, type AppUserSummary } from '../lib/api'
 import { getUser } from '../lib/auth'
 
 type Meeting = { id: string; scheduledAt: string; status?: string | null }
@@ -10,16 +10,22 @@ export default function StatsPage() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [range, setRange] = useState<Range>('month')
+  const [managers, setManagers] = useState<AppUserSummary[]>([])
+  const [managerId, setManagerId] = useState('')
 
   useEffect(() => {
     const load = async () => {
       setLoading(true)
       try {
         const me = getUser()
-        // Dla MANAGER – agreguj spotkania zespołu jak na stronie głównej
-        if (me?.role === 'MANAGER') {
-          const usersRes = await api.get<Array<{ id: string; role: string; managerId?: string | null }>>('/api/users')
-          const team = usersRes.data.filter(u => u.role === 'SALES_REP' && u.managerId === me.id)
+        if (me?.role === 'ADMIN') {
+          // Admin: all meetings or filter by manager
+          const res = await api.get<Meeting[]>('/api/meetings', { params: { managerId: managerId || undefined } })
+          setMeetings(res.data)
+        } else if (me?.role === 'MANAGER') {
+          // Manager: aggregate team meetings
+          const users = await fetchUsers()
+          const team = users.filter(u => u.role === 'SALES_REP' && u.managerId === me.id)
           if (team.length > 0) {
             const arrays = await Promise.all(team.map(u => api.get<Meeting[]>('/api/meetings', { params: { userId: u.id } }).then(r => r.data).catch(() => [])))
             const data = ([] as Meeting[]).concat(...arrays)
@@ -28,7 +34,7 @@ export default function StatsPage() {
             setMeetings([])
           }
         } else {
-          // Pozostałe role – własne spotkania
+          // Sales rep: own meetings
           const res = await api.get<Meeting[]>('/api/meetings')
           setMeetings(res.data)
         }
@@ -39,6 +45,18 @@ export default function StatsPage() {
       }
     }
     load()
+  }, [managerId])
+
+  // Load managers for admin filter
+  useEffect(() => {
+    const me = getUser()
+    if (me?.role !== 'ADMIN') return
+    ;(async () => {
+      try {
+        const users = await fetchUsers()
+        setManagers(users.filter(u => u.role === 'MANAGER'))
+      } catch {}
+    })()
   }, [])
 
   const kpi = useMemo(() => {
@@ -74,6 +92,20 @@ export default function StatsPage() {
           <h1 className="page-title">Statystyki i Analityka</h1>
           <p className="text-gray-600">Przegląd kluczowych wskaźników i trendów</p>
         </div>
+        {/* Admin manager filter */}
+        {getUser()?.role === 'ADMIN' && (
+          <div className="flex items-center" style={{ gap: '12px' }}>
+            <div className="form-group" style={{ margin: 0 }}>
+              <label className="form-label">Manager</label>
+              <select className="form-select" value={managerId} onChange={e => setManagerId(e.target.value)}>
+                <option value="">Wszyscy</option>
+                {managers.map(m => (
+                  <option key={m.id} value={m.id}>{m.firstName} {m.lastName}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* KPI row */}

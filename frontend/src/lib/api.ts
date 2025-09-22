@@ -63,7 +63,7 @@ export type Client = {
   extraComments?: string | null;
 };
 
-export async function fetchClients(params?: { q?: string; status?: string }) {
+export async function fetchClients(params?: { q?: string; status?: string; scope?: 'team' | 'mine'; managerId?: string }) {
   const res = await api.get<Client[]>('/api/clients', { params });
   return res.data;
 }
@@ -162,6 +162,21 @@ export function downloadOffer(offerId: string): string {
 
 export async function fetchOffer(offerId: string): Promise<{ id: string; fileName: string; createdAt: string; snapshot: any; clientId: string; ownerId: string }>{
   const res = await api.get(`/api/offers/${offerId}`)
+  return res.data
+}
+
+// Users
+export type AppUserSummary = {
+  id: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+  role: 'ADMIN' | 'MANAGER' | 'SALES_REP';
+  managerId?: string | null;
+}
+
+export async function fetchUsers(): Promise<AppUserSummary[]> {
+  const res = await api.get<AppUserSummary[]>('/api/users')
   return res.data
 }
 

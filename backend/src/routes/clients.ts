@@ -12,10 +12,20 @@ router.get('/', requireAuth, requireManagerOrAdmin, async (req, res) => {
     const q = (req.query.q as string | undefined)?.trim()
     const status = (req.query.status as string | undefined)?.trim()
     const scope = (req.query.scope as string | undefined)?.trim()
+    const managerId = (req.query.managerId as string | undefined)?.trim()
     const where: any = {}
     // For managers, scope=team shows clients from meetings of their sales reps
     if (scope === 'team' && current.role === 'MANAGER') {
       where.meetings = { some: { attendee: { managerId: current.id } } }
+    }
+    // For admins, allow filtering by managerId to see clients of that manager's team
+    if (managerId && current.role === 'ADMIN') {
+      const byManager = { some: { attendee: { managerId } } }
+      if (where.meetings) {
+        where.meetings = { AND: [where.meetings, byManager] }
+      } else {
+        where.meetings = byManager
+      }
     }
     if (q && q.length > 0) {
       where.OR = [
