@@ -61,6 +61,7 @@ function Dashboard() {
     clientEmail: '',
     clientStreet: '',
     clientCity: '',
+    postalCode: '',
     clientCategory: 'PV',
     pvInstalled: '',
     billRange: '',
@@ -301,6 +302,7 @@ function Dashboard() {
       clientEmail: '',
       clientStreet: '',
       clientCity: '',
+      postalCode: '',
       clientCategory: 'PV',
       pvInstalled: '',
       billRange: '',
@@ -352,6 +354,7 @@ function Dashboard() {
       clientEmail: c.email || '',
       clientStreet: c.street || '',
       clientCity: c.city || '',
+      postalCode: c.postalCode || '',
       clientCategory: c.category || 'PV',
       pvInstalled: c.pvInstalled === true ? 'TAK' : (c.pvInstalled === false ? 'NIE' : ''),
       billRange: c.billRange || '',
@@ -404,6 +407,7 @@ function Dashboard() {
         email: createForm.clientEmail || undefined,
         street: createForm.clientStreet || undefined,
         city: createForm.clientCity || undefined,
+        postalCode: createForm.postalCode || undefined,
         category: createForm.clientCategory || undefined,
         newRules: createForm.newRules === 'TAK' ? true : (createForm.newRules === 'NIE' ? false : undefined),
         buildingType: createForm.buildingType || undefined,
@@ -417,6 +421,7 @@ function Dashboard() {
       if (client.newRules !== undefined) clientMirror.newRules = client.newRules
       if (client.buildingType) clientMirror.buildingType = client.buildingType
       if (client.billRange) clientMirror.billRange = client.billRange
+      if (client.postalCode) clientMirror.postalCode = client.postalCode
       if (client.pvInstalled !== undefined) clientMirror.pvInstalled = client.pvInstalled
       if (client.extraComments) clientMirror.extraComments = client.extraComments
       const hasClient = Object.values(client).some(v => v && `${v}`.trim() !== '')
@@ -1013,8 +1018,9 @@ function Dashboard() {
                   <label className="form-label">Miasto</label>
                   <input className="form-input" value={createForm.clientCity} onChange={e => setCreateForm({ ...createForm, clientCity: e.target.value })} />
                 </div>
-                <div className="form-group" style={{ gridColumn: '1 / -1' }}>
-                  <button className="secondary" onClick={fillCreateAddressFromGeolocation} disabled={geoLoading}>{geoLoading ? 'Pobieram położenie…' : 'Dodaj położenie'}</button>
+                <div className="form-group">
+                  <label className="form-label">Kod pocztowy</label>
+                  <input className="form-input" value={createForm.postalCode} onChange={e => setCreateForm({ ...createForm, postalCode: e.target.value })} />
                 </div>
               <div className="form-group">
                 <label className="form-label">Kategoria</label>

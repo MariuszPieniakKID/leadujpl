@@ -57,6 +57,7 @@ export type Client = {
   email?: string | null;
   street?: string | null;
   city?: string | null;
+  postalCode?: string | null;
   category?: string | null;
   pvInstalled?: boolean | null;
   billRange?: string | null;

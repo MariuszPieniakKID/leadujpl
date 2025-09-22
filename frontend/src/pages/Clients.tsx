@@ -4,7 +4,7 @@ import { fetchClients, createClient, deleteClient, type Client, listClientAttach
 export default function ClientsPage() {
   const [clients, setClients] = useState<Client[]>([])
   const [loading, setLoading] = useState(false)
-  const [form, setForm] = useState<Partial<Client>>({ firstName: '', lastName: '', phone: '', email: '', street: '', city: '', category: '' })
+  const [form, setForm] = useState<Partial<Client>>({ firstName: '', lastName: '', phone: '', email: '', street: '', city: '', postalCode: '', category: '' })
 
   const [query, setQuery] = useState('')
   const [status, setStatus] = useState('')
@@ -30,7 +30,7 @@ export default function ClientsPage() {
     if (!form.firstName || !form.lastName) { setCreateError('Imię i nazwisko są wymagane'); return }
     await createClient({
       firstName: form.firstName!, lastName: form.lastName!, phone: form.phone || undefined, email: form.email || undefined,
-      street: form.street || undefined, city: form.city || undefined, category: form.category || undefined,
+      street: form.street || undefined, city: form.city || undefined, postalCode: form.postalCode || undefined, category: form.category || undefined,
     } as any)
     setForm({ firstName: '', lastName: '', phone: '', email: '', street: '', city: '', category: '' })
     setIsCreateOpen(false)
@@ -116,6 +116,10 @@ export default function ClientsPage() {
                   <input className="form-input" placeholder="Miasto" value={form.city || ''} onChange={e => setForm({ ...form, city: e.target.value })} />
                 </div>
                 <div className="form-group">
+                  <label className="form-label">Kod pocztowy</label>
+                  <input className="form-input" placeholder="Kod pocztowy" value={form.postalCode || ''} onChange={e => setForm({ ...form, postalCode: e.target.value })} />
+                </div>
+                <div className="form-group">
                   <label className="form-label">Kategoria</label>
                   <select className="form-select" value={form.category || ''} onChange={e => setForm({ ...form, category: e.target.value as any })}>
                     <option value="">— wybierz —</option>
@@ -156,6 +160,7 @@ export default function ClientsPage() {
                   <th>Telefon</th>
                   <th>E-mail</th>
                   <th>Adres</th>
+                  <th>Kod pocztowy</th>
                   <th>Kategoria</th>
                   <th>Załączniki</th>
                   <th></th>
@@ -169,6 +174,7 @@ export default function ClientsPage() {
                     <td>{c.phone || <span className="text-gray-400">—</span>}</td>
                     <td>{c.email || <span className="text-gray-400">—</span>}</td>
                     <td>{[c.street, c.city].filter(Boolean).join(', ') || <span className="text-gray-400">—</span>}</td>
+                    <td>{c.postalCode || <span className="text-gray-400">—</span>}</td>
                     <td>{renderCategory(c.category)}</td>
                     <td>
                       <ClientAttachments clientId={c.id} />

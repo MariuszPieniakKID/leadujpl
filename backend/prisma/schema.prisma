@@ -115,6 +115,7 @@ model Client {
   email        String?
   street       String?
   city         String?
+  postalCode   String?
   category     String?
   pvInstalled  Boolean?
   billRange    String?

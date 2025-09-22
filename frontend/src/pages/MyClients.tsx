@@ -185,6 +185,7 @@ export default function MyClientsPage() {
                     <td>{c.phone || <span className="text-gray-400">—</span>}</td>
                     <td>{c.email || <span className="text-gray-400">—</span>}</td>
                     <td>{[c.street, c.city].filter(Boolean).join(', ') || <span className="text-gray-400">—</span>}</td>
+                    {/* Postal code could be included in address or separate if needed */}
                     <td>{renderCategory(c.category)}</td>
                     <td>
                       <ClientStatusAndActions clientId={c.id} />

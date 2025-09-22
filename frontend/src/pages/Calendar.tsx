@@ -101,6 +101,7 @@ export default function CalendarPage() {
     clientEmail: '',
     clientStreet: '',
     clientCity: '',
+    postalCode: '',
     clientCategory: 'PV',
     pvInstalled: '', // '' | 'TAK' | 'NIE'
     billRange: '',
@@ -187,6 +188,7 @@ export default function CalendarPage() {
       clientEmail: '',
       clientStreet: '',
       clientCity: '',
+      postalCode: '',
       clientCategory: 'PV',
       pvInstalled: '',
       billRange: '',
@@ -266,6 +268,7 @@ export default function CalendarPage() {
       clientEmail: '',
       clientStreet: '',
       clientCity: '',
+      postalCode: '',
       clientCategory: '',
       pvInstalled: '',
       billRange: '',
@@ -306,6 +309,7 @@ export default function CalendarPage() {
       clientEmail: c.email || '',
       clientStreet: c.street || '',
       clientCity: c.city || '',
+      postalCode: c.postalCode || '',
       clientCategory: c.category || '',
       pvInstalled: c.pvInstalled === true ? 'TAK' : (c.pvInstalled === false ? 'NIE' : ''),
       billRange: c.billRange || '',
@@ -364,6 +368,7 @@ export default function CalendarPage() {
         email: createForm.clientEmail || undefined,
         street: createForm.clientStreet || undefined,
         city: createForm.clientCity || undefined,
+        postalCode: createForm.postalCode || undefined,
         category: createForm.clientCategory || undefined,
         newRules: createForm.newRules === 'TAK' ? true : (createForm.newRules === 'NIE' ? false : undefined),
         buildingType: createForm.buildingType || undefined,
@@ -669,6 +674,14 @@ export default function CalendarPage() {
               <div>
                 <label>Miasto</label>
                 <input value={createForm.clientCity} onChange={e => setCreateForm({ ...createForm, clientCity: e.target.value })} />
+              </div>
+              <div>
+                <label>Kod pocztowy</label>
+                <input value={createForm.postalCode} onChange={e => setCreateForm({ ...createForm, postalCode: e.target.value })} />
+              </div>
+              <div>
+                <label>Kod pocztowy</label>
+                <input value={createForm.postalCode} onChange={e => setCreateForm({ ...createForm, postalCode: e.target.value })} />
               </div>
               <div style={{ gridColumn: '1 / -1' }}>
                 <button className="secondary" onClick={fillCreateAddressFromGeolocation} disabled={geoLoading}>{geoLoading ? 'Pobieram położenie…' : 'Dodaj położenie'}</button>

@@ -66,7 +66,7 @@ router.get('/', requireAuth, async (req, res) => {
 router.post('/', requireAuth, async (req, res) => {
   try {
     const currentUser = req.user!;
-    const { scheduledAt, endsAt, location, notes, attendeeId, client, clientId, pvInstalled, billRange, extraComments, status, contactConsent } = req.body as { scheduledAt: string; endsAt?: string; location?: string; notes?: string; attendeeId?: string; client?: { firstName?: string; lastName?: string; phone?: string; email?: string; street?: string; city?: string; category?: string; newRules?: boolean; buildingType?: string; billRange?: string; extraComments?: string; pvInstalled?: boolean }; clientId?: string; pvInstalled?: boolean; billRange?: string; extraComments?: string; status?: string; contactConsent?: boolean };
+    const { scheduledAt, endsAt, location, notes, attendeeId, client, clientId, pvInstalled, billRange, extraComments, status, contactConsent } = req.body as { scheduledAt: string; endsAt?: string; location?: string; notes?: string; attendeeId?: string; client?: { firstName?: string; lastName?: string; phone?: string; email?: string; street?: string; city?: string; postalCode?: string; category?: string; newRules?: boolean; buildingType?: string; billRange?: string; extraComments?: string; pvInstalled?: boolean }; clientId?: string; pvInstalled?: boolean; billRange?: string; extraComments?: string; status?: string; contactConsent?: boolean };
     if (contactConsent !== true) {
       return res.status(400).json({ error: 'Wymagana jest zgoda klienta na kontakt handlowy.' });
     }
@@ -109,6 +109,7 @@ router.post('/', requireAuth, async (req, res) => {
             ...(billRange !== undefined ? { billRange } : {}),
             ...(extraComments !== undefined ? { extraComments } : {}),
             ...(client?.category !== undefined ? { category: client.category } : {}),
+            ...(client?.postalCode !== undefined ? { postalCode: client.postalCode } : {}),
             ...(client?.newRules !== undefined ? { newRules: client.newRules } : {}),
             ...(client?.buildingType !== undefined ? { buildingType: client.buildingType } : {}),
           }});
@@ -117,7 +118,7 @@ router.post('/', requireAuth, async (req, res) => {
     }
 
     // If client payload provided, create client and link by clientId
-    if (client && (client.firstName || client.lastName || client.email || client.phone || client.street || client.city || client.category || client.newRules != null || client.buildingType != null || client.billRange || client.pvInstalled != null || client.extraComments)) {
+    if (client && (client.firstName || client.lastName || client.email || client.phone || client.street || client.city || client.postalCode || client.category || client.newRules != null || client.buildingType != null || client.billRange || client.pvInstalled != null || client.extraComments)) {
       const createdClient = await prisma.client.create({ data: {
         firstName: client.firstName || '',
         lastName: client.lastName || '',
@@ -125,6 +126,7 @@ router.post('/', requireAuth, async (req, res) => {
         email: client.email,
         street: client.street,
         city: client.city,
+        postalCode: client.postalCode,
         category: client.category,
         pvInstalled: client.pvInstalled ?? pvInstalled,
         billRange: client.billRange ?? billRange,
@@ -191,7 +193,7 @@ router.patch('/:id', requireAuth, async (req, res) => {
     if (extraComments !== undefined) patchData.extraComments = extraComments;
 
     // Optionally update or create client and link
-    if (client && (client.firstName || client.lastName || client.email || client.phone || client.street || client.city || client.category || client.newRules != null || client.buildingType != null || client.billRange || client.pvInstalled != null || client.extraComments)) {
+    if (client && (client.firstName || client.lastName || client.email || client.phone || client.street || client.city || client.postalCode || client.category || client.newRules != null || client.buildingType != null || client.billRange || client.pvInstalled != null || client.extraComments)) {
       if (meeting.clientId) {
         await prisma.client.update({ where: { id: meeting.clientId }, data: {
           ...(client.firstName !== undefined ? { firstName: client.firstName } : {}),
@@ -200,6 +202,7 @@ router.patch('/:id', requireAuth, async (req, res) => {
           ...(client.email !== undefined ? { email: client.email } : {}),
           ...(client.street !== undefined ? { street: client.street } : {}),
           ...(client.city !== undefined ? { city: client.city } : {}),
+          ...(client.postalCode !== undefined ? { postalCode: client.postalCode } : {}),
           ...(client.category !== undefined ? { category: client.category } : {}),
           ...(client.pvInstalled !== undefined ? { pvInstalled: client.pvInstalled } : (pvInstalled !== undefined ? { pvInstalled } : {})),
           ...(client.billRange !== undefined ? { billRange: client.billRange } : (billRange !== undefined ? { billRange } : {})),
@@ -215,6 +218,7 @@ router.patch('/:id', requireAuth, async (req, res) => {
           email: client.email,
           street: client.street,
           city: client.city,
+          postalCode: client.postalCode,
           category: client.category,
           pvInstalled: client.pvInstalled ?? pvInstalled,
           billRange: client.billRange ?? billRange,
