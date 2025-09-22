@@ -1018,12 +1018,12 @@ function Dashboard() {
                   <label className="form-label">Miasto</label>
                   <input className="form-input" value={createForm.clientCity} onChange={e => setCreateForm({ ...createForm, clientCity: e.target.value })} />
                 </div>
-                <div className="form-group" style={{ gridColumn: '1 / -1' }}>
-                  <button className="secondary" onClick={fillCreateAddressFromGeolocation} disabled={geoLoading}>{geoLoading ? 'Pobieram położenie…' : 'Dodaj położenie'}</button>
-                </div>
                 <div className="form-group">
                   <label className="form-label">Kod pocztowy</label>
                   <input className="form-input" value={createForm.postalCode} onChange={e => setCreateForm({ ...createForm, postalCode: e.target.value })} />
+                </div>
+                <div className="form-group" style={{ gridColumn: '1 / -1' }}>
+                  <button className="secondary" onClick={fillCreateAddressFromGeolocation} disabled={geoLoading}>{geoLoading ? 'Pobieram położenie…' : 'Dodaj położenie'}</button>
                 </div>
               <div className="form-group">
                 <label className="form-label">Kategoria</label>
