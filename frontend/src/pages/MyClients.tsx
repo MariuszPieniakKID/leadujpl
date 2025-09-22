@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import api, { listClientOffers, downloadOffer } from '../lib/api'
+import api, { listClientOffers, downloadOffer, listClientAttachments, type AttachmentItem, viewAttachmentUrl, downloadAttachmentUrl } from '../lib/api'
 
 type Client = {
   id: string
@@ -72,6 +72,7 @@ export default function MyClientsPage() {
                   <th>Adres</th>
                   <th>Kategoria</th>
                   <th>Oferty</th>
+                  <th>Załączniki</th>
                 </tr>
               </thead>
               <tbody>
@@ -85,6 +86,9 @@ export default function MyClientsPage() {
                     <td>{c.category || <span className="text-gray-400">—</span>}</td>
                     <td>
                       <ClientOffers clientId={c.id} />
+                    </td>
+                    <td>
+                      <ClientAttachments clientId={c.id} />
                     </td>
                   </tr>
                 ))}
@@ -128,6 +132,51 @@ function ClientOffers({ clientId }: { clientId: string }) {
                   <li key={o.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <span>{o.fileName}</span>
                     <a className="btn btn-sm" href={downloadOffer(o.id)} target="_blank" rel="noreferrer">Pobierz</a>
+                  </li>
+                ))}
+              </ul>
+            )
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
+
+function ClientAttachments({ clientId }: { clientId: string }) {
+  const [items, setItems] = useState<AttachmentItem[]>([])
+  const [open, setOpen] = useState(false)
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  async function load() {
+    try {
+      setLoading(true)
+      setError(null)
+      const list = await listClientAttachments(clientId)
+      setItems(list)
+    } catch (e: any) {
+      setError(e?.response?.data?.error || 'Nie udało się pobrać załączników')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  return (
+    <div>
+      <button className="btn btn-sm secondary" onClick={() => { setOpen(o => !o); if (!open) load() }}>{open ? 'Ukryj' : 'Pokaż'}</button>
+      {open && (
+        <div className="card" style={{ marginTop: 6 }}>
+          {loading ? <div className="text-sm text-gray-500">Ładowanie…</div> : error ? <div className="text-error text-sm">{error}</div> : (
+            items.length === 0 ? <div className="text-sm text-gray-500">Brak załączników</div> : (
+              <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'grid', gap: 6 }}>
+                {items.map(a => (
+                  <li key={a.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span>{a.fileName}</span>
+                    <span style={{ display: 'flex', gap: 6 }}>
+                      <a className="btn btn-sm secondary" href={viewAttachmentUrl(a.id)} target="_blank" rel="noreferrer">Podgląd</a>
+                      <a className="btn btn-sm" href={downloadAttachmentUrl(a.id)} target="_blank" rel="noreferrer">Pobierz</a>
+                    </span>
                   </li>
                 ))}
               </ul>

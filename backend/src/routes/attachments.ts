@@ -40,6 +40,17 @@ router.get('/meeting/:meetingId', requireAuth, async (req, res) => {
   }
 })
 
+// List attachments for a client (across meetings)
+router.get('/client/:clientId', requireAuth, async (req, res) => {
+  try {
+    const { clientId } = req.params
+    const list = await prisma.attachment.findMany({ where: { clientId }, select: { id: true, fileName: true, mimeType: true, createdAt: true, meetingId: true } })
+    res.json(list)
+  } catch (e) {
+    res.status(500).json({ error: (e as Error).message })
+  }
+})
+
 router.get('/:id/download', requireAuth, async (req, res) => {
   try {
     const { id } = req.params
@@ -47,6 +58,20 @@ router.get('/:id/download', requireAuth, async (req, res) => {
     if (!a) return res.status(404).json({ error: 'Not found' })
     res.setHeader('Content-Type', a.mimeType)
     res.setHeader('Content-Disposition', `attachment; filename="${a.fileName}"`)
+    res.send(Buffer.from(a.data))
+  } catch (e) {
+    res.status(500).json({ error: (e as Error).message })
+  }
+})
+
+// Inline view for preview-capable types (browser decides rendering)
+router.get('/:id/view', requireAuth, async (req, res) => {
+  try {
+    const { id } = req.params
+    const a = await prisma.attachment.findUnique({ where: { id } })
+    if (!a) return res.status(404).json({ error: 'Not found' })
+    res.setHeader('Content-Type', a.mimeType)
+    res.setHeader('Content-Disposition', `inline; filename="${a.fileName}"`)
     res.send(Buffer.from(a.data))
   } catch (e) {
     res.status(500).json({ error: (e as Error).message })

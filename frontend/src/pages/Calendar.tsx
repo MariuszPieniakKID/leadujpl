@@ -11,7 +11,7 @@ type SlotInfo = any
 type View = any
 import { DndProvider } from 'react-dnd'
 import { HTML5Backend } from 'react-dnd-html5-backend'
-import api from '../lib/api'
+import api, { listMeetingAttachments, type AttachmentItem, viewAttachmentUrl, downloadAttachmentUrl, uploadAttachments } from '../lib/api'
 import type { Client } from '../lib/api'
 import { getUser } from '../lib/auth'
 
@@ -196,6 +196,22 @@ export default function CalendarPage() {
   })
   const [, setShowFollowUpCreate] = useState(false)
   const [editSectionsOpen, setEditSectionsOpen] = useState({ meeting: false, client: false, extra: false })
+  const [attachments, setAttachments] = useState<AttachmentItem[]>([])
+  const [attachmentsLoading, setAttachmentsLoading] = useState(false)
+  const [attachmentsError, setAttachmentsError] = useState<string | null>(null)
+
+  async function loadAttachments(meetingId: string) {
+    try {
+      setAttachmentsLoading(true)
+      setAttachmentsError(null)
+      const list = await listMeetingAttachments(meetingId)
+      setAttachments(list)
+    } catch (e: any) {
+      setAttachmentsError(e?.response?.data?.error || 'Nie udało się pobrać załączników')
+    } finally {
+      setAttachmentsLoading(false)
+    }
+  }
 
   async function onSelect(slot: SlotInfo) {
     setCreateError(null)
@@ -352,6 +368,7 @@ export default function CalendarPage() {
         extraComments: m.extraComments || '',
         status: m.status || '',
       })
+      await loadAttachments(eventId)
     } catch (e: any) {
       setEditError(e?.response?.data?.error || e?.message || 'Nie udało się pobrać szczegółów')
     } finally {
@@ -809,6 +826,51 @@ export default function CalendarPage() {
                 </>
               )
             })()}
+
+            <div style={{ marginTop: 8, paddingTop: 8, borderTop: '1px solid var(--gray-200)' }}>
+              <strong>Załączniki</strong>
+              {editForm.status === 'Sukces' && (
+                <div style={{ marginTop: 8 }}>
+                  <label className="form-label">Dodaj pliki</label>
+                  <input
+                    type="file"
+                    multiple
+                    accept="image/*,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                    onChange={async (e) => {
+                      const files = Array.from(e.currentTarget.files || [])
+                      if (files.length === 0 || !editMeetingId) return
+                      try {
+                        const meeting = await api.get<any>(`/api/meetings/${editMeetingId}`)
+                        const cid = meeting.data?.clientId
+                        if (!cid) return
+                        await uploadAttachments(editMeetingId, cid, files as File[])
+                        e.currentTarget.value = ''
+                        await loadAttachments(editMeetingId)
+                      } catch {}
+                    }}
+                  />
+                </div>
+              )}
+              {attachmentsLoading ? (
+                <div className="muted" style={{ fontSize: 12 }}>Ładowanie…</div>
+              ) : attachmentsError ? (
+                <div className="text-error text-sm">{attachmentsError}</div>
+              ) : attachments.length === 0 ? (
+                <div className="muted" style={{ fontSize: 12 }}>Brak załączników</div>
+              ) : (
+                <ul style={{ listStyle: 'none', padding: 0, margin: '6px 0 0 0', display: 'grid', gap: 6 }}>
+                  {attachments.map(a => (
+                    <li key={a.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
+                      <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{a.fileName}</span>
+                      <span style={{ display: 'flex', gap: 6 }}>
+                        <a className="btn btn-sm secondary" href={viewAttachmentUrl(a.id)} target="_blank" rel="noreferrer">Podgląd</a>
+                        <a className="btn btn-sm" href={downloadAttachmentUrl(a.id)} target="_blank" rel="noreferrer">Pobierz</a>
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
 
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer', padding: '6px 0', marginTop: 8 }} onClick={() => setEditSectionsOpen(s => ({ ...s, extra: !s.extra }))}>
               <strong>Dodatkowe informacje</strong>

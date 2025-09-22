@@ -55,6 +55,7 @@ model User {
   managerId String?
   sales     User[]   @relation("ManagerToSales")
   offers    Offer[]
+  attachments Attachment[]
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
@@ -98,6 +99,7 @@ model Meeting {
   attendeeId  String
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+  attachments Attachment[]
   @@index([leadId])
   @@index([clientId])
   @@index([attendeeId])
@@ -122,6 +124,7 @@ model Client {
   updatedAt    DateTime @updatedAt
   meetings     Meeting[]
   offers       Offer[]
+  attachments  Attachment[]
   @@index([lastName])
 }
 

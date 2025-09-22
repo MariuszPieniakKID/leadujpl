@@ -93,6 +93,30 @@ export async function uploadAttachments(meetingId: string, clientId: string, fil
   return res.data as { count: number }
 }
 
+export type AttachmentItem = { id: string; fileName: string; mimeType: string; createdAt: string; meetingId?: string }
+
+export async function listMeetingAttachments(meetingId: string): Promise<AttachmentItem[]> {
+  const res = await api.get(`/api/attachments/meeting/${meetingId}`)
+  return res.data
+}
+
+export async function listClientAttachments(clientId: string): Promise<AttachmentItem[]> {
+  const res = await api.get(`/api/attachments/client/${clientId}`)
+  return res.data
+}
+
+export function viewAttachmentUrl(attachmentId: string): string {
+  const token = getToken()
+  const base = import.meta.env.VITE_API_BASE || ''
+  return `${base}/api/attachments/${attachmentId}/view${token ? `?token=${encodeURIComponent(token)}` : ''}`
+}
+
+export function downloadAttachmentUrl(attachmentId: string): string {
+  const token = getToken()
+  const base = import.meta.env.VITE_API_BASE || ''
+  return `${base}/api/attachments/${attachmentId}/download${token ? `?token=${encodeURIComponent(token)}` : ''}`
+}
+
 // Offers
 export async function generateOfferPDF(snapshot: any): Promise<Blob> {
   const res = await api.post(`/api/offers/generate`, snapshot, { responseType: 'blob' })

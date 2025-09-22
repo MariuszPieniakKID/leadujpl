@@ -4,7 +4,7 @@ import { BrowserRouter, Routes, Route, Navigate, NavLink, useLocation, Link } fr
 import './App.css'
 
 import { fetchLeads } from './lib/api'
-import api, { uploadAttachments } from './lib/api'
+import api, { uploadAttachments, listMeetingAttachments, type AttachmentItem, viewAttachmentUrl, downloadAttachmentUrl } from './lib/api'
 import type { Client } from './lib/api'
 import Login from './pages/Login'
 import CalendarPage from './pages/Calendar'
@@ -390,6 +390,22 @@ function Dashboard() {
     extraComments: '',
     status: '',
   })
+  const [attachments, setAttachments] = useState<AttachmentItem[]>([])
+  const [attachmentsLoading, setAttachmentsLoading] = useState(false)
+  const [attachmentsError, setAttachmentsError] = useState<string | null>(null)
+
+  async function loadAttachments(meetingId: string) {
+    try {
+      setAttachmentsLoading(true)
+      setAttachmentsError(null)
+      const list = await listMeetingAttachments(meetingId)
+      setAttachments(list)
+    } catch (e: any) {
+      setAttachmentsError(e?.response?.data?.error || 'Nie udało się pobrać załączników')
+    } finally {
+      setAttachmentsLoading(false)
+    }
+  }
 
   async function openEdit(meetingId: string) {
     setEditError(null)
@@ -418,6 +434,7 @@ function Dashboard() {
         extraComments: m.extraComments || '',
         status: m.status || '',
       })
+      await loadAttachments(meetingId)
     } catch (e: any) {
       setEditError(e?.response?.data?.error || e?.message || 'Nie udało się pobrać szczegółów')
     } finally {
@@ -1123,7 +1140,7 @@ function Dashboard() {
                       <span>Przełożone</span>
                     </label>
                   </div>
-                  {editForm.status === 'Umowa' && (
+                  {(editForm.status === 'Umowa' || editForm.status === 'Sukces') && (
                     <div style={{ marginTop: 12 }}>
                       <label className="form-label">Załącz pliki (zdjęcia/dokumenty)</label>
                       <input type="file" multiple accept="image/*,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document" onChange={async (e) => {
@@ -1137,6 +1154,7 @@ function Dashboard() {
                           if (!cid) return
                           await uploadAttachments(meetingId, cid, files as File[])
                           e.currentTarget.value = ''
+                        await loadAttachments(meetingId)
                         } catch {}
                       }} />
                     </div>
@@ -1144,6 +1162,29 @@ function Dashboard() {
                 </div>
               )
             })()}
+
+            <div style={{ marginTop: 'var(--space-6)', paddingTop: 'var(--space-4)', borderTop: '1px solid var(--gray-200)' }}>
+              <h4 className="text-lg font-semibold text-gray-800 mb-3">Załączniki</h4>
+              {attachmentsLoading ? (
+                <div className="text-sm text-gray-500">Ładowanie…</div>
+              ) : attachmentsError ? (
+                <div className="text-error text-sm">{attachmentsError}</div>
+              ) : attachments.length === 0 ? (
+                <div className="text-sm text-gray-500">Brak załączników</div>
+              ) : (
+                <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'grid', gap: 6 }}>
+                  {attachments.map(a => (
+                    <li key={a.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
+                      <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{a.fileName}</span>
+                      <span style={{ display: 'flex', gap: 6 }}>
+                        <a className="btn btn-sm secondary" href={viewAttachmentUrl(a.id)} target="_blank" rel="noreferrer">Podgląd</a>
+                        <a className="btn btn-sm" href={downloadAttachmentUrl(a.id)} target="_blank" rel="noreferrer">Pobierz</a>
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
 
             {editError && <div className="text-error text-sm mt-4 p-3 bg-error-50 rounded border border-error-200">{editError}</div>}
 

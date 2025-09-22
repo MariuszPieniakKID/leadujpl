@@ -13,10 +13,15 @@ declare global {
 
 export function requireAuth(req: Request, res: Response, next: NextFunction) {
   const auth = req.headers.authorization;
-  if (!auth || !auth.startsWith('Bearer ')) {
+  let token: string | undefined;
+  if (auth && auth.startsWith('Bearer ')) {
+    token = auth.slice(7);
+  } else if (typeof req.query.token === 'string' && req.query.token.length > 0) {
+    token = req.query.token;
+  }
+  if (!token) {
     return res.status(401).json({ error: 'Unauthorized' });
   }
-  const token = auth.slice(7);
   try {
     const payload = jwt.verify(token, process.env.JWT_SECRET || 'dev_secret') as JwtUser;
     req.user = payload;
