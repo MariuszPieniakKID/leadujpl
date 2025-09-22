@@ -78,6 +78,24 @@ router.get('/:id/view', requireAuth, async (req, res) => {
   }
 })
 
+// Permanently delete an attachment
+router.delete('/:id', requireAuth, async (req, res) => {
+  try {
+    const current = req.user!
+    const { id } = req.params
+    const a = await prisma.attachment.findUnique({ where: { id } })
+    if (!a) return res.status(404).json({ error: 'Not found' })
+    // Allow owner or admin/manager
+    if (!(current.role === 'ADMIN' || current.role === 'MANAGER' || a.ownerId === current.id)) {
+      return res.status(403).json({ error: 'Forbidden' })
+    }
+    await prisma.attachment.delete({ where: { id } })
+    res.json({ ok: true })
+  } catch (e) {
+    res.status(500).json({ error: (e as Error).message })
+  }
+})
+
 export default router
 
 

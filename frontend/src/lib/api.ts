@@ -128,6 +128,11 @@ export function downloadAttachmentUrl(attachmentId: string): string {
   return `${base}/api/attachments/${attachmentId}/download${token ? `?token=${encodeURIComponent(token)}` : ''}`
 }
 
+export async function deleteAttachment(attachmentId: string): Promise<{ ok: true }> {
+  const res = await api.delete(`/api/attachments/${attachmentId}`)
+  return res.data
+}
+
 // Offers
 export async function generateOfferPDF(snapshot: any): Promise<Blob> {
   const res = await api.post(`/api/offers/generate`, snapshot, { responseType: 'blob' })

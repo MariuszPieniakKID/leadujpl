@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
-import api, { listClientOffers, downloadOffer, listClientAttachments, type AttachmentItem, viewAttachmentUrl, downloadAttachmentUrl, getClientLatestStatus, setClientLatestStatus, uploadAttachments } from '../lib/api'
+import api, { listClientOffers, downloadOffer, listClientAttachments, type AttachmentItem, viewAttachmentUrl, downloadAttachmentUrl, getClientLatestStatus, setClientLatestStatus, uploadAttachments, deleteAttachment } from '../lib/api'
 import EmbeddedCalculator from '../components/EmbeddedCalculator'
 
 type Client = {
@@ -322,6 +322,7 @@ function ClientAttachments({ clientId }: { clientId: string }) {
                     <span style={{ display: 'flex', gap: 6 }}>
                       <a className="btn btn-sm secondary" href={viewAttachmentUrl(a.id)} target="_blank" rel="noreferrer">Podgląd</a>
                       <a className="btn btn-sm" href={downloadAttachmentUrl(a.id)} target="_blank" rel="noreferrer">Pobierz</a>
+                      <button className="btn btn-sm danger" onClick={async () => { if (!confirm('Usunąć plik trwale?')) return; try { await deleteAttachment(a.id); await load() } catch (e) {} }}>Usuń</button>
                     </span>
                   </li>
                 ))}
