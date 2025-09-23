@@ -580,6 +580,7 @@ export default function CalendarPage() {
     }
   }
 
+  const isTouchDevice = typeof window !== 'undefined' && (('ontouchstart' in window) || (navigator as any).maxTouchPoints > 0 || (navigator as any).msMaxTouchPoints > 0)
   const DnDCalendar = useMemo(() => withDragAndDrop(BigCalendar as any) as any, [])
 
   return (
@@ -615,7 +616,7 @@ export default function CalendarPage() {
 
       <div className="calendar-container">
         <div className="calendar-shell">
-        <DndProvider backend={HTML5Backend}>
+        {!isTouchDevice ? <DndProvider backend={HTML5Backend}>
         <DnDCalendar
           localizer={localizer}
           events={events}
@@ -658,7 +659,46 @@ export default function CalendarPage() {
             showMore: (total: any) => `+${total} więcej`
           }}
         />
-        </DndProvider>
+        </DndProvider> :
+        <BigCalendar
+          localizer={localizer}
+          events={events}
+          startAccessor="start"
+          endAccessor="end"
+          view={currentView}
+          onView={(v: any) => setCurrentView(v)}
+          date={currentDate}
+          onNavigate={(date: any) => setCurrentDate(date)}
+          defaultView={Views.WEEK}
+          views={[Views.MONTH, Views.WEEK, Views.DAY]}
+          step={30}
+          timeslots={2}
+          min={setHours(setMinutes(new Date(), 0), 8)}
+          max={setHours(setMinutes(new Date(), 0), 18)}
+          scrollToTime={setHours(setMinutes(new Date(), 0), 8)}
+          selectable
+          popup
+          style={{ height: '100%' }}
+          onSelectSlot={onSelect}
+          onSelectEvent={(e: any) => openEditModal((e as any).id)}
+          culture="pl"
+          eventPropGetter={(event: any) => {
+            const now = Date.now()
+            const isPast = (event.start as Date).getTime() < now
+            const s = (event.status || '').trim()
+            let bg = ''
+            if (s === 'Umowa') bg = '#10b981'
+            else if (s === 'Spadek') bg = '#ef4444'
+            else if (s === 'Przełożone') bg = '#3b82f6'
+            else if (!isPast) bg = '#f97316'
+            else bg = '#facc15'
+            return { style: { backgroundColor: bg, color: 'white', border: 'none' } }
+          }}
+          messages={{
+            today: 'Dziś', previous: 'Poprzedni', next: 'Następny', month: 'Miesiąc', week: 'Tydzień', day: 'Dzień',
+            showMore: (total: any) => `+${total} więcej`
+          }}
+        />}
         </div>
       </div>
 

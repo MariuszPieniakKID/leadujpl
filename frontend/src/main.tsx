@@ -59,6 +59,10 @@ window.addEventListener('touchmove', (e) => {
     // If started in interactive region and the gesture is horizontal near screen edge, prevent navigation back
     const anyE: any = e
     if (anyE._preventNav) {
+      // Do not block when interacting with calendar grid
+      const target = e.target as HTMLElement
+      const inCalendar = target.closest('.rbc-calendar, .calendar-shell')
+      if (inCalendar) return
       e.preventDefault()
     }
   } catch {}
