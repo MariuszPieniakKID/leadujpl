@@ -312,8 +312,8 @@ function ClientStatusAndActions({ clientId }: { clientId: string }) {
     return <span className="text-sm text-gray-500">—</span>
   }
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-      <select className="form-select" value={status || ''} onChange={e => onChangeStatus(e.target.value)}>
+    <div className="client-status-actions" style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', width: '100%', minWidth: 0 }}>
+      <select className="form-select" value={status || ''} onChange={e => onChangeStatus(e.target.value)} style={{ flex: '1 1 220px', minWidth: 0, maxWidth: '100%' }}>
         <option value="">—</option>
         <option value="Umówione">Umówione</option>
         <option value="Odbyte">Odbyte</option>
@@ -322,13 +322,13 @@ function ClientStatusAndActions({ clientId }: { clientId: string }) {
         <option value="Sukces">Umowa</option>
         <option value="Porażka">Porażka</option>
       </select>
-      <div className="text-xs" style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', width: '100%' }}>
+      <div className="text-xs" style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', width: '100%', minWidth: 0 }}>
         <span className="text-gray-600" style={{ minWidth: 90 }}>Rodzaj pliku:</span>
-        <div style={{ display: 'flex', gap: 6, overflowX: 'auto', WebkitOverflowScrolling: 'touch', paddingBottom: 4 }}>
+        <div className="att-cat-row" style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center', paddingBottom: 4, minWidth: 0 }}>
           {categoryOptions.map(opt => {
             const selected = attCategory === opt.value
             return (
-              <label key={opt.value} className="inline-flex items-center" style={{ gap: 6, whiteSpace: 'nowrap' }}>
+              <label key={opt.value} className="inline-flex items-center" style={{ gap: 6 }}>
                 <input type="radio" name={`att-cat-${clientId}`} value={opt.value} checked={selected} onChange={() => setAttCategory(opt.value)} style={{ display: 'none' }} />
                 <span
                   aria-pressed={selected}
@@ -342,6 +342,7 @@ function ClientStatusAndActions({ clientId }: { clientId: string }) {
                     background: selected ? 'var(--primary-50)' : '#fff',
                     color: selected ? 'var(--primary-700)' : 'var(--gray-700)',
                     boxShadow: selected ? 'inset 0 0 0 1px var(--primary-100)' : 'none',
+                    display: 'inline-block'
                   }}
                 >
                   {opt.label}
