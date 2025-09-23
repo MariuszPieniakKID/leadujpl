@@ -10,12 +10,25 @@ createRoot(document.getElementById('root')!).render(
   </StrictMode>,
 )
 
-// Register service worker for PWA
+// Register/force-update service worker for PWA
 if ('serviceWorker' in navigator) {
-  window.addEventListener('load', () => {
-    navigator.serviceWorker
-      .register('/sw.js')
-      .catch(() => {})
+  window.addEventListener('load', async () => {
+    try {
+      const reg = await navigator.serviceWorker.register('/sw.js')
+      if (reg.waiting) {
+        reg.waiting.postMessage({ type: 'SKIP_WAITING' })
+      }
+      if (reg.installing) {
+        reg.installing.addEventListener('statechange', () => {
+          if (reg.installing?.state === 'installed') {
+            reg.waiting?.postMessage({ type: 'SKIP_WAITING' })
+          }
+        })
+      }
+      navigator.serviceWorker.addEventListener('controllerchange', () => {
+        window.location.reload()
+      })
+    } catch {}
   })
 }
 
