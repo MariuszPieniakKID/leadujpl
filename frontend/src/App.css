@@ -1608,6 +1608,10 @@ textarea {
   .modal-content.sheet .form-grid-2 { grid-template-columns: 1fr; }
   .modal-header { margin-bottom: var(--space-5); padding-bottom: var(--space-4); }
   .modal-footer { margin-top: var(--space-6); padding-top: var(--space-5); }
+  /* MyClients: status select and category chips stacking */
+  .client-status-actions { display: grid; grid-template-columns: 1fr; row-gap: 8px; }
+  .client-status-actions select.form-select { width: 100%; max-width: 100%; min-width: 0; }
+  .client-status-actions .att-cat-row { flex-wrap: wrap; max-width: 100%; overflow: hidden; }
 }
 
 .calendar-container::before {
@@ -1806,6 +1810,10 @@ textarea {
   .stat-value {
     font-size: var(--text-3xl);
   }
+  /* Extra small: ensure MyClients controls never overflow */
+  .client-status-actions { display: grid; grid-template-columns: 1fr; row-gap: 6px; }
+  .client-status-actions select.form-select { width: 100%; max-width: 100%; min-width: 0; }
+  .client-status-actions .att-cat-row { flex-wrap: wrap; max-width: 100%; overflow: hidden; }
 }
 
 /* ============================================
