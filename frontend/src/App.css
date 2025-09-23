@@ -1081,11 +1081,20 @@ textarea {
   max-width: 800px;
   max-height: 90vh;
   overflow-y: auto;
+  overflow-x: hidden;
   -webkit-overflow-scrolling: touch;
   padding: var(--space-10);
   position: relative;
   z-index: calc(var(--z-maximum) + 1);
   animation: slideUp var(--duration-500) var(--ease-out);
+}
+/* Ensure controls never overflow horizontally inside modals */
+.modal-content input:not([type="checkbox"]):not([type="radio"]),
+.modal-content select,
+.modal-content textarea {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
 }
 /* Ensure date/time inputs never overflow inside modals */
 .modal-content input[type="date"],
