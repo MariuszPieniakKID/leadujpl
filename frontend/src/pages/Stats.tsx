@@ -17,7 +17,6 @@ export default function StatsPage() {
   // Ranking state (ADMIN only)
   const [repLoading, setRepLoading] = useState(false)
   const [repError, setRepError] = useState<string | null>(null)
-  const [repUsers, setRepUsers] = useState<AppUserSummary[]>([])
   const [metric, setMetric] = useState<'Spotkania' | 'Umowa' | 'Przełożone' | 'Dogrywka' | 'Odbyte' | 'Umówione' | 'Porażka'>('Spotkania')
   const [ranking, setRanking] = useState<Array<{ id: string; firstName: string; lastName: string; total: number; byStatus: Record<string, number> }>>([])
   const [statusFilter, setStatusFilter] = useState<'' | 'Umowa' | 'Porażka' | 'Dogrywka' | 'Przełożone' | 'Umówione' | 'Odbyte'>('')
@@ -80,7 +79,6 @@ export default function StatsPage() {
         setRepLoading(true)
         const users = await fetchUsers()
         const reps = users.filter(u => u.role === 'SALES_REP' && (!managerId || u.managerId === managerId))
-        setRepUsers(reps)
         // Fetch meetings for each rep
         const arrays = await Promise.all(reps.map(u => api.get<Meeting[]>('/api/meetings', { params: { userId: u.id } }).then(r => r.data).catch(() => [])))
         const items: Array<{ id: string; firstName: string; lastName: string; total: number; byStatus: Record<string, number> }> = reps.map((u, i) => {
