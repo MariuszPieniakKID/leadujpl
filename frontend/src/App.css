@@ -1074,20 +1074,22 @@ textarea {
 }
 .modal-overlay.sheet {
   align-items: flex-end;
-  padding: 0;
+  padding: 0 12px; /* side gutters on mobile */
   overscroll-behavior: none; /* block rubber-band on overlay */
 }
 
 .modal-content.sheet {
   max-height: 88vh;
   width: 100%;
-  max-width: none;
+  max-width: 560px; /* narrower sheet on mobile */
+  margin: 0 auto; /* center horizontally */
   border-radius: var(--radius-3xl) var(--radius-3xl) 0 0;
   padding-bottom: calc(var(--space-8) + env(safe-area-inset-bottom));
   touch-action: pan-y; /* allow vertical scroll only */
   overscroll-behavior: contain; /* stop bouncing */
   -webkit-overflow-scrolling: touch; /* smooth momentum scroll */
   transform: translateZ(0); /* promote layer to prevent jitter */
+  overflow-x: hidden; /* prevent horizontal drift */
 }
 
 
