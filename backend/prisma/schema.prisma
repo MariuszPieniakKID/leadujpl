@@ -118,6 +118,7 @@ model Client {
   postalCode   String?
   category     String?
   pvInstalled  Boolean?
+  pvPower      Float?
   billRange    String?
   extraComments String?
   newRules     Boolean?

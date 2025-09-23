@@ -60,6 +60,7 @@ export type Client = {
   postalCode?: string | null;
   category?: string | null;
   pvInstalled?: boolean | null;
+  pvPower?: number | null;
   billRange?: string | null;
   extraComments?: string | null;
 };

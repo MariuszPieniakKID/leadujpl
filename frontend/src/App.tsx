@@ -66,6 +66,7 @@ function Dashboard() {
     postalCode: '',
     clientCategory: 'PV',
     pvInstalled: '',
+    pvPower: '',
     billRange: '',
     extraComments: '',
     contactConsent: false,
@@ -416,6 +417,7 @@ function Dashboard() {
         buildingType: createForm.buildingType || undefined,
         billRange: createForm.billRange || undefined,
         pvInstalled: createForm.pvInstalled ? (createForm.pvInstalled === 'TAK') : undefined,
+        pvPower: createForm.pvPower ? Number(String(createForm.pvPower).replace(',','.')) : undefined,
         extraComments: createForm.extraComments || undefined,
       }
       // Mirror-able fields for existing client selection
@@ -1119,6 +1121,27 @@ function Dashboard() {
                       <span>NIE</span>
                     </label>
                   </div>
+                  {createForm.pvInstalled === 'TAK' && (
+                    <div style={{ marginTop: 8, display: 'grid', gridTemplateColumns: '1fr', gap: 8 }}>
+                      <div>
+                        <label className="form-label">Nowe zasady (net-billing)</label>
+                        <div className="radio-group">
+                          <label className="radio-item">
+                            <input type="radio" name="newRulesCreateDash" checked={createForm.newRules === 'TAK'} onChange={() => setCreateForm({ ...createForm, newRules: 'TAK' })} />
+                            <span>TAK (nowe)</span>
+                          </label>
+                          <label className="radio-item">
+                            <input type="radio" name="newRulesCreateDash" checked={createForm.newRules === 'NIE'} onChange={() => setCreateForm({ ...createForm, newRules: 'NIE' })} />
+                            <span>NIE (stare)</span>
+                          </label>
+                        </div>
+                      </div>
+                      <div>
+                        <label className="form-label">Jaka moc (kW)</label>
+                        <input className="form-input" type="number" step="0.1" min="0" inputMode="decimal" pattern="[0-9]*[.,]?[0-9]*" value={(createForm as any).pvPower || ''} onChange={e => setCreateForm({ ...createForm, pvPower: e.target.value } as any)} />
+                      </div>
+                    </div>
+                  )}
                 </div>
                 <div className="form-group">
                   <label className="form-label">Wysokość rachunków (zł)</label>
@@ -1150,21 +1173,7 @@ function Dashboard() {
                   </label>
                 </div>
               </div>
-              {createForm.pvInstalled === 'TAK' && (
-                <div className="form-group">
-                  <label className="form-label">Nowe zasady (net-billing)</label>
-                  <div className="radio-group">
-                    <label className="radio-item">
-                      <input type="radio" name="newRulesCreateDash" checked={createForm.newRules === 'TAK'} onChange={() => setCreateForm({ ...createForm, newRules: 'TAK' })} />
-                      <span>TAK (nowe)</span>
-                    </label>
-                    <label className="radio-item">
-                      <input type="radio" name="newRulesCreateDash" checked={createForm.newRules === 'NIE'} onChange={() => setCreateForm({ ...createForm, newRules: 'NIE' })} />
-                      <span>NIE (stare)</span>
-                    </label>
-                  </div>
-                </div>
-              )}
+              {/* przeniesione wyżej pod pytaniem o PV */}
                 <div className="form-group" style={{ gridColumn: '1 / -1' }}>
                   <label className="form-label">Komentarz/uwagi</label>
                   <textarea className="form-textarea" rows={3} value={createForm.extraComments} onChange={e => setCreateForm({ ...createForm, extraComments: e.target.value })} />

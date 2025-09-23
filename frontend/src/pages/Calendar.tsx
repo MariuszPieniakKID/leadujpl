@@ -116,6 +116,7 @@ export default function CalendarPage() {
     postalCode: '',
     clientCategory: 'PV',
     pvInstalled: '', // '' | 'TAK' | 'NIE'
+    pvPower: '',
     billRange: '',
     extraComments: '',
     contactConsent: false,
@@ -387,6 +388,7 @@ export default function CalendarPage() {
         buildingType: createForm.buildingType || undefined,
         billRange: createForm.billRange || undefined,
         pvInstalled: createForm.pvInstalled ? (createForm.pvInstalled === 'TAK') : undefined,
+        pvPower: createForm.pvPower ? Number(String(createForm.pvPower).replace(',','.')) : undefined,
         extraComments: createForm.extraComments || undefined,
       }
       // Only send client if any field provided
@@ -789,6 +791,25 @@ export default function CalendarPage() {
                     <input type="radio" name="pvInstalledCreate" checked={createForm.pvInstalled === 'NIE'} onChange={() => setCreateForm({ ...createForm, pvInstalled: 'NIE' })} /> NIE
                   </label>
                 </div>
+                {createForm.pvInstalled === 'TAK' && (
+                  <div style={{ marginTop: 8, display: 'grid', gridTemplateColumns: '1fr', gap: 8 }}>
+                    <div>
+                      <label>Nowe zasady (net-billing)</label>
+                      <div>
+                        <label style={{ marginRight: 12 }}>
+                          <input type="radio" name="newRulesCreateCal" checked={createForm.newRules === 'TAK'} onChange={() => setCreateForm({ ...createForm, newRules: 'TAK' })} /> TAK (nowe)
+                        </label>
+                        <label>
+                          <input type="radio" name="newRulesCreateCal" checked={createForm.newRules === 'NIE'} onChange={() => setCreateForm({ ...createForm, newRules: 'NIE' })} /> NIE (stare)
+                        </label>
+                      </div>
+                    </div>
+                    <div>
+                      <label>Jaka moc (kW)</label>
+                      <input type="number" step="0.1" min="0" inputMode="decimal" pattern="[0-9]*[.,]?[0-9]*" value={(createForm as any).pvPower || ''} onChange={e => setCreateForm({ ...createForm, pvPower: e.target.value } as any)} />
+                    </div>
+                  </div>
+                )}
               </div>
               <div>
                 <label>Wysokość rachunków (zł)</label>
@@ -814,19 +835,7 @@ export default function CalendarPage() {
                   </label>
                 </div>
               </div>
-              {createForm.pvInstalled === 'TAK' && (
-              <div>
-                <label>Nowe zasady (net-billing)</label>
-                <div>
-                  <label style={{ marginRight: 12 }}>
-                    <input type="radio" name="newRulesCreateCal" checked={createForm.newRules === 'TAK'} onChange={() => setCreateForm({ ...createForm, newRules: 'TAK' })} /> TAK (nowe)
-                  </label>
-                  <label>
-                    <input type="radio" name="newRulesCreateCal" checked={createForm.newRules === 'NIE'} onChange={() => setCreateForm({ ...createForm, newRules: 'NIE' })} /> NIE (stare)
-                  </label>
-                </div>
-              </div>
-              )}
+              {/* przeniesione wyżej pod pytaniem o PV */}
               <div style={{ gridColumn: '1 / -1' }}>
                 <label>Komentarz/uwagi</label>
                 <textarea rows={3} value={createForm.extraComments} onChange={e => setCreateForm({ ...createForm, extraComments: e.target.value })} />

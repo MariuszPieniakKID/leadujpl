@@ -111,11 +111,11 @@ router.get('/search', requireAuth, async (req, res) => {
 // Create client - manager/admin only
 router.post('/', requireAuth, requireManagerOrAdmin, async (req, res) => {
   try {
-    const { firstName, lastName, phone, email, street, city, postalCode, category, pvInstalled, billRange, extraComments } = req.body as {
-      firstName: string; lastName: string; phone?: string; email?: string; street?: string; city?: string; postalCode?: string; category?: string; pvInstalled?: boolean; billRange?: string; extraComments?: string;
+    const { firstName, lastName, phone, email, street, city, postalCode, category, pvInstalled, pvPower, billRange, extraComments, newRules, buildingType } = req.body as {
+      firstName: string; lastName: string; phone?: string; email?: string; street?: string; city?: string; postalCode?: string; category?: string; pvInstalled?: boolean; pvPower?: number; billRange?: string; extraComments?: string; newRules?: boolean; buildingType?: string;
     };
     if (!firstName || !lastName) return res.status(400).json({ error: 'firstName and lastName are required' });
-    const created = await prisma.client.create({ data: { firstName, lastName, phone, email, street, city, postalCode, category, pvInstalled, billRange, extraComments } });
+    const created = await prisma.client.create({ data: { firstName, lastName, phone, email, street, city, postalCode, category, pvInstalled, pvPower: pvPower ?? null, billRange, extraComments, newRules, buildingType } });
     res.status(201).json(created);
   } catch (e) {
     res.status(500).json({ error: (e as Error).message });
@@ -126,10 +126,10 @@ router.post('/', requireAuth, requireManagerOrAdmin, async (req, res) => {
 router.patch('/:id', requireAuth, requireManagerOrAdmin, async (req, res) => {
   try {
     const { id } = req.params;
-    const { firstName, lastName, phone, email, street, city, postalCode, category, pvInstalled, billRange, extraComments } = req.body as {
-      firstName?: string; lastName?: string; phone?: string; email?: string; street?: string; city?: string; postalCode?: string; category?: string; pvInstalled?: boolean; billRange?: string; extraComments?: string;
+    const { firstName, lastName, phone, email, street, city, postalCode, category, pvInstalled, pvPower, billRange, extraComments, newRules, buildingType } = req.body as {
+      firstName?: string; lastName?: string; phone?: string; email?: string; street?: string; city?: string; postalCode?: string; category?: string; pvInstalled?: boolean; pvPower?: number; billRange?: string; extraComments?: string; newRules?: boolean; buildingType?: string;
     };
-    const updated = await prisma.client.update({ where: { id }, data: { firstName, lastName, phone, email, street, city, postalCode, category, pvInstalled, billRange, extraComments } });
+    const updated = await prisma.client.update({ where: { id }, data: { firstName, lastName, phone, email, street, city, postalCode, category, pvInstalled, pvPower, billRange, extraComments, newRules, buildingType } });
     res.json(updated);
   } catch (e) {
     res.status(500).json({ error: (e as Error).message });

@@ -66,7 +66,7 @@ router.get('/', requireAuth, async (req, res) => {
 router.post('/', requireAuth, async (req, res) => {
   try {
     const currentUser = req.user!;
-    const { scheduledAt, endsAt, location, notes, attendeeId, client, clientId, pvInstalled, billRange, extraComments, status, contactConsent } = req.body as { scheduledAt: string; endsAt?: string; location?: string; notes?: string; attendeeId?: string; client?: { firstName?: string; lastName?: string; phone?: string; email?: string; street?: string; city?: string; postalCode?: string; category?: string; newRules?: boolean; buildingType?: string; billRange?: string; extraComments?: string; pvInstalled?: boolean }; clientId?: string; pvInstalled?: boolean; billRange?: string; extraComments?: string; status?: string; contactConsent?: boolean };
+    const { scheduledAt, endsAt, location, notes, attendeeId, client, clientId, pvInstalled, billRange, extraComments, status, contactConsent } = req.body as { scheduledAt: string; endsAt?: string; location?: string; notes?: string; attendeeId?: string; client?: { firstName?: string; lastName?: string; phone?: string; email?: string; street?: string; city?: string; postalCode?: string; category?: string; newRules?: boolean; buildingType?: string; billRange?: string; extraComments?: string; pvInstalled?: boolean; pvPower?: number }; clientId?: string; pvInstalled?: boolean; billRange?: string; extraComments?: string; status?: string; contactConsent?: boolean };
     if (contactConsent !== true) {
       return res.status(400).json({ error: 'Wymagana jest zgoda klienta na kontakt handlowy.' });
     }
@@ -110,6 +110,7 @@ router.post('/', requireAuth, async (req, res) => {
             ...(extraComments !== undefined ? { extraComments } : {}),
             ...(client?.category !== undefined ? { category: client.category } : {}),
             ...(client?.postalCode !== undefined ? { postalCode: client.postalCode } : {}),
+            ...(client?.pvPower !== undefined ? { pvPower: client.pvPower } : {}),
             ...(client?.newRules !== undefined ? { newRules: client.newRules } : {}),
             ...(client?.buildingType !== undefined ? { buildingType: client.buildingType } : {}),
           }});
@@ -129,6 +130,7 @@ router.post('/', requireAuth, async (req, res) => {
         city: client.city,
         postalCode: client.postalCode,
         category: client.category,
+        pvPower: client.pvPower ?? null,
         pvInstalled: client.pvInstalled ?? pvInstalled,
         billRange: client.billRange ?? billRange,
         extraComments: client.extraComments ?? extraComments,
@@ -180,7 +182,7 @@ router.patch('/:id', requireAuth, async (req, res) => {
         }
       }
     }
-    const { scheduledAt, endsAt, location, notes, client, pvInstalled, billRange, extraComments, status } = req.body as { scheduledAt?: string; endsAt?: string; location?: string; notes?: string; client?: { firstName?: string; lastName?: string; phone?: string; email?: string; street?: string; city?: string; postalCode?: string; category?: string; newRules?: boolean; buildingType?: string; billRange?: string; extraComments?: string; pvInstalled?: boolean }; pvInstalled?: boolean; billRange?: string; extraComments?: string; status?: string };
+    const { scheduledAt, endsAt, location, notes, client, pvInstalled, billRange, extraComments, status } = req.body as { scheduledAt?: string; endsAt?: string; location?: string; notes?: string; client?: { firstName?: string; lastName?: string; phone?: string; email?: string; street?: string; city?: string; postalCode?: string; category?: string; newRules?: boolean; buildingType?: string; billRange?: string; extraComments?: string; pvInstalled?: boolean; pvPower?: number }; pvInstalled?: boolean; billRange?: string; extraComments?: string; status?: string };
 
     const patchData: any = {
       ...(scheduledAt ? { scheduledAt: new Date(scheduledAt) } : {}),
@@ -205,6 +207,7 @@ router.patch('/:id', requireAuth, async (req, res) => {
           ...(client.city !== undefined ? { city: client.city } : {}),
           ...(client.postalCode !== undefined ? { postalCode: client.postalCode } : {}),
           ...(client.category !== undefined ? { category: client.category } : {}),
+          ...(client.pvPower !== undefined ? { pvPower: client.pvPower } : {}),
           ...(client.pvInstalled !== undefined ? { pvInstalled: client.pvInstalled } : (pvInstalled !== undefined ? { pvInstalled } : {})),
           ...(client.billRange !== undefined ? { billRange: client.billRange } : (billRange !== undefined ? { billRange } : {})),
           ...(client.extraComments !== undefined ? { extraComments: client.extraComments } : (extraComments !== undefined ? { extraComments } : {})),
@@ -221,6 +224,7 @@ router.patch('/:id', requireAuth, async (req, res) => {
           city: client.city,
           postalCode: client.postalCode,
           category: client.category,
+          pvPower: client.pvPower ?? null,
           pvInstalled: client.pvInstalled ?? pvInstalled,
           billRange: client.billRange ?? billRange,
           extraComments: client.extraComments ?? extraComments,
