@@ -198,7 +198,18 @@ export default function CalculatorPage() {
         {(() => { const u = getUser(); return (
           <div className="flex items-center gap-4">
             {(u && u.role === 'ADMIN') && (
-              <button className="secondary" onClick={() => navigate('/calculator/settings')}>Ustawienia</button>
+              <button
+                className="secondary"
+                type="button"
+                onClick={() => {
+                  try { navigate('/calculator/settings') } catch {}
+                  setTimeout(() => {
+                    if (!/\/calculator\/settings$/.test(window.location.pathname)) {
+                      window.location.href = '/calculator/settings'
+                    }
+                  }, 50)
+                }}
+              >Ustawienia</button>
             )}
             {(u && u.role === 'SALES_REP') && (
               <SalesMarginButton />
