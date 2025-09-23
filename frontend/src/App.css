@@ -1612,6 +1612,7 @@ textarea {
   .client-status-actions { display: grid; grid-template-columns: 1fr; row-gap: 8px; }
   .client-status-actions select.form-select { width: 100%; max-width: 100%; min-width: 0; }
   .client-status-actions .att-cat-row { flex-wrap: wrap; max-width: 100%; overflow: hidden; }
+  .client-status-actions .text-xs { width: 100%; min-width: 0; }
 }
 
 .calendar-container::before {
@@ -1814,6 +1815,8 @@ textarea {
   .client-status-actions { display: grid; grid-template-columns: 1fr; row-gap: 6px; }
   .client-status-actions select.form-select { width: 100%; max-width: 100%; min-width: 0; }
   .client-status-actions .att-cat-row { flex-wrap: wrap; max-width: 100%; overflow: hidden; }
+  .client-status-actions .att-cat-row [role="button"] { font-size: 11px; padding: 4px 8px; }
+  .client-status-actions .text-xs { width: 100%; min-width: 0; }
 }
 
 /* ============================================

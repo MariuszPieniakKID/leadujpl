@@ -312,8 +312,8 @@ function ClientStatusAndActions({ clientId }: { clientId: string }) {
     return <span className="text-sm text-gray-500">—</span>
   }
   return (
-    <div className="client-status-actions" style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', width: '100%', minWidth: 0 }}>
-      <select className="form-select" value={status || ''} onChange={e => onChangeStatus(e.target.value)} style={{ flex: '1 1 220px', minWidth: 0, maxWidth: '100%' }}>
+    <div className="client-status-actions" style={{ display: 'grid', gridTemplateColumns: '1fr', rowGap: 8, width: '100%', minWidth: 0 }}>
+      <select className="form-select" value={status || ''} onChange={e => onChangeStatus(e.target.value)} style={{ width: '100%', minWidth: 0, maxWidth: '100%' }}>
         <option value="">—</option>
         <option value="Umówione">Umówione</option>
         <option value="Odbyte">Odbyte</option>
@@ -322,9 +322,9 @@ function ClientStatusAndActions({ clientId }: { clientId: string }) {
         <option value="Sukces">Umowa</option>
         <option value="Porażka">Porażka</option>
       </select>
-      <div className="text-xs" style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', width: '100%', minWidth: 0 }}>
+      <div className="text-xs" style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', width: '100%', minWidth: 0, overflow: 'hidden' }}>
         <span className="text-gray-600" style={{ minWidth: 90 }}>Rodzaj pliku:</span>
-        <div className="att-cat-row" style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center', paddingBottom: 4, minWidth: 0 }}>
+        <div className="att-cat-row" style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center', paddingBottom: 4, minWidth: 0, maxWidth: '100%' }}>
           {categoryOptions.map(opt => {
             const selected = attCategory === opt.value
             return (
