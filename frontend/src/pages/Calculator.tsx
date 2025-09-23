@@ -196,7 +196,7 @@ export default function CalculatorPage() {
         </div>
         {(() => { const u = getUser(); return (
           <div className="flex items-center gap-4">
-            {(u && (u.role === 'MANAGER' || u.role === 'ADMIN')) && (
+            {(u && u.role === 'ADMIN') && (
               <Link className="secondary" to="/calculator/settings">Ustawienia</Link>
             )}
             {(u && u.role === 'SALES_REP') && (
