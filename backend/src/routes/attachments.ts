@@ -11,7 +11,7 @@ const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 20 
 router.post('/upload', requireAuth, upload.array('files', 10), async (req, res) => {
   try {
     const current = req.user!
-    const { meetingId, clientId } = req.body as { meetingId: string; clientId: string }
+    const { meetingId, clientId, category } = req.body as { meetingId: string; clientId: string; category?: string }
     if (!meetingId || !clientId) return res.status(400).json({ error: 'meetingId and clientId required' })
     const files = (req.files as Express.Multer.File[]) || []
     if (files.length === 0) return res.status(400).json({ error: 'No files uploaded' })
@@ -20,6 +20,7 @@ router.post('/upload', requireAuth, upload.array('files', 10), async (req, res) 
       meetingId,
       clientId,
       ownerId: current.id,
+      category: category?.trim() || null,
       fileName: f.originalname,
       mimeType: f.mimetype,
       data: f.buffer,
@@ -44,7 +45,7 @@ router.get('/meeting/:meetingId', requireAuth, async (req, res) => {
 router.get('/client/:clientId', requireAuth, async (req, res) => {
   try {
     const { clientId } = req.params
-    const list = await prisma.attachment.findMany({ where: { clientId }, select: { id: true, fileName: true, mimeType: true, createdAt: true, meetingId: true }, orderBy: { createdAt: 'desc' } })
+    const list = await prisma.attachment.findMany({ where: { clientId }, select: { id: true, fileName: true, mimeType: true, createdAt: true, meetingId: true, category: true }, orderBy: [{ category: 'asc' }, { createdAt: 'desc' }] })
     res.json(list)
   } catch (e) {
     res.status(500).json({ error: (e as Error).message })

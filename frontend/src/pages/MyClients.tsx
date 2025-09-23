@@ -221,6 +221,13 @@ function ClientStatusAndActions({ clientId }: { clientId: string }) {
   const [meetingId, setMeetingId] = useState<string | null>(null)
   const [uploading, setUploading] = useState(false)
   const [info, setInfo] = useState<string | null>(null)
+  const [attCategory, setAttCategory] = useState<'umowa' | 'aum' | 'formatka kredytowa' | 'zdjęcia'>('umowa')
+  const categoryOptions = [
+    { value: 'umowa' as const, label: 'Umowa' },
+    { value: 'aum' as const, label: 'AUM' },
+    { value: 'formatka kredytowa' as const, label: 'Formatka kredytowa' },
+    { value: 'zdjęcia' as const, label: 'Zdjęcia' },
+  ]
   const user = getUser()
 
   async function load() {
@@ -264,11 +271,16 @@ function ClientStatusAndActions({ clientId }: { clientId: string }) {
     try {
       setUploading(true)
       if (navigator.onLine) {
-        await uploadAttachments(meetingId, clientId, Array.from(files))
+        const form = new FormData()
+        form.append('meetingId', meetingId)
+        form.append('clientId', clientId)
+        form.append('category', attCategory)
+        for (const f of Array.from(files)) form.append('files', f)
+        await api.post(`/api/attachments/upload`, form, { headers: { 'Content-Type': 'multipart/form-data' } })
       } else {
         for (const f of Array.from(files)) {
           const id = newLocalId('att')
-          await offlineStore.put('attachments', { id, meetingId, clientId, fileName: f.name, data: f, uploaded: false })
+          await offlineStore.put('attachments', { id, meetingId, clientId, fileName: f.name, data: f, uploaded: false, category: attCategory })
         }
       }
       setInfo('Dodano pliki')
@@ -287,7 +299,7 @@ function ClientStatusAndActions({ clientId }: { clientId: string }) {
     return <span className="text-sm text-gray-500">—</span>
   }
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+    <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
       <select className="form-select" value={status || ''} onChange={e => onChangeStatus(e.target.value)}>
         <option value="">—</option>
         <option value="Umówione">Umówione</option>
@@ -297,10 +309,42 @@ function ClientStatusAndActions({ clientId }: { clientId: string }) {
         <option value="Sukces">Umowa</option>
         <option value="Porażka">Porażka</option>
       </select>
+      <div className="text-xs" style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', width: '100%' }}>
+        <span className="text-gray-600" style={{ minWidth: 90 }}>Rodzaj pliku:</span>
+        <div style={{ display: 'flex', gap: 6, overflowX: 'auto', WebkitOverflowScrolling: 'touch', paddingBottom: 4 }}>
+          {categoryOptions.map(opt => {
+            const selected = attCategory === opt.value
+            return (
+              <label key={opt.value} className="inline-flex items-center" style={{ gap: 6, whiteSpace: 'nowrap' }}>
+                <input type="radio" name={`att-cat-${clientId}`} value={opt.value} checked={selected} onChange={() => setAttCategory(opt.value)} style={{ display: 'none' }} />
+                <span
+                  aria-pressed={selected}
+                  role="button"
+                  style={{
+                    fontSize: 12,
+                    padding: '6px 10px',
+                    borderRadius: 9999,
+                    border: '1px solid',
+                    borderColor: selected ? 'var(--primary-500)' : 'var(--gray-300)',
+                    background: selected ? 'var(--primary-50)' : '#fff',
+                    color: selected ? 'var(--primary-700)' : 'var(--gray-700)',
+                    boxShadow: selected ? 'inset 0 0 0 1px var(--primary-100)' : 'none',
+                  }}
+                >
+                  {opt.label}
+                </span>
+              </label>
+            )
+          })}
+        </div>
+      </div>
       <label className="btn btn-sm secondary" style={{ margin: 0 }}>
         {uploading ? 'Wgrywanie…' : 'Dodaj pliki'}
         <input type="file" multiple onChange={e => onUpload(e.target.files)} style={{ display: 'none' }} />
       </label>
+      <span className="text-xs" style={{ background: 'var(--gray-100)', color: 'var(--gray-700)', padding: '4px 8px', borderRadius: 9999 }}>
+        {categoryOptions.find(o => o.value === attCategory)?.label}
+      </span>
       {info && <span className="text-xs text-green-600">{info}</span>}
       {error && <span className="text-xs text-error">{error}</span>}
     </div>
@@ -410,6 +454,23 @@ function ClientAttachments({ clientId }: { clientId: string }) {
     return () => window.removeEventListener('client-attachments-uploaded', handler as any)
   }, [clientId])
 
+  // Group by category for clearer UX
+  const order = ['umowa', 'aum', 'formatka kredytowa', 'zdjęcia']
+  const groups = items.reduce<Record<string, AttachmentItem[]>>((acc, it) => {
+    const key = (it.category || 'Inne').toLowerCase()
+    acc[key] = acc[key] || []
+    acc[key].push(it)
+    return acc
+  }, {})
+  const sortedGroupKeys = Object.keys(groups).sort((a, b) => {
+    const ia = order.indexOf(a)
+    const ib = order.indexOf(b)
+    const aa = ia === -1 ? 999 : ia
+    const bb = ib === -1 ? 999 : ib
+    if (aa !== bb) return aa - bb
+    return a.localeCompare(b)
+  })
+
   return (
     <div>
       <button className="btn btn-sm secondary" onClick={() => { setOpen(o => !o); if (!open) load() }}>{open ? 'Ukryj' : 'Pokaż'}</button>
@@ -417,18 +478,38 @@ function ClientAttachments({ clientId }: { clientId: string }) {
         <div className="card" style={{ marginTop: 6 }}>
           {loading ? <div className="text-sm text-gray-500">Ładowanie…</div> : error ? <div className="text-error text-sm">{error}</div> : (
             items.length === 0 ? <div className="text-sm text-gray-500">Brak załączników</div> : (
-              <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'grid', gap: 6 }}>
-                {items.map(a => (
-                  <li key={a.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <span>{a.fileName}</span>
-                    <span style={{ display: 'flex', gap: 6 }}>
-                      <a className="btn btn-sm secondary" href={viewAttachmentUrl(a.id)} target="_blank" rel="noreferrer">Podgląd</a>
-                      <a className="btn btn-sm" href={downloadAttachmentUrl(a.id)} target="_blank" rel="noreferrer">Pobierz</a>
-                      <button className="btn btn-sm danger" onClick={async () => { if (!confirm('Usunąć plik trwale?')) return; try { await deleteAttachment(a.id); await load() } catch (e) {} }}>Usuń</button>
-                    </span>
-                  </li>
-                ))}
-              </ul>
+              <div style={{ display: 'grid', gap: 10 }}>
+                {sortedGroupKeys.map(key => {
+                  const display = key === 'inne' ? 'Inne' : key.charAt(0).toUpperCase() + key.slice(1)
+                  const list = [...groups[key]].sort((a,b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+                  return (
+                    <div key={key}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, margin: '6px 0' }}>
+                        <span style={{ fontSize: 12, background: 'var(--gray-100)', color: 'var(--gray-700)', padding: '4px 10px', borderRadius: 9999 }}>{display}</span>
+                        <span className="text-xs text-gray-500">{list.length}</span>
+                      </div>
+                      <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'grid', gap: 6 }}>
+                        {list.map(a => (
+                          <li key={a.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>{a.fileName}</span>
+                            <span style={{ display: 'flex', gap: 6 }}>
+                              <a className="btn btn-sm secondary" href={viewAttachmentUrl(a.id)} target="_blank" rel="noreferrer" aria-label="Podgląd" title="Podgląd">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7Z"/><circle cx="12" cy="12" r="3"/></svg>
+                              </a>
+                              <a className="btn btn-sm" href={downloadAttachmentUrl(a.id)} target="_blank" rel="noreferrer" aria-label="Pobierz" title="Pobierz">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                              </a>
+                              <button className="btn btn-sm danger" onClick={async () => { if (!confirm('Usunąć plik trwale?')) return; try { await deleteAttachment(a.id); await load() } catch (e) {} }} aria-label="Usuń" title="Usuń">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2"/></svg>
+                              </button>
+                            </span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )
+                })}
+              </div>
             )
           )}
         </div>

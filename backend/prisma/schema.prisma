@@ -166,6 +166,7 @@ model Attachment {
   clientId   String
   owner      User     @relation(fields: [ownerId], references: [id])
   ownerId    String
+  category   String?
   fileName   String
   mimeType   String
   data       Bytes

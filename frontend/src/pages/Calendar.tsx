@@ -696,10 +696,6 @@ export default function CalendarPage() {
                 <input value={createForm.clientPhone} onChange={e => setCreateForm({ ...createForm, clientPhone: e.target.value })} />
               </div>
               <div>
-                <label>E-mail</label>
-                <input value={createForm.clientEmail} onChange={e => setCreateForm({ ...createForm, clientEmail: e.target.value })} />
-              </div>
-              <div>
                 <label>Ulica</label>
                 <input value={createForm.clientStreet} onChange={e => setCreateForm({ ...createForm, clientStreet: e.target.value })} />
               </div>
@@ -710,6 +706,10 @@ export default function CalendarPage() {
               <div>
                 <label>Kod pocztowy</label>
                 <input value={createForm.postalCode} onChange={e => setCreateForm({ ...createForm, postalCode: e.target.value })} />
+              </div>
+              <div>
+                <label>E-mail</label>
+                <input value={createForm.clientEmail} onChange={e => setCreateForm({ ...createForm, clientEmail: e.target.value })} />
               </div>
               <div style={{ gridColumn: '1 / -1' }}>
                 <button className="secondary" onClick={fillCreateAddressFromGeolocation} disabled={geoLoading}>{geoLoading ? 'Pobieram położenie…' : 'Dodaj położenie'}</button>

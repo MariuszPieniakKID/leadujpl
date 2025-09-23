@@ -125,6 +125,7 @@ export async function processUploads() {
       const form = new FormData()
       form.append('meetingId', a.meetingId)
       form.append('clientId', a.clientId)
+      if (a.category) form.append('category', a.category)
       const blob: Blob = a.data
       form.append('files', blob, a.fileName)
       const res = await fetch(`${base}/api/attachments/upload`, { method: 'POST', headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}) }, body: form })

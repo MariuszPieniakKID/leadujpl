@@ -105,7 +105,7 @@ export async function uploadAttachments(meetingId: string, clientId: string, fil
   return res.data as { count: number }
 }
 
-export type AttachmentItem = { id: string; fileName: string; mimeType: string; createdAt: string; meetingId?: string }
+export type AttachmentItem = { id: string; fileName: string; mimeType: string; createdAt: string; meetingId?: string; category?: string | null }
 
 export async function listMeetingAttachments(meetingId: string): Promise<AttachmentItem[]> {
   const res = await api.get(`/api/attachments/meeting/${meetingId}`)

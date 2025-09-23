@@ -15,10 +15,14 @@
   "description": "",
   "devDependencies": {
     "concurrently": "^9.2.1",
+    "prisma": "^6.16.2",
     "xlsx": "^0.18.5"
   },
   "workspaces": [
     "frontend",
     "backend"
-  ]
+  ],
+  "dependencies": {
+    "@prisma/client": "^6.16.2"
+  }
 }

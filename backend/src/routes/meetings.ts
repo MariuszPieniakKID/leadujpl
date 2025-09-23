@@ -118,7 +118,8 @@ router.post('/', requireAuth, async (req, res) => {
     }
 
     // If client payload provided, create client and link by clientId
-    if (client && (client.firstName || client.lastName || client.email || client.phone || client.street || client.city || client.postalCode || client.category || client.newRules != null || client.buildingType != null || client.billRange || client.pvInstalled != null || client.extraComments)) {
+    // Create only if we have at least identifying info (name or contact). Pure address should not create a client.
+    if (client && (client.firstName || client.lastName || client.email || client.phone)) {
       const createdClient = await prisma.client.create({ data: {
         firstName: client.firstName || '',
         lastName: client.lastName || '',
@@ -193,7 +194,7 @@ router.patch('/:id', requireAuth, async (req, res) => {
     if (extraComments !== undefined) patchData.extraComments = extraComments;
 
     // Optionally update or create client and link
-    if (client && (client.firstName || client.lastName || client.email || client.phone || client.street || client.city || client.postalCode || client.category || client.newRules != null || client.buildingType != null || client.billRange || client.pvInstalled != null || client.extraComments)) {
+    if (client && (client.firstName || client.lastName || client.email || client.phone)) {
       if (meeting.clientId) {
         await prisma.client.update({ where: { id: meeting.clientId }, data: {
           ...(client.firstName !== undefined ? { firstName: client.firstName } : {}),
