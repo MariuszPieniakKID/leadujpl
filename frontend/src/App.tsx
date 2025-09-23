@@ -1548,7 +1548,7 @@ function App() {
           <Route path="/sales" element={<Protected roles={['MANAGER']}><SalesPage /></Protected>} />
           <Route path="/my-clients" element={<Protected><MyClientsPage /></Protected>} />
           <Route path="/calculator" element={<Protected><CalculatorPage /></Protected>} />
-          <Route path="/calculator/settings" element={<Protected roles={['MANAGER']}><CalculatorSettingsPage /></Protected>} />
+          <Route path="/calculator/settings" element={<Protected roles={['MANAGER','ADMIN']}><CalculatorSettingsPage /></Protected>} />
           <Route path="/stats" element={<Protected><StatsPage /></Protected>} />
           <Route path="/manager/stats" element={<Protected roles={['MANAGER']}><ManagerStatsPage /></Protected>} />
           <Route path="/account" element={<Protected><AccountPage /></Protected>} />
