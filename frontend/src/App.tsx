@@ -3,7 +3,7 @@ import InstallPrompt from './components/InstallPrompt'
 import { BrowserRouter, Routes, Route, Navigate, NavLink, useLocation, Link } from 'react-router-dom'
 import './App.css'
 
-import { fetchLeads } from './lib/api'
+// removed fetchLeads (no longer used)
 import api, { uploadAttachments, listMeetingAttachments, type AttachmentItem, viewAttachmentUrl, downloadAttachmentUrl, listClientOffers, downloadOffer, fetchOffer } from './lib/api'
 import { offlineStore, pendingQueue, newLocalId } from './lib/offline'
 import type { Client } from './lib/api'
@@ -42,7 +42,7 @@ function Protected({ children, roles }: { children: React.ReactNode, roles?: Arr
 
 function Dashboard() {
   const user = getUser()
-  const [leads, setLeads] = useState<any[]>([])
+  
   const [loading, setLoading] = useState(false)
   const [meetings, setMeetings] = useState<any[]>([])
   const [headerCollapsed, setHeaderCollapsed] = useState(false)
@@ -143,8 +143,7 @@ function Dashboard() {
     const run = async () => {
       setLoading(true)
       try {
-        const data = await fetchLeads()
-        setLeads(data)
+        // removed leads fetch
         // load meetings for current user
         const res = await api.get<any[]>('/api/meetings')
         setMeetings(res.data)
@@ -1000,7 +999,6 @@ function Dashboard() {
 
 
       {user?.role !== 'MANAGER' && loading && <div className="text-center text-gray-500 mt-6">Ładowanie danych…</div>}
-      {user?.role !== 'MANAGER' && !loading && <div className="text-center text-gray-500 mt-6 text-sm">Leady w systemie: {leads.length}</div>}
 
       {isCreateOpen && (
         <div className="modal-overlay sheet">
