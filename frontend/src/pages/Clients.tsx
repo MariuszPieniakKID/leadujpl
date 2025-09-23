@@ -16,6 +16,7 @@ export default function ClientsPage() {
     try {
       const data = await fetchClients({ q: query || undefined, status: status || undefined })
       setClients(data)
+      try { for (const c of data) { await offlineStore.put('clients', c as any) } } catch {}
     } finally {
       setLoading(false)
     }
@@ -38,7 +39,9 @@ export default function ClientsPage() {
       await createClient(payload)
     } else {
       const localId = newLocalId('client')
-      await offlineStore.put('clients', { id: localId, ...payload })
+      const optimistic = { id: localId, ...payload }
+      await offlineStore.put('clients', optimistic)
+      setClients(prev => [optimistic as any, ...prev])
       await pendingQueue.enqueue({ id: newLocalId('att'), method: 'POST', url: (import.meta.env.VITE_API_BASE || '') + '/api/clients', body: payload, headers: {}, createdAt: Date.now(), entityStore: 'clients', localId })
     }
     setForm({ firstName: '', lastName: '', phone: '', email: '', street: '', city: '', postalCode: '', category: '' })

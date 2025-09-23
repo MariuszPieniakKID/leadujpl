@@ -72,10 +72,9 @@ export default function CalendarPage() {
       if (navigator.onLine) {
         await refreshMeetings()
         try {
-          const future = new Date()
-          future.setDate(future.getDate() + 30)
-          // store current fetched meetings into IndexedDB for offline
-          for (const m of meetings) { try { await offlineStore.put('meetings', m) } catch {} }
+          // Cache fetched meetings
+          const latest = await api.get<Meeting[]>('/api/meetings', { params: selectedUserId ? { userId: selectedUserId } : undefined })
+          for (const m of latest.data) { try { await offlineStore.put('meetings', m as any) } catch {} }
         } catch {}
       } else {
         try { const local = await offlineStore.getAll<any>('meetings'); setMeetings(local || []) } catch {}
@@ -88,6 +87,7 @@ export default function CalendarPage() {
   async function refreshMeetings() {
     const res = await api.get<Meeting[]>('/api/meetings', { params: selectedUserId ? { userId: selectedUserId } : undefined })
     setMeetings(res.data)
+    try { for (const m of res.data) { await offlineStore.put('meetings', m as any) } } catch {}
     console.log('meetings loaded', res.data)
   }
 
@@ -412,11 +412,13 @@ export default function CalendarPage() {
         await api.post('/api/meetings', payload)
       } else {
         const localId = newLocalId('meeting')
-        await offlineStore.put('meetings', { id: localId, scheduledAt, endsAt, notes: payload.notes, location: payload.location, attendeeId })
+        const optimistic = { id: localId, scheduledAt, endsAt, notes: payload.notes, location: payload.location, attendeeId }
+        await offlineStore.put('meetings', optimistic)
+        setMeetings(prev => [...prev, optimistic as any])
         await pendingQueue.enqueue({ id: newLocalId('att'), method: 'POST', url: (import.meta.env.VITE_API_BASE || '') + '/api/meetings', body: payload, headers: {}, createdAt: Date.now(), entityStore: 'meetings', localId })
       }
       setIsCreateOpen(false)
-      await refreshMeetings()
+      if (navigator.onLine) await refreshMeetings()
     } catch (e: any) {
       setCreateError(e?.response?.data?.error || e?.message || 'Nie udało się utworzyć spotkania')
     }

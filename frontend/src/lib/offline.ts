@@ -14,7 +14,7 @@ export type PendingRequest = {
 type StoreName = 'clients' | 'meetings' | 'offers' | 'attachments' | 'pending'
 
 const DB_NAME = 'leaduj_offline'
-const DB_VERSION = 1
+const DB_VERSION = 2
 
 function openDb(): Promise<IDBDatabase> {
   return new Promise((resolve, reject) => {
@@ -27,6 +27,7 @@ function openDb(): Promise<IDBDatabase> {
       if (!db.objectStoreNames.contains('offers')) db.createObjectStore('offers', { keyPath: 'id' })
       if (!db.objectStoreNames.contains('attachments')) db.createObjectStore('attachments', { keyPath: 'id' })
       if (!db.objectStoreNames.contains('pending')) db.createObjectStore('pending', { keyPath: 'id' })
+      if (!db.objectStoreNames.contains('attachments_cache')) db.createObjectStore('attachments_cache', { keyPath: 'id' })
     }
     req.onsuccess = () => resolve(req.result)
   })
@@ -56,6 +57,9 @@ export const offlineStore = {
   })),
   delete: async (store: StoreName, id: string) => withStore(store, 'readwrite', s => new Promise((resolve, reject) => {
     const r = s.delete(id); r.onsuccess = () => resolve(true as any); r.onerror = () => reject(r.error)
+  })),
+  clear: async (store: StoreName) => withStore(store, 'readwrite', s => new Promise((resolve, reject) => {
+    const r = s.clear(); r.onsuccess = () => resolve(true as any); r.onerror = () => reject(r.error)
   })),
 }
 

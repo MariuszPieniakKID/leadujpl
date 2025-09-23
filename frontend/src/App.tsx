@@ -148,10 +148,13 @@ function Dashboard() {
         // load meetings for current user
         const res = await api.get<any[]>('/api/meetings')
         setMeetings(res.data)
+        try { for (const m of res.data) { await offlineStore.put('meetings', m) } } catch {}
         // If manager, also load team-wide stats and upcoming
         if (user && user.role === 'MANAGER') await refreshManagerAggregates()
       } catch (e) {
         console.error(e)
+        // offline fallback
+        try { const localMeetings = await offlineStore.getAll<any>('meetings'); setMeetings(localMeetings || []) } catch {}
       } finally {
         setLoading(false)
       }

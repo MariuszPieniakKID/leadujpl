@@ -321,7 +321,7 @@ body::before {
   background: rgba(255, 255, 255, 0.9);
   backdrop-filter: blur(16px) saturate(160%);
   border-bottom: 1px solid var(--gray-200);
-  padding: var(--space-3) var(--space-6);
+  padding: calc(var(--space-3) + env(safe-area-inset-top)) var(--space-6) var(--space-3) var(--space-6);
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -1577,6 +1577,8 @@ textarea {
   .list-row { display: grid; grid-template-columns: 1fr; row-gap: 4px; align-items: start; }
   .page-header > .flex { flex-wrap: wrap; width: 100%; }
   .page-header .form-group { width: 100%; }
+  /* Safe areas for PWA */
+  .container { padding-top: calc(var(--space-4) + env(safe-area-inset-top)); padding-bottom: calc(120px + env(safe-area-inset-bottom)); }
 }
 
 .calendar-container::before {
@@ -1703,7 +1705,8 @@ textarea {
 @media (max-width: 480px) {
   .container {
     padding: var(--space-3);
-    padding-bottom: calc(90px + env(safe-area-inset-bottom));
+    padding-top: calc(var(--space-4) + env(safe-area-inset-top));
+    padding-bottom: calc(120px + env(safe-area-inset-bottom));
   }
   .list-item { 
     flex-direction: column; 
