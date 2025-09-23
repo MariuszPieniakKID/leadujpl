@@ -12,6 +12,14 @@ export default function StatsPage() {
   const [range, setRange] = useState<Range>('month')
   const [managers, setManagers] = useState<AppUserSummary[]>([])
   const [managerId, setManagerId] = useState('')
+  const [view, setView] = useState<'stats' | 'ranking'>('stats')
+
+  // Ranking state (ADMIN only)
+  const [repLoading, setRepLoading] = useState(false)
+  const [repError, setRepError] = useState<string | null>(null)
+  const [repUsers, setRepUsers] = useState<AppUserSummary[]>([])
+  const [metric, setMetric] = useState<'Spotkania' | 'Umowa' | 'Przełożone' | 'Dogrywka' | 'Odbyte' | 'Umówione' | 'Porażka'>('Spotkania')
+  const [ranking, setRanking] = useState<Array<{ id: string; firstName: string; lastName: string; total: number; byStatus: Record<string, number> }>>([])
 
   useEffect(() => {
     const load = async () => {
@@ -59,6 +67,40 @@ export default function StatsPage() {
     })()
   }, [])
 
+  // Load ranking data for ADMIN when view is 'ranking'
+  useEffect(() => {
+    const me = getUser()
+    if (me?.role !== 'ADMIN' || view !== 'ranking') return
+    ;(async () => {
+      try {
+        setRepError(null)
+        setRepLoading(true)
+        const users = await fetchUsers()
+        const reps = users.filter(u => u.role === 'SALES_REP' && (!managerId || u.managerId === managerId))
+        setRepUsers(reps)
+        // Fetch meetings for each rep
+        const arrays = await Promise.all(reps.map(u => api.get<Meeting[]>('/api/meetings', { params: { userId: u.id } }).then(r => r.data).catch(() => [])))
+        const items: Array<{ id: string; firstName: string; lastName: string; total: number; byStatus: Record<string, number> }> = reps.map((u, i) => {
+          const list = arrays[i] || []
+          const by: Record<string, number> = {}
+          let total = 0
+          for (const m of list) {
+            total += 1
+            const s = (m.status || '').trim()
+            if (!s) continue
+            by[s] = (by[s] || 0) + 1
+          }
+          return { id: u.id, firstName: u.firstName, lastName: u.lastName, total, byStatus: by }
+        })
+        setRanking(items)
+      } catch (e: any) {
+        setRepError(e?.response?.data?.error || 'Nie udało się pobrać rankingu')
+      } finally {
+        setRepLoading(false)
+      }
+    })()
+  }, [view, managerId])
+
   const kpi = useMemo(() => {
     const now = Date.now()
     let past = 0, future = 0, success = 0, rescheduled = 0
@@ -104,10 +146,19 @@ export default function StatsPage() {
                 ))}
               </select>
             </div>
+            <div className="form-group" style={{ margin: 0 }}>
+              <label className="form-label">Widok</label>
+              <select className="form-select" value={view} onChange={e => setView(e.target.value as any)}>
+                <option value="stats">Statystyki</option>
+                <option value="ranking">Ranking handlowców</option>
+              </select>
+            </div>
           </div>
         )}
       </div>
 
+      {view === 'stats' && (
+      <>
       {/* KPI row */}
       <section className="card" style={{ marginBottom: 'var(--space-6)' }}>
         <div className="stats-grid">
@@ -177,6 +228,73 @@ export default function StatsPage() {
         </div>
         <ChartBars labels={countSeries.labels} values={countSeries.values} />
       </section>
+      </>
+      )}
+
+      {view === 'ranking' && getUser()?.role === 'ADMIN' && (
+        <section className="card">
+          <div className="flex items-center justify-between" style={{ marginBottom: 'var(--space-4)' }}>
+            <h3 className="card-title" style={{ margin: 0 }}>Ranking handlowców</h3>
+            <div className="flex items-center" style={{ gap: 8 }}>
+              <div className="form-group" style={{ margin: 0 }}>
+                <label className="form-label">Metryka</label>
+                <select className="form-select" value={metric} onChange={e => setMetric(e.target.value as any)}>
+                  <option value="Spotkania">Ilość spotkań</option>
+                  <option value="Umowa">Umowa</option>
+                  <option value="Przełożone">Przełożone</option>
+                  <option value="Dogrywka">Dogrywka</option>
+                  <option value="Umówione">Umówione</option>
+                  <option value="Odbyte">Odbyte</option>
+                  <option value="Porażka">Porażka</option>
+                </select>
+              </div>
+            </div>
+          </div>
+          {repLoading ? (
+            <div>Ładowanie…</div>
+          ) : repError ? (
+            <div className="text-error">{repError}</div>
+          ) : (
+            <div className="table" style={{ overflowX: 'auto' }}>
+              <table className="table" style={{ width: '100%' }}>
+                <thead>
+                  <tr>
+                    <th>Handlowiec</th>
+                    <th>Spotkania</th>
+                    <th>Umowa</th>
+                    <th>Przełożone</th>
+                    <th>Dogrywka</th>
+                    <th>Umówione</th>
+                    <th>Odbyte</th>
+                    <th>Porażka</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {ranking
+                    .slice()
+                    .sort((a, b) => {
+                      const av = metric === 'Spotkania' ? a.total : (a.byStatus[metric] || 0)
+                      const bv = metric === 'Spotkania' ? b.total : (b.byStatus[metric] || 0)
+                      return bv - av
+                    })
+                    .map((r) => (
+                      <tr key={r.id}>
+                        <td>{r.firstName} {r.lastName}</td>
+                        <td>{r.total}</td>
+                        <td>{r.byStatus['Umowa'] || 0}</td>
+                        <td>{r.byStatus['Przełożone'] || 0}</td>
+                        <td>{r.byStatus['Dogrywka'] || 0}</td>
+                        <td>{r.byStatus['Umówione'] || 0}</td>
+                        <td>{r.byStatus['Odbyte'] || 0}</td>
+                        <td>{r.byStatus['Porażka'] || 0}</td>
+                      </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </section>
+      )}
     </div>
   )
 }

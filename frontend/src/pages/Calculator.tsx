@@ -33,7 +33,7 @@ export default function CalculatorPage() {
       { label: 'Mój Prąd (korzystał wcześniej)', value: Number(s['Mój Prąd (korzystał wcześniej)'] || 0) },
       { label: 'Mój Prąd (nie korzystał wcześniej)', value: Number(s['Mój Prąd (nie korzystał wcześniej)'] || 0) },
     ]
-  }, [])
+  }, [data])
 
   const [form, setForm] = useState({
     systemType: 'PV – Dach' as 'PV – Dach' | 'PV – Grunt' | 'Falownik + Magazyn',
@@ -70,7 +70,8 @@ export default function CalculatorPage() {
   }
 
   const calc = useMemo(() => {
-    const pvBase = form.pvSet ? Number(prices.pvPowerPriceD[form.pvSet] || 0) : 0
+    const isPV = form.systemType === 'PV – Dach' || form.systemType === 'PV – Grunt'
+    const pvBase = (isPV && form.pvSet) ? Number(prices.pvPowerPriceD[form.pvSet] || 0) : 0
     const pvGroundExtra = form.systemType === 'PV – Grunt' && form.pvSet ? Number(prices.pvPowerPriceE[form.pvSet] || 0) : 0
     const inverterPrice = form.systemType === 'Falownik + Magazyn' && form.inverter ? Number(prices.inverterMap[form.inverter] || 0) : 0
     const batteryPrice = form.battery ? Number(prices.batteryMap[form.battery] || 0) : 0
@@ -230,13 +231,15 @@ export default function CalculatorPage() {
               <option value="Falownik + Magazyn">Falownik + Magazyn</option>
             </select>
           </div>
-          <div className="form-group">
-            <label className="form-label">Zestaw PV</label>
-            <select className="form-select" value={form.pvSet} onChange={e => setForm({ ...form, pvSet: e.target.value })}>
-              <option value="">— wybierz —</option>
-              {pvOptions.map(k => (<option key={k} value={k}>{k}</option>))}
-            </select>
-          </div>
+          {form.systemType !== 'Falownik + Magazyn' && (
+            <div className="form-group">
+              <label className="form-label">Zestaw PV</label>
+              <select className="form-select" value={form.pvSet} onChange={e => setForm({ ...form, pvSet: e.target.value })}>
+                <option value="">— wybierz —</option>
+                {pvOptions.map(k => (<option key={k} value={k}>{k}</option>))}
+              </select>
+            </div>
+          )}
           {form.systemType === 'Falownik + Magazyn' && (
             <>
               <div className="form-group">
