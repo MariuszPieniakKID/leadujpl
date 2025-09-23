@@ -1258,13 +1258,21 @@ function Dashboard() {
       {isEditOpen && (
         <div className="modal-overlay">
           <div className="modal-content" style={{ maxWidth: '800px' }}>
-            <div className="modal-header">
+            <div className="modal-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
               <h3 className="modal-title">Edycja spotkania</h3>
-              <button className="secondary" onClick={() => { setIsEditOpen(false); setEditMeetingId(null) }} style={{ padding: 'var(--space-2)' }}>
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path d="M18 6L6 18M6 6l12 12"/>
-                </svg>
-              </button>
+              <div style={{ display: 'flex', gap: 8 }}>
+                {editMeetingId && (
+                  <button className="secondary" onClick={() => navigateToMeeting(editMeetingId)} title="Nawiguj" aria-label="Nawiguj" style={{ padding: 'var(--space-2)' }}>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 2l7 19-7-4-7 4 7-19z"/></svg>
+                    Nawiguj
+                  </button>
+                )}
+                <button className="secondary" onClick={() => { setIsEditOpen(false); setEditMeetingId(null) }} style={{ padding: 'var(--space-2)' }}>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M18 6L6 18M6 6l12 12"/>
+                  </svg>
+                </button>
+              </div>
             </div>
             {editLoading ? (
               <div className="text-center py-8">
