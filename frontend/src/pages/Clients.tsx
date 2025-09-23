@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { fetchClients, createClient, deleteClient, type Client, listClientAttachments, type AttachmentItem, viewAttachmentUrl, downloadAttachmentUrl } from '../lib/api'
+import { fetchClients, createClient, deleteClient, type Client, listClientAttachments, type AttachmentItem, viewAttachmentUrl, downloadAttachmentUrl, getClientLatestStatus, setClientLatestStatus } from '../lib/api'
 import { offlineStore, pendingQueue, newLocalId } from '../lib/offline'
 
 export default function ClientsPage() {
@@ -196,7 +196,7 @@ export default function ClientsPage() {
                     <span className="font-medium">{c.firstName} {c.lastName}</span>
                     <span style={{ color: 'var(--gray-600)', fontSize: 12 }}>{c.phone || '—'}</span>
                   </div>
-                  <div style={{ display: 'flex', gap: 8, flexShrink: 0 }}>
+                  <div className="client-actions" style={{ display: 'flex', gap: 8, flexShrink: 0, minWidth: 0 }}>
                     <button className="btn btn-sm secondary" onClick={() => setExpanded(prev => ({ ...prev, [c.id]: !prev[c.id] }))}>{expanded[c.id] ? 'Zwiń' : 'Szczegóły'}</button>
                     <button className="btn btn-sm danger" onClick={() => onDelete(c.id)}>Usuń</button>
                   </div>
@@ -208,6 +208,13 @@ export default function ClientsPage() {
                       <div className="list-row"><span>Adres</span><span style={{ whiteSpace: 'normal', overflowWrap: 'anywhere' }}>{[c.street, c.city].filter(Boolean).join(', ') || <span className="text-gray-400">—</span>}</span></div>
                       <div className="list-row"><span>Kod pocztowy</span><span>{(c as any).postalCode || <span className="text-gray-400">—</span>}</span></div>
                       <div className="list-row"><span>Kategoria</span><span>{renderCategory(c.category)}</span></div>
+                    </div>
+                    <div className="client-status-actions" style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', width: '100%', minWidth: 0 }}>
+                      <ClientStatusSelect clientId={c.id} />
+                      <div className="text-xs" style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', width: '100%', minWidth: 0 }}>
+                        <span className="text-gray-600" style={{ minWidth: 90 }}>Rodzaj pliku:</span>
+                        <AttachmentCategoriesInline clientId={c.id} />
+                      </div>
                     </div>
                     <div>
                       <strong>Załączniki</strong>
@@ -222,6 +229,68 @@ export default function ClientsPage() {
           </div>
         )}
       </div>
+    </div>
+  )
+}
+
+function ClientStatusSelect({ clientId }: { clientId: string }) {
+  const [loading, setLoading] = useState(true)
+  const [status, setStatus] = useState<string | null>(null)
+  useEffect(() => {
+    (async () => {
+      try {
+        setLoading(true)
+        const s = await getClientLatestStatus(clientId)
+        setStatus(s.status)
+      } catch (e: any) {
+        // ignore error, show empty
+      } finally {
+        setLoading(false)
+      }
+    })()
+  }, [clientId])
+  async function onChangeStatus(next: string) {
+    try {
+      if (navigator.onLine) {
+        const res = await setClientLatestStatus(clientId, next as any)
+        setStatus(res.status)
+      } else {
+        await pendingQueue.enqueue({ id: newLocalId('att'), method: 'PATCH', url: (import.meta.env.VITE_API_BASE || '') + `/api/clients/${clientId}/status`, body: { status: next }, headers: {}, createdAt: Date.now(), entityStore: 'meetings' })
+        setStatus(next)
+      }
+    } catch (e: any) {
+      // ignore
+    }
+  }
+  if (loading) return <span className="text-xs text-gray-500">Ładowanie statusu…</span>
+  return (
+    <select className="form-select" value={status || ''} onChange={e => onChangeStatus(e.target.value)} style={{ flex: '1 1 220px', minWidth: 0, maxWidth: '100%' }}>
+      <option value="">—</option>
+      <option value="Umówione">Umówione</option>
+      <option value="Odbyte">Odbyte</option>
+      <option value="Dogrywka">Dogrywka</option>
+      <option value="Przełożone">Przełożone</option>
+      <option value="Sukces">Umowa</option>
+      <option value="Porażka">Porażka</option>
+    </select>
+  )
+}
+
+function AttachmentCategoriesInline({ clientId }: { clientId: string }) {
+  const cats = ['umowa','aum','formatka kredytowa','zdjęcia'] as const
+  const [selected, setSelected] = useState<typeof cats[number]>('umowa')
+  return (
+    <div className="att-cat-row" style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center', paddingBottom: 4, minWidth: 0 }}>
+      {cats.map(opt => (
+        <label key={opt} className="inline-flex items-center" style={{ gap: 6 }}>
+          <input type="radio" name={`att-cat-admin-${clientId}`} value={opt} checked={selected === opt} onChange={() => setSelected(opt)} style={{ display: 'none' }} />
+          <span
+            aria-pressed={selected === opt}
+            role="button"
+            style={{ fontSize: 12, padding: '6px 10px', borderRadius: 9999, border: '1px solid', borderColor: selected === opt ? 'var(--primary-500)' : 'var(--gray-300)', background: selected === opt ? 'var(--primary-50)' : '#fff', color: selected === opt ? 'var(--primary-700)' : 'var(--gray-700)', boxShadow: selected === opt ? 'inset 0 0 0 1px var(--primary-100)' : 'none', display: 'inline-block' }}
+          >{opt === 'aum' ? 'AUM' : opt === 'zdjęcia' ? 'Zdjęcia' : opt === 'umowa' ? 'Umowa' : 'Formatka kredytowa'}</span>
+        </label>
+      ))}
     </div>
   )
 }
