@@ -3,9 +3,10 @@ import baseData from '../data/calculatorData.json'
 import api, { generateOfferPDF, saveOfferForClient } from '../lib/api'
 import { getUser } from '../lib/auth'
 import { createPortal } from 'react-dom'
-import { Link } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
 
 export default function CalculatorPage() {
+  const navigate = useNavigate()
   const [remoteData, setRemoteData] = useState<any | null>(null)
   const data = useMemo(() => remoteData || (baseData as any), [remoteData])
   const user = getUser()
@@ -197,7 +198,7 @@ export default function CalculatorPage() {
         {(() => { const u = getUser(); return (
           <div className="flex items-center gap-4">
             {(u && u.role === 'ADMIN') && (
-              <Link className="secondary" to="/calculator/settings">Ustawienia</Link>
+              <button className="secondary" onClick={() => navigate('/calculator/settings')}>Ustawienia</button>
             )}
             {(u && u.role === 'SALES_REP') && (
               <SalesMarginButton />
