@@ -105,12 +105,12 @@ export default function MyClientsPage() {
           <h1 className="page-title">Moi klienci</h1>
           <p className="text-gray-600">Klienci z Twoimi spotkaniami</p>
         </div>
-        <div className="flex items-center gap-4">
-          <div className="form-group" style={{ margin: 0 }}>
+        <div className="flex items-center gap-4" style={{ flexWrap: 'wrap' }}>
+          <div className="form-group" style={{ margin: 0, flex: '1 1 240px', minWidth: 0 }}>
             <label className="form-label">Szukaj</label>
             <input className="form-input" placeholder="Nazwisko, telefon, e-mail, adres" value={query} onChange={e => setQuery(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') load() }} />
           </div>
-          <div className="form-group" style={{ margin: 0 }}>
+          <div className="form-group" style={{ margin: 0, flex: '1 1 180px', minWidth: 0 }}>
             <label className="form-label">Status spotkania</label>
             <select className="form-select" value={status} onChange={e => setStatus(e.target.value)}>
               <option value="">Wszystkie</option>
@@ -146,7 +146,7 @@ export default function MyClientsPage() {
           {(user && user.role === 'ADMIN') && (
             <button className="primary" onClick={exportCsv}>Eksport CSV</button>
           )}
-          <span className="text-sm text-gray-500">{clients.length} klientów</span>
+          <span className="text-sm text-gray-500" style={{ flex: '0 0 auto' }}>{clients.length} klientów</span>
         </div>
       </div>
 
@@ -169,44 +169,34 @@ export default function MyClientsPage() {
             <p>Brak klientów</p>
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="table">
-              <thead>
-                <tr>
-                  <th>Imię</th>
-                  <th>Nazwisko</th>
-                  <th>Telefon</th>
-                  <th>E-mail</th>
-                  <th>Adres</th>
-                  <th>Kategoria</th>
-                  <th>Status</th>
-                  <th>Załączniki</th>
-                  <th>Oferty</th>
-                </tr>
-              </thead>
-              <tbody>
-                {clients.map(c => (
-                  <tr key={c.id}>
-                    <td className="font-medium">{c.firstName}</td>
-                    <td className="font-medium">{c.lastName}</td>
-                    <td>{c.phone || <span className="text-gray-400">—</span>}</td>
-                    <td>{c.email || <span className="text-gray-400">—</span>}</td>
-                    <td>{[c.street, c.city].filter(Boolean).join(', ') || <span className="text-gray-400">—</span>}</td>
-                    {/* Postal code could be included in address or separate if needed */}
-                    <td>{renderCategory(c.category)}</td>
-                    <td>
-                      <ClientStatusAndActions clientId={c.id} />
-                    </td>
-                    <td>
-                      <ClientAttachments clientId={c.id} />
-                    </td>
-                    <td>
-                      <ClientOffers clientId={c.id} />
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+          <div style={{ display: 'grid', gap: 8 }}>
+            {clients.map(c => (
+              <div key={c.id} className="list-item" style={{ alignItems: 'stretch', overflowX: 'hidden' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8, flexWrap: 'wrap', width: '100%' }}>
+                  <div style={{ display: 'flex', flexDirection: 'column' }}>
+                    <span className="font-medium">{c.firstName} {c.lastName}</span>
+                    <span style={{ color: 'var(--gray-600)', fontSize: 12 }}>{c.phone || '—'}</span>
+                  </div>
+                  <div style={{ display: 'flex', gap: 8, flexShrink: 0 }}>
+                    <ClientStatusAndActions clientId={c.id} />
+                    <button className="btn btn-sm secondary" onClick={() => {
+                      const id = c.id
+                      const el = document.getElementById('mc-'+id)
+                      if (el) el.style.display = (el.style.display === 'none' || el.style.display === '') ? 'block' : 'none'
+                    }}>Szczegóły</button>
+                  </div>
+                </div>
+                <div id={'mc-'+c.id} style={{ display: 'none', marginTop: 8 }}>
+                  <div className="list">
+                    <div className="list-row"><span>E-mail</span><span>{c.email || <span className="text-gray-400">—</span>}</span></div>
+                    <div className="list-row"><span>Adres</span><span style={{ whiteSpace: 'normal', overflowWrap: 'anywhere' }}>{[c.street, c.city].filter(Boolean).join(', ') || <span className="text-gray-400">—</span>}</span></div>
+                    <div className="list-row"><span>Kategoria</span><span>{renderCategory(c.category)}</span></div>
+                    <div className="list-row"><span>Załączniki</span><span><ClientAttachments clientId={c.id} /></span></div>
+                    <div className="list-row"><span>Oferty</span><span><ClientOffers clientId={c.id} /></span></div>
+                  </div>
+                </div>
+              </div>
+            ))}
           </div>
         )}
       </div>
