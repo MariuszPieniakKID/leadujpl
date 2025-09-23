@@ -454,7 +454,27 @@ function Dashboard() {
         await api.post('/api/meetings', payload)
       } else {
         const localId = newLocalId('meeting')
-        await offlineStore.put('meetings', { id: localId, scheduledAt, endsAt, notes: payload.notes, location: payload.location, attendeeId })
+        // If new client was provided inline, persist it to offline clients and link to meeting
+        let localClientId: string | undefined
+        const hasClient = Object.values(client).some(v => v && `${v}`.trim() !== '')
+        if (!selectedClientId && hasClient) {
+          localClientId = newLocalId('client')
+          const localClient: any = { id: localClientId, ...client }
+          await offlineStore.put('clients', localClient)
+          try { window.dispatchEvent(new CustomEvent('offline-client-added', { detail: { client: localClient } })) } catch {}
+        }
+        const optimistic: any = {
+          id: localId,
+          scheduledAt,
+          endsAt,
+          notes: payload.notes,
+          location: payload.location,
+          attendeeId,
+          ...(localClientId ? { clientId: localClientId } : {}),
+          ...(!selectedClientId && hasClient ? { client } : {}),
+        }
+        await offlineStore.put('meetings', optimistic)
+        setMeetings(prev => [...prev, optimistic])
         await pendingQueue.enqueue({ id: newLocalId('att'), method: 'POST', url: (import.meta.env.VITE_API_BASE || '') + '/api/meetings', body: payload, headers: {}, createdAt: Date.now(), entityStore: 'meetings', localId })
       }
       setIsCreateOpen(false)

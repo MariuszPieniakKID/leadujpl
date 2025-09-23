@@ -57,6 +57,19 @@ export default function MyClientsPage() {
   }
 
   useEffect(() => { load() }, [])
+  // Update list immediately when client added offline
+  useEffect(() => {
+    function onOfflineClientAdded(e: any) {
+      const c = e?.detail?.client as any
+      if (!c) return
+      setClients(prev => {
+        if (prev.find(x => (x as any).id === c.id)) return prev
+        return [c, ...prev]
+      })
+    }
+    window.addEventListener('offline-client-added', onOfflineClientAdded as any)
+    return () => window.removeEventListener('offline-client-added', onOfflineClientAdded as any)
+  }, [])
 
   // Load managers list for admin filter
   useEffect(() => {

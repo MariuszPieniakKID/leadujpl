@@ -26,6 +26,20 @@ export default function ClientsPage() {
 
   useEffect(() => { load() }, [])
 
+  // Listen for offline-added clients and update list immediately
+  useEffect(() => {
+    function onOfflineClientAdded(e: any) {
+      const c = e?.detail?.client as Client | undefined
+      if (!c) return
+      setClients(prev => {
+        if (prev.find(x => x.id === (c as any).id)) return prev
+        return [c, ...prev]
+      })
+    }
+    window.addEventListener('offline-client-added', onOfflineClientAdded as any)
+    return () => window.removeEventListener('offline-client-added', onOfflineClientAdded as any)
+  }, [])
+
   const [isCreateOpen, setIsCreateOpen] = useState(false)
   const [createError, setCreateError] = useState<string | null>(null)
 
