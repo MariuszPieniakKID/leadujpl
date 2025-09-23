@@ -162,7 +162,7 @@ export default function ClientsPage() {
         ) : (
           <div style={{ display: 'grid', gap: 8 }}>
             {clients.map(c => (
-              <div key={c.id} className="list-item" style={{ alignItems: 'stretch' }}>
+              <div key={c.id} className="list-item" style={{ alignItems: 'stretch', overflowX: 'hidden' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
                   <div style={{ display: 'flex', flexDirection: 'column' }}>
                     <span className="font-medium">{c.firstName} {c.lastName}</span>
@@ -177,7 +177,7 @@ export default function ClientsPage() {
                   <div style={{ marginTop: 8, display: 'grid', gridTemplateColumns: '1fr', gap: 8 }}>
                     <div className="list">
                       <div className="list-row"><span>E-mail</span><span>{c.email || <span className="text-gray-400">—</span>}</span></div>
-                      <div className="list-row"><span>Adres</span><span>{[c.street, c.city].filter(Boolean).join(', ') || <span className="text-gray-400">—</span>}</span></div>
+                      <div className="list-row"><span>Adres</span><span style={{ whiteSpace: 'normal', overflowWrap: 'anywhere' }}>{[c.street, c.city].filter(Boolean).join(', ') || <span className="text-gray-400">—</span>}</span></div>
                       <div className="list-row"><span>Kod pocztowy</span><span>{(c as any).postalCode || <span className="text-gray-400">—</span>}</span></div>
                       <div className="list-row"><span>Kategoria</span><span>{renderCategory(c.category)}</span></div>
                     </div>
