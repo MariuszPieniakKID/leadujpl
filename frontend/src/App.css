@@ -1593,6 +1593,24 @@ textarea {
   .datetime-grid { grid-template-columns: 1fr; }
   .form-grid-2 { grid-template-columns: 1fr; }
   input[type="date"], input[type="time"], input[type="datetime-local"] { max-width: 100%; width: 100%; }
+  /* Calendar: full-bleed on mobile, remove card chrome */
+  .calendar-container { 
+    background: transparent; 
+    border: none; 
+    box-shadow: none; 
+    border-radius: 0; 
+    padding: 0; 
+    margin-left: calc(-1 * var(--space-4)); 
+    margin-right: calc(-1 * var(--space-4)); 
+    width: calc(100% + (2 * var(--space-4)));
+  }
+  .calendar-shell { 
+    height: calc(100svh - 220px); /* fill more vertical space on PWA */ 
+    min-height: 460px; 
+  }
+  .rbc-time-view, .rbc-month-view { border: none; border-radius: 0; }
+  .rbc-toolbar { margin: var(--space-3) var(--space-3); }
+  .rbc-toolbar .rbc-btn-group > button { padding: 6px 8px; }
   /* Clients list: force vertical stacking and wrapping */
   .list-item { flex-direction: column; align-items: stretch; gap: var(--space-3); overflow: hidden; width: 100%; min-width: 0; }
   .list-row { display: grid; grid-template-columns: 1fr; row-gap: 4px; align-items: start; width: 100%; min-width: 0; }
@@ -1746,6 +1764,15 @@ textarea {
     padding-top: calc(var(--space-4) + env(safe-area-inset-top));
     padding-bottom: calc(140px + env(safe-area-inset-bottom));
   }
+  /* Calendar: full-bleed and compact on very small screens */
+  .calendar-container { 
+    margin-left: calc(-1 * var(--space-3)); 
+    margin-right: calc(-1 * var(--space-3)); 
+    width: calc(100% + (2 * var(--space-3)));
+  }
+  .calendar-shell { height: calc(100svh - 200px); min-height: 420px; }
+  .rbc-toolbar { margin: var(--space-2) var(--space-2); }
+  .rbc-toolbar .rbc-btn-group > button { padding: 6px 8px; }
   .list-item { 
     flex-direction: column; 
     align-items: stretch; 
