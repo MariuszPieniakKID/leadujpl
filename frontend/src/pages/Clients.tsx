@@ -59,12 +59,12 @@ export default function ClientsPage() {
           <h1 className="page-title">Klienci</h1>
           <p className="text-gray-600">Zarządzaj bazą klientów</p>
         </div>
-        <div className="flex items-center gap-4">
-          <div className="form-group" style={{ margin: 0 }}>
+        <div className="flex items-center gap-4" style={{ flexWrap: 'wrap' }}>
+          <div className="form-group" style={{ margin: 0, flex: '1 1 240px', minWidth: 0 }}>
             <label className="form-label">Szukaj</label>
             <input className="form-input" placeholder="Nazwisko, telefon, e-mail, adres" value={query} onChange={e => setQuery(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') load() }} />
           </div>
-          <div className="form-group" style={{ margin: 0 }}>
+          <div className="form-group" style={{ margin: 0, flex: '1 1 180px', minWidth: 0 }}>
             <label className="form-label">Status spotkania</label>
             <select className="form-select" value={status} onChange={e => setStatus(e.target.value)}>
               <option value="">Wszystkie</option>
@@ -77,7 +77,7 @@ export default function ClientsPage() {
             </select>
           </div>
           <button className="secondary" onClick={load}>Filtruj</button>
-          <span className="text-sm text-gray-500">{clients.length} klientów</span>
+          <span className="text-sm text-gray-500" style={{ flex: '0 0 auto' }}>{clients.length} klientów</span>
           <button className="primary" onClick={() => setIsCreateOpen(true)}>
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <path d="M12 5v14M5 12h14"/>
@@ -163,12 +163,12 @@ export default function ClientsPage() {
           <div style={{ display: 'grid', gap: 8 }}>
             {clients.map(c => (
               <div key={c.id} className="list-item" style={{ alignItems: 'stretch', overflowX: 'hidden' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8, flexWrap: 'wrap', width: '100%' }}>
                   <div style={{ display: 'flex', flexDirection: 'column' }}>
                     <span className="font-medium">{c.firstName} {c.lastName}</span>
                     <span style={{ color: 'var(--gray-600)', fontSize: 12 }}>{c.phone || '—'}</span>
                   </div>
-                  <div style={{ display: 'flex', gap: 8 }}>
+                  <div style={{ display: 'flex', gap: 8, flexShrink: 0 }}>
                     <button className="btn btn-sm secondary" onClick={() => setExpanded(prev => ({ ...prev, [c.id]: !prev[c.id] }))}>{expanded[c.id] ? 'Zwiń' : 'Szczegóły'}</button>
                     <button className="btn btn-sm danger" onClick={() => onDelete(c.id)}>Usuń</button>
                   </div>
