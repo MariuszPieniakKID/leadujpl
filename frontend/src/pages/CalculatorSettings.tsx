@@ -8,7 +8,7 @@ type PricingData = typeof baseData.pricing
 
 export default function CalculatorSettingsPage() {
   const user = getUser()
-  if (!user || user.role !== 'MANAGER') return <Navigate to="/calculator" replace />
+  if (!user || (user.role !== 'MANAGER' && user.role !== 'ADMIN')) return <Navigate to="/calculator" replace />
 
   const [settings, setSettings] = useState<Record<string, any>>(() => ({ ...(baseData as any).settings }))
   const [pricing, setPricing] = useState<PricingData>(() => ({ ...(baseData as any).pricing }))
