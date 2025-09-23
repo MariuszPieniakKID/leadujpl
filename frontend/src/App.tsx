@@ -460,6 +460,7 @@ function Dashboard() {
       setIsCreateOpen(false)
       const res = await api.get<any[]>('/api/meetings')
       setMeetings(res.data)
+      try { for (const m of res.data) { await offlineStore.put('meetings', m) } } catch {}
       await refreshManagerAggregates()
     } catch (e: any) {
       setCreateError(e?.response?.data?.error || e?.message || 'Nie udało się utworzyć spotkania')

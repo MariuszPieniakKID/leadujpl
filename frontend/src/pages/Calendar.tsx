@@ -412,7 +412,9 @@ export default function CalendarPage() {
         await api.post('/api/meetings', payload)
       } else {
         const localId = newLocalId('meeting')
-        const optimistic = { id: localId, scheduledAt, endsAt, notes: payload.notes, location: payload.location, attendeeId }
+        // Embed minimal client snapshot for offline display
+        const clientSnapshot = (selectedClientId ? undefined : client)
+        const optimistic: any = { id: localId, scheduledAt, endsAt, notes: payload.notes, location: payload.location, attendeeId, ...(clientSnapshot ? { client: clientSnapshot } : {}) }
         await offlineStore.put('meetings', optimistic)
         setMeetings(prev => [...prev, optimistic as any])
         await pendingQueue.enqueue({ id: newLocalId('att'), method: 'POST', url: (import.meta.env.VITE_API_BASE || '') + '/api/meetings', body: payload, headers: {}, createdAt: Date.now(), entityStore: 'meetings', localId })

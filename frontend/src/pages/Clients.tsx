@@ -17,6 +17,8 @@ export default function ClientsPage() {
       const data = await fetchClients({ q: query || undefined, status: status || undefined })
       setClients(data)
       try { for (const c of data) { await offlineStore.put('clients', c as any) } } catch {}
+    } catch (e) {
+      try { const local = await offlineStore.getAll<Client>('clients'); setClients(local || []) } catch {}
     } finally {
       setLoading(false)
     }
