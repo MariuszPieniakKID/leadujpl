@@ -45,6 +45,7 @@ export default function CalculatorPage() {
     grant: 'Brak dotacji',
     downPayment: 0,
     termMonths: 120,
+    extraItems: [] as Array<{ label: string; amount: number }>,
   })
 
   const prices = (data as any).pricing
@@ -75,7 +76,8 @@ export default function CalculatorPage() {
     const batteryPrice = form.battery ? Number(prices.batteryMap[form.battery] || 0) : 0
     const backupPrice = form.backup === 'Tak' ? Number(settings['Dodatki: Backup (netto)'] || 0) : 0
     const trenchPrice = form.trench === 'Tak' ? Number(settings['Dodatki: Przekop (netto)'] || 0) : 0
-    const subtotalPlain = pvBase + pvGroundExtra + inverterPrice + batteryPrice + backupPrice + trenchPrice
+    const extraSum = (form.extraItems || []).reduce((acc, it) => acc + (Number(it.amount || 0) || 0), 0)
+    const subtotalPlain = pvBase + pvGroundExtra + inverterPrice + batteryPrice + backupPrice + trenchPrice + extraSum
     // Manager margin on subtotal
     let subtotalNet = subtotalPlain
     try {
@@ -303,10 +305,48 @@ export default function CalculatorPage() {
               {form.trench === 'Tak' && (
                 <div className="list-row"><span>Przekop</span><span>{calc.trenchPrice.toLocaleString('pl-PL', { style: 'currency', currency: 'PLN' })}</span></div>
               )}
+              {(form.extraItems || []).map((it, idx) => (
+                <div className="list-row" key={idx}>
+                  <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    {it.label || 'Pozycja dodatkowa'}
+                    <button
+                      className="secondary"
+                      type="button"
+                      aria-label="Usuń"
+                      title="Usuń pozycję"
+                      onClick={() => setForm({ ...form, extraItems: (form.extraItems || []).filter((_, i) => i !== idx) })}
+                      style={{ padding: 4 }}
+                    >
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 6h18"/><path d="M8 6v12"/><path d="M16 6v12"/><path d="M5 6l1-3h12l1 3"/></svg>
+                    </button>
+                  </span>
+                  <span>{Number(it.amount || 0).toLocaleString('pl-PL', { style: 'currency', currency: 'PLN' })}</span>
+                </div>
+              ))}
               <div className="list-row" style={{ fontWeight: 600 }}><span>Suma netto</span><span>{calc.subtotalNet.toLocaleString('pl-PL', { style: 'currency', currency: 'PLN' })}</span></div>
               <div className="list-row"><span>Dotacja</span><span>- {calc.grant.toLocaleString('pl-PL', { style: 'currency', currency: 'PLN' })}</span></div>
               <div className="list-row"><span>Wkład własny</span><span>- {form.downPayment.toLocaleString('pl-PL', { style: 'currency', currency: 'PLN' })}</span></div>
               <div className="list-row" style={{ fontWeight: 600 }}><span>Kwota finansowana</span><span>{calc.financed.toLocaleString('pl-PL', { style: 'currency', currency: 'PLN' })}</span></div>
+            </div>
+            <div style={{ marginTop: 10 }}>
+              <div className="form-grid-2">
+                <div className="form-group">
+                  <label className="form-label">Dodaj pozycję (nazwa)</label>
+                  <input className="form-input" placeholder="np. Dodatkowe okablowanie" value={(form as any).__extraLabel || ''} onChange={e => setForm({ ...form, __extraLabel: e.target.value } as any)} />
+                </div>
+                <div className="form-group">
+                  <label className="form-label">Kwota (netto)</label>
+                  <input className="form-input" type="number" step="0.01" placeholder="0.00" value={(form as any).__extraAmount || ''} onChange={e => setForm({ ...form, __extraAmount: e.target.value } as any)} />
+                </div>
+              </div>
+              <button className="secondary" type="button" onClick={() => {
+                const label = String(((form as any).__extraLabel || '').toString()).trim()
+                const amount = Number((form as any).__extraAmount || 0)
+                if (!label && !amount) return
+                const next = [...(form.extraItems || []), { label: label || 'Pozycja', amount: isNaN(amount) ? 0 : amount }]
+                const nextForm: any = { ...form, extraItems: next, __extraLabel: '', __extraAmount: '' }
+                setForm(nextForm)
+              }}>Dodaj pozycję</button>
             </div>
           </div>
           <div className="card" style={{ border: '1px solid var(--gray-200)' }}>
