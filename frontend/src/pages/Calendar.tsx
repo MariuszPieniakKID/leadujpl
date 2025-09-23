@@ -662,6 +662,7 @@ export default function CalendarPage() {
           max={setHours(setMinutes(new Date(), 0), 18)}
           scrollToTime={setHours(setMinutes(new Date(), 0), 8)}
           selectable
+          longPressThreshold={10}
           popup
           style={{ height: '100%' }}
           onSelectSlot={onSelect}
@@ -705,6 +706,7 @@ export default function CalendarPage() {
           max={setHours(setMinutes(new Date(), 0), 18)}
           scrollToTime={setHours(setMinutes(new Date(), 0), 8)}
           selectable
+          longPressThreshold={10}
           popup
           style={{ height: '100%' }}
           onSelectSlot={onSelect}
