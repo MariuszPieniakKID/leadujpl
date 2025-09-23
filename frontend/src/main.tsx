@@ -15,6 +15,13 @@ if ('serviceWorker' in navigator) {
   window.addEventListener('load', async () => {
     try {
       const reg = await navigator.serviceWorker.register('/sw.js')
+      // Actively check for a new SW right after registration
+      try { await reg.update() } catch {}
+      try {
+        const regs = await navigator.serviceWorker.getRegistrations()
+        regs.forEach(r => { try { r.update() } catch {} })
+      } catch {}
+      setTimeout(() => { try { reg.update() } catch {} }, 2000)
       if (reg.waiting) {
         reg.waiting.postMessage({ type: 'SKIP_WAITING' })
       }
