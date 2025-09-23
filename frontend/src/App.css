@@ -222,6 +222,8 @@ html {
   font-feature-settings: "cv02", "cv03", "cv04", "cv11";
   scroll-behavior: smooth;
   height: 100%;
+  overscroll-behavior-y: none;
+  overscroll-behavior-x: none;
 }
 
 body {
@@ -233,9 +235,9 @@ body {
   font-weight: 400;
   overflow-x: hidden;
   position: relative;
-  /* Safe area for PWA iOS */
-  padding-top: constant(safe-area-inset-top);
-  padding-top: env(safe-area-inset-top);
+  height: 100%;
+  overscroll-behavior-y: none;
+  overscroll-behavior-x: none;
 }
 
 /* Modern body background with subtle pattern */
@@ -289,7 +291,7 @@ body::before {
    ============================================ */
 
 .app-layout {
-  min-height: 100vh;
+  min-height: 100svh;
   display: flex;
   flex-direction: column;
   position: relative;
@@ -301,6 +303,8 @@ body::before {
   padding: var(--space-6);
   flex: 1;
   position: relative;
+  max-width: 100%;
+  overflow-x: hidden;
 }
 
 .grid {
@@ -317,7 +321,7 @@ body::before {
   background: rgba(255, 255, 255, 0.9);
   backdrop-filter: blur(16px) saturate(160%);
   border-bottom: 1px solid var(--gray-200);
-  padding: calc(var(--space-3) + env(safe-area-inset-top)) var(--space-6) var(--space-3) var(--space-6);
+  padding: var(--space-3) var(--space-6);
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -1083,6 +1087,7 @@ textarea {
   align-items: flex-end;
   padding: 0 12px; /* side gutters on mobile */
   overscroll-behavior: none; /* block rubber-band on overlay */
+  justify-content: flex-end; /* anchor to bottom firmly */
 }
 
 .modal-content.sheet {
