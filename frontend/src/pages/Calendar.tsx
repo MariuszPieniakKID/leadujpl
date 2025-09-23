@@ -735,11 +735,16 @@ export default function CalendarPage() {
                 </div>
                 <div className="form-group">
                   <label className="form-label">Godzina</label>
-                  <input className="form-input" type="time" step={3600} value={createForm.startTime} onChange={e => {
-                    const startTime = e.target.value.replace(/:\d{2}$/,'') + ':00'
+                  <select className="form-select" value={(createForm.startTime || '00:00').split(':')[0]} onChange={e => {
+                    const hour = e.target.value.padStart(2,'0')
+                    const startTime = hour + ':00'
                     const { endDate, endTime } = computeEndForStart(createForm.startDate, startTime)
                     setCreateForm({ ...createForm, startTime, endDate, endTime })
-                  }} />
+                  }}>
+                    {Array.from({ length: 24 }).map((_, i) => (
+                      <option key={i} value={String(i).padStart(2, '0')}>{String(i).padStart(2,'0')}:00</option>
+                    ))}
+                  </select>
                 </div>
               </div>
             </div>

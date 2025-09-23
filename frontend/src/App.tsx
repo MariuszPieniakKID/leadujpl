@@ -1032,14 +1032,19 @@ function Dashboard() {
               </div>
               <div className="form-group">
                 <label className="form-label">Godzina</label>
-                <input className="form-input" type="time" step={3600} value={createForm.startTime} onChange={e => {
-                  const hh = e.target.value.replace(/:\d{2}$/,'') + ':00'
+                <select className="form-select" value={(createForm.startTime || '00:00').split(':')[0]} onChange={e => {
+                  const hour = e.target.value.padStart(2,'0')
+                  const hh = hour + ':00'
                   const [y, m, d] = createForm.startDate.split('-').map(Number)
-                  const [H] = hh.split(':').map(Number)
-                  const start = new Date(y, (m || 1) - 1, d || 1, H || 0, 0, 0, 0)
+                  const H = Number(hour)
+                  const start = new Date(y, (m || 1) - 1, d || 1, isNaN(H) ? 0 : H, 0, 0, 0)
                   const end = new Date(start.getTime() + 60 * 60 * 1000)
                   setCreateForm({ ...createForm, startTime: hh, endDate: toLocalDateValue(start), endTime: toLocalTimeValue(end) })
-                }} />
+                }}>
+                  {Array.from({ length: 24 }).map((_, i) => (
+                    <option key={i} value={String(i).padStart(2, '0')}>{String(i).padStart(2,'0')}:00</option>
+                  ))}
+                </select>
               </div>
             </div>
 
