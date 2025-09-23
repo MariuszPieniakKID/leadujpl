@@ -66,8 +66,8 @@ export default defineConfig({
         background_color: '#0b1220',
         theme_color: '#7c3aed',
         icons: [
-          { src: '/leady_logo.png', sizes: '192x192', type: 'image/png', purpose: 'any maskable' },
-          { src: '/leady_logo.png', sizes: '512x512', type: 'image/png', purpose: 'any maskable' },
+          { src: '/leady_logo.png?v=2', sizes: '192x192', type: 'image/png', purpose: 'any maskable' },
+          { src: '/leady_logo.png?v=2', sizes: '512x512', type: 'image/png', purpose: 'any maskable' },
         ],
       },
     }),
