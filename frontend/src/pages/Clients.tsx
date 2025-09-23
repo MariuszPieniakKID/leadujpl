@@ -9,6 +9,7 @@ export default function ClientsPage() {
 
   const [query, setQuery] = useState('')
   const [status, setStatus] = useState('')
+  const [expanded, setExpanded] = useState<Record<string, boolean>>({})
 
   async function load() {
     setLoading(true)
@@ -159,41 +160,37 @@ export default function ClientsPage() {
             <p>Brak klientów w systemie</p>
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="table">
-              <thead>
-                <tr>
-                  <th>Imię</th>
-                  <th>Nazwisko</th>
-                  <th>Telefon</th>
-                  <th>E-mail</th>
-                  <th>Adres</th>
-                  <th>Kod pocztowy</th>
-                  <th>Kategoria</th>
-                  <th>Załączniki</th>
-                  <th></th>
-                </tr>
-              </thead>
-              <tbody>
-                {clients.map(c => (
-                  <tr key={c.id}>
-                    <td className="font-medium">{c.firstName}</td>
-                    <td className="font-medium">{c.lastName}</td>
-                    <td>{c.phone || <span className="text-gray-400">—</span>}</td>
-                    <td>{c.email || <span className="text-gray-400">—</span>}</td>
-                    <td>{[c.street, c.city].filter(Boolean).join(', ') || <span className="text-gray-400">—</span>}</td>
-                    <td>{c.postalCode || <span className="text-gray-400">—</span>}</td>
-                    <td>{renderCategory(c.category)}</td>
-                    <td>
-                      <ClientAttachments clientId={c.id} />
-                    </td>
-                    <td style={{ textAlign: 'right' }}>
-                      <button className="danger btn-sm" onClick={() => onDelete(c.id)}>Usuń</button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+          <div style={{ display: 'grid', gap: 8 }}>
+            {clients.map(c => (
+              <div key={c.id} className="list-item" style={{ alignItems: 'stretch' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
+                  <div style={{ display: 'flex', flexDirection: 'column' }}>
+                    <span className="font-medium">{c.firstName} {c.lastName}</span>
+                    <span style={{ color: 'var(--gray-600)', fontSize: 12 }}>{c.phone || '—'}</span>
+                  </div>
+                  <div style={{ display: 'flex', gap: 8 }}>
+                    <button className="btn btn-sm secondary" onClick={() => setExpanded(prev => ({ ...prev, [c.id]: !prev[c.id] }))}>{expanded[c.id] ? 'Zwiń' : 'Szczegóły'}</button>
+                    <button className="btn btn-sm danger" onClick={() => onDelete(c.id)}>Usuń</button>
+                  </div>
+                </div>
+                {expanded[c.id] && (
+                  <div style={{ marginTop: 8, display: 'grid', gridTemplateColumns: '1fr', gap: 8 }}>
+                    <div className="list">
+                      <div className="list-row"><span>E-mail</span><span>{c.email || <span className="text-gray-400">—</span>}</span></div>
+                      <div className="list-row"><span>Adres</span><span>{[c.street, c.city].filter(Boolean).join(', ') || <span className="text-gray-400">—</span>}</span></div>
+                      <div className="list-row"><span>Kod pocztowy</span><span>{(c as any).postalCode || <span className="text-gray-400">—</span>}</span></div>
+                      <div className="list-row"><span>Kategoria</span><span>{renderCategory(c.category)}</span></div>
+                    </div>
+                    <div>
+                      <strong>Załączniki</strong>
+                      <div style={{ marginTop: 6 }}>
+                        <ClientAttachments clientId={c.id} />
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            ))}
           </div>
         )}
       </div>
