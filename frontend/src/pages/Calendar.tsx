@@ -252,6 +252,7 @@ export default function CalendarPage() {
   const [calcInitialSnapshot, setCalcInitialSnapshot] = useState<any | null>(null)
   const [calcKey, setCalcKey] = useState<string>('')
   const [editClientId, setEditClientId] = useState<string | null>(null)
+  const [canNavigate, setCanNavigate] = useState<boolean>(false)
 
   async function loadAttachments(meetingId: string) {
     try {
@@ -487,6 +488,14 @@ export default function CalendarPage() {
       })
       await loadAttachments(eventId)
       setEditClientId(m.clientId || null)
+      // Determine if navigation is possible (has address)
+      try {
+        const street = m?.client?.street || ''
+        const city = m?.client?.city || ''
+        const loc = (m?.location || '').trim()
+        const hasAddress = ([street, city].filter((s: string) => s && s.trim() !== '').length > 0) || (loc && loc.toLowerCase() !== 'u klienta' && loc !== '—')
+        setCanNavigate(!!hasAddress)
+      } catch { setCanNavigate(false) }
       if (m.clientId) {
         try { const offs = await listClientOffers(m.clientId); setOffers(offs) } catch {}
       } else {
@@ -518,6 +527,13 @@ export default function CalendarPage() {
             status: m.status || '',
           })
           setEditClientId(m.clientId || null)
+          try {
+            const street = m?.client?.street || ''
+            const city = m?.client?.city || ''
+            const loc = (m?.location || '').trim()
+            const hasAddress = ([street, city].filter((s: string) => s && s.trim() !== '').length > 0) || (loc && loc.toLowerCase() !== 'u klienta' && loc !== '—')
+            setCanNavigate(!!hasAddress)
+          } catch { setCanNavigate(false) }
           setOffers([])
         }
       } catch {}
@@ -991,7 +1007,7 @@ export default function CalendarPage() {
             <div className="modal-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
               <h3 className="modal-title">Szczegóły spotkania</h3>
               <div style={{ display: 'flex', gap: 8 }}>
-                {editMeetingId && (
+                {editMeetingId && canNavigate && (
                   <button className="secondary" onClick={() => navigateToMeeting(editMeetingId)} title="Nawiguj" aria-label="Nawiguj" style={{ padding: 'var(--space-2)' }}>
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 2l7 19-7-4-7 4 7-19z"/></svg>
                     Nawiguj
