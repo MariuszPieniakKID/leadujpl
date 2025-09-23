@@ -1686,6 +1686,17 @@ textarea {
     padding: var(--space-3);
     padding-bottom: calc(90px + env(safe-area-inset-bottom));
   }
+  .list-row {
+    display: grid;
+    grid-template-columns: 1fr;
+    row-gap: 4px;
+    align-items: start;
+  }
+  .list-row span {
+    white-space: normal;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+  }
   
   .page-header {
     padding: var(--space-4);

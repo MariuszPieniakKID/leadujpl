@@ -163,7 +163,7 @@ export default function ClientsPage() {
           <div style={{ display: 'grid', gap: 8 }}>
             {clients.map(c => (
               <div key={c.id} className="list-item" style={{ alignItems: 'stretch' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
                   <div style={{ display: 'flex', flexDirection: 'column' }}>
                     <span className="font-medium">{c.firstName} {c.lastName}</span>
                     <span style={{ color: 'var(--gray-600)', fontSize: 12 }}>{c.phone || '—'}</span>
