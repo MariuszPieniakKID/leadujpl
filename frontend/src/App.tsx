@@ -632,8 +632,8 @@ function Dashboard() {
       </div>
       ) : (
       <div className="dashboard-header">
-        <button aria-label="Zamknij panel" className="icon-button close" onClick={collapseHeader} style={{ width: 44, height: 44, display: 'grid', placeItems: 'center' }}>
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.25">
+        <button aria-label="Zamknij panel" className="icon-button close" onClick={collapseHeader} style={{ width: 52, height: 52, display: 'grid', placeItems: 'center', touchAction: 'manipulation' }}>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.25">
             <path d="M18 6L6 18M6 6l12 12"/>
           </svg>
         </button>

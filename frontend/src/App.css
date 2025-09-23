@@ -317,7 +317,7 @@ body::before {
   background: rgba(255, 255, 255, 0.9);
   backdrop-filter: blur(16px) saturate(160%);
   border-bottom: 1px solid var(--gray-200);
-  padding: var(--space-3) var(--space-6);
+  padding: calc(var(--space-3) + env(safe-area-inset-top)) var(--space-6) var(--space-3) var(--space-6);
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -754,15 +754,16 @@ textarea {
 
 .dashboard-header .icon-button.close {
   position: absolute;
-  top: calc(var(--space-4) + env(safe-area-inset-top));
+  top: calc(var(--space-6) + env(safe-area-inset-top));
   right: var(--space-4);
-  background: rgba(255,255,255,0.15);
-  border: 1px solid rgba(255,255,255,0.25);
-  border-radius: var(--radius-lg);
+  background: rgba(255,255,255,0.2);
+  border: 1px solid rgba(255,255,255,0.3);
+  border-radius: var(--radius-xl);
   padding: var(--space-3);
-  min-width: 44px;
-  min-height: 44px;
+  width: 52px;
+  height: 52px;
   color: white;
+  z-index: var(--z-maximum);
 }
 
 .icon-button {
@@ -802,6 +803,7 @@ textarea {
   bottom: 0;
   background: rgba(255, 255, 255, 0.1);
   backdrop-filter: blur(1px);
+  pointer-events: none;
 }
 
 .dashboard-header > * {
