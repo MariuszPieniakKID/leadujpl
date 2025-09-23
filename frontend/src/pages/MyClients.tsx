@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
-import api, { listClientOffers, downloadOffer, listClientAttachments, type AttachmentItem, viewAttachmentUrl, downloadAttachmentUrl, getClientLatestStatus, setClientLatestStatus, uploadAttachments, deleteAttachment, fetchUsers, type AppUserSummary } from '../lib/api'
+import api, { listClientOffers, downloadOffer, listClientAttachments, type AttachmentItem, viewAttachmentUrl, downloadAttachmentUrl, getClientLatestStatus, setClientLatestStatus, deleteAttachment, fetchUsers, type AppUserSummary } from '../lib/api'
 import { offlineStore, pendingQueue, newLocalId } from '../lib/offline'
 import { getUser } from '../lib/auth'
 import EmbeddedCalculator from '../components/EmbeddedCalculator'
