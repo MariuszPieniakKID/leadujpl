@@ -235,20 +235,24 @@ export default function CalculatorPage() {
               {pvOptions.map(k => (<option key={k} value={k}>{k}</option>))}
             </select>
           </div>
-          <div className="form-group">
-            <label className="form-label">Magazyn energii</label>
-            <select className="form-select" value={form.battery} onChange={e => setForm({ ...form, battery: e.target.value })}>
-              <option value="">— wybierz —</option>
-              {batteryOptions.map(k => (<option key={k} value={k}>{k}</option>))}
-            </select>
-          </div>
-          <div className="form-group">
-            <label className="form-label">Model falownika</label>
-            <select className="form-select" value={form.inverter} onChange={e => setForm({ ...form, inverter: e.target.value })}>
-              <option value="">— wybierz —</option>
-              {inverterOptions.map(k => (<option key={k} value={k}>{k}</option>))}
-            </select>
-          </div>
+          {form.systemType === 'Falownik + Magazyn' && (
+            <>
+              <div className="form-group">
+                <label className="form-label">Magazyn energii</label>
+                <select className="form-select" value={form.battery} onChange={e => setForm({ ...form, battery: e.target.value })}>
+                  <option value="">— wybierz —</option>
+                  {batteryOptions.map(k => (<option key={k} value={k}>{k}</option>))}
+                </select>
+              </div>
+              <div className="form-group">
+                <label className="form-label">Model falownika</label>
+                <select className="form-select" value={form.inverter} onChange={e => setForm({ ...form, inverter: e.target.value })}>
+                  <option value="">— wybierz —</option>
+                  {inverterOptions.map(k => (<option key={k} value={k}>{k}</option>))}
+                </select>
+              </div>
+            </>
+          )}
           <div className="form-group">
             <label className="form-label">Backup</label>
             <select className="form-select" value={form.backup} onChange={e => setForm({ ...form, backup: e.target.value as any })}>
@@ -281,7 +285,7 @@ export default function CalculatorPage() {
 
         <div style={{ marginTop: 16, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
           <div className="card" style={{ border: '1px solid var(--gray-200)' }}>
-            <h3 style={{ marginTop: 0 }}>Podsumowanie (netto)</h3>
+            <h3 style={{ marginTop: 0 }}>Ceny (netto) – kalkulacja</h3>
             <div className="list">
               <div className="list-row"><span>Zestaw PV</span><span>{calc.pvBase.toLocaleString('pl-PL', { style: 'currency', currency: 'PLN' })}</span></div>
               {form.systemType === 'PV – Grunt' && (
