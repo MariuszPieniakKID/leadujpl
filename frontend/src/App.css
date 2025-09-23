@@ -233,6 +233,9 @@ body {
   font-weight: 400;
   overflow-x: hidden;
   position: relative;
+  /* Safe area for PWA iOS */
+  padding-top: constant(safe-area-inset-top);
+  padding-top: env(safe-area-inset-top);
 }
 
 /* Modern body background with subtle pattern */
@@ -751,12 +754,14 @@ textarea {
 
 .dashboard-header .icon-button.close {
   position: absolute;
-  top: var(--space-4);
+  top: calc(var(--space-4) + env(safe-area-inset-top));
   right: var(--space-4);
   background: rgba(255,255,255,0.15);
   border: 1px solid rgba(255,255,255,0.25);
   border-radius: var(--radius-lg);
-  padding: var(--space-2);
+  padding: var(--space-3);
+  min-width: 44px;
+  min-height: 44px;
   color: white;
 }
 
