@@ -200,7 +200,7 @@ export default function MyClientsPage() {
                     <span className="font-medium">{c.firstName} {c.lastName}</span>
                     <span style={{ color: 'var(--gray-600)', fontSize: 12 }}>{c.phone || '—'}</span>
                   </div>
-                  <div style={{ display: 'flex', gap: 8, flexShrink: 0 }}>
+                  <div className="client-actions" style={{ display: 'flex', gap: 8, flexShrink: 0 }}>
                     <ClientStatusAndActions clientId={c.id} />
                     <button className="btn btn-sm secondary" onClick={() => {
                       const id = c.id

@@ -1579,6 +1579,13 @@ textarea {
   .page-header .form-group { width: 100%; }
   /* Safe areas for PWA */
   .container { padding-top: calc(var(--space-4) + env(safe-area-inset-top)); padding-bottom: calc(120px + env(safe-area-inset-bottom)); }
+  /* Compact mobile spacing */
+  .card { padding: var(--space-5); }
+  .form-group { margin-bottom: var(--space-4); }
+  .modal-content { padding: var(--space-5); }
+  .modal-content.sheet { padding: var(--space-5); }
+  .modal-header { margin-bottom: var(--space-5); padding-bottom: var(--space-4); }
+  .modal-footer { margin-top: var(--space-6); padding-top: var(--space-5); }
 }
 
 .calendar-container::before {
