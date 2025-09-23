@@ -1558,6 +1558,8 @@ textarea {
 @media (max-width: 768px) {
   .calendar-shell { height: calc(100vh - 300px); min-height: 420px; }
   .datetime-grid { grid-template-columns: 1fr; }
+  .form-grid-2 { grid-template-columns: 1fr; }
+  input[type="date"], input[type="time"], input[type="datetime-local"] { max-width: 100%; width: 100%; }
 }
 
 .calendar-container::before {

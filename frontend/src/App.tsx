@@ -952,7 +952,7 @@ function Dashboard() {
 
       {isCreateOpen && (
         <div className="modal-overlay sheet">
-          <div className="modal-content sheet" style={{ maxWidth: '800px' }}>
+          <div className="modal-content sheet" style={{ maxWidth: '560px' }}>
             <div className="modal-header">
               <h3 className="modal-title">Nowe spotkanie</h3>
               <button className="secondary" onClick={() => setIsCreateOpen(false)} style={{ padding: 'var(--space-2)' }}>

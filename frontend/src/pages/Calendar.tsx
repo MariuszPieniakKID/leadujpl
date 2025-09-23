@@ -614,7 +614,7 @@ export default function CalendarPage() {
 
       {isCreateOpen && (
         <div className="modal-overlay sheet">
-          <div className="modal-content sheet" style={{ maxWidth: '900px' }}>
+          <div className="modal-content sheet" style={{ maxWidth: '560px' }}>
             <div className="modal-header">
               <h3 className="modal-title">Nowe spotkanie</h3>
               <button className="secondary" onClick={() => setIsCreateOpen(false)} style={{ padding: 'var(--space-2)' }}>
@@ -664,7 +664,7 @@ export default function CalendarPage() {
               </button>
             </div>
             {createSectionsOpen.client && (
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+            <div className="form-grid-2">
               <div style={{ gridColumn: '1 / -1' }}>
                 <label>Wybierz klienta z bazy</label>
                 <input
@@ -780,7 +780,7 @@ export default function CalendarPage() {
               </button>
             </div>
             {createSectionsOpen.extra && (
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+            <div className="form-grid-2">
               <div>
                 <label style={{ display: 'block', marginBottom: 4 }}>Czy posiada instalację PV?</label>
                 <div>
@@ -862,7 +862,7 @@ export default function CalendarPage() {
 
       {isEditOpen && (
         <div className="modal-overlay sheet">
-          <div className="modal-content sheet" style={{ maxWidth: '720px' }}>
+          <div className="modal-content sheet" style={{ maxWidth: '560px' }}>
             <div className="modal-header">
               <h3 className="modal-title">Szczegóły spotkania</h3>
               <button className="secondary" onClick={() => { setIsEditOpen(false); setEditMeetingId(null) }} style={{ padding: 'var(--space-2)' }}>
@@ -882,7 +882,7 @@ export default function CalendarPage() {
               </button>
             </div>
             {editSectionsOpen.meeting && (
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+            <div className="form-grid-2">
               <div>
                 <label>Temat/Notatka</label>
                 <input value={editForm.notes} onChange={e => setEditForm({ ...editForm, notes: e.target.value })} />
@@ -922,7 +922,7 @@ export default function CalendarPage() {
               </button>
             </div>
             {editSectionsOpen.client && (
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+            <div className="form-grid-2">
               <div>
                 <label>Imię</label>
                 <input value={editForm.clientFirstName} onChange={e => setEditForm({ ...editForm, clientFirstName: e.target.value })} />
@@ -1115,7 +1115,7 @@ export default function CalendarPage() {
               </button>
             </div>
             {editSectionsOpen.extra && (
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+            <div className="form-grid-2">
               <div>
                 <label style={{ display: 'block', marginBottom: 4 }}>Czy posiada instalację PV?</label>
                 <div>
