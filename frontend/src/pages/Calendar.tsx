@@ -921,7 +921,7 @@ export default function CalendarPage() {
                     <input type="radio" name="buildingTypeCreateCal" checked={createForm.buildingType === 'Dom'} onChange={() => setCreateForm({ ...createForm, buildingType: 'Dom' })} /> Dom
                   </label>
                   <label>
-                    <input type="radio" name="buildingTypeCreateCal" checked={createForm.buildingType === 'Gospodarstwo'} onChange={() => setCreateForm({ ...createForm, buildingType: 'Gospodarstwo' })} /> Gospodarstwo
+                    <input type="radio" name="buildingTypeCreateCal" checked={createForm.buildingType === 'Gospodarstwo'} onChange={() => setCreateForm({ ...createForm, buildingType: 'Gospodarstwo' })} /> Gospodarstwo rolne
                   </label>
                 </div>
               </div>

@@ -1221,7 +1221,7 @@ function Dashboard() {
                   </label>
                   <label className="radio-item">
                     <input type="radio" name="buildingTypeCreateDash" checked={createForm.buildingType === 'Gospodarstwo'} onChange={() => setCreateForm({ ...createForm, buildingType: 'Gospodarstwo' })} />
-                    <span>Gospodarstwo</span>
+                    <span>Gospodarstwo rolne</span>
                   </label>
                 </div>
               </div>
