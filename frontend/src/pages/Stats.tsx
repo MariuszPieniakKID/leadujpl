@@ -20,6 +20,9 @@ export default function StatsPage() {
   const [repUsers, setRepUsers] = useState<AppUserSummary[]>([])
   const [metric, setMetric] = useState<'Spotkania' | 'Umowa' | 'Przełożone' | 'Dogrywka' | 'Odbyte' | 'Umówione' | 'Porażka'>('Spotkania')
   const [ranking, setRanking] = useState<Array<{ id: string; firstName: string; lastName: string; total: number; byStatus: Record<string, number> }>>([])
+  const [statusFilter, setStatusFilter] = useState<'' | 'Umowa' | 'Porażka' | 'Dogrywka' | 'Przełożone' | 'Umówione' | 'Odbyte'>('')
+  const [startDate, setStartDate] = useState<string>('')
+  const [endDate, setEndDate] = useState<string>('')
 
   useEffect(() => {
     const load = async () => {
@@ -81,7 +84,20 @@ export default function StatsPage() {
         // Fetch meetings for each rep
         const arrays = await Promise.all(reps.map(u => api.get<Meeting[]>('/api/meetings', { params: { userId: u.id } }).then(r => r.data).catch(() => [])))
         const items: Array<{ id: string; firstName: string; lastName: string; total: number; byStatus: Record<string, number> }> = reps.map((u, i) => {
-          const list = arrays[i] || []
+          let list = arrays[i] || []
+          // Apply date range filter
+          if (startDate) {
+            const from = new Date(startDate + 'T00:00:00')
+            list = list.filter(m => new Date(m.scheduledAt) >= from)
+          }
+          if (endDate) {
+            const to = new Date(endDate + 'T23:59:59.999')
+            list = list.filter(m => new Date(m.scheduledAt) <= to)
+          }
+          // Optional status filter
+          if (statusFilter) {
+            list = list.filter(m => (m.status || '').trim() === statusFilter)
+          }
           const by: Record<string, number> = {}
           let total = 0
           for (const m of list) {
@@ -99,7 +115,7 @@ export default function StatsPage() {
         setRepLoading(false)
       }
     })()
-  }, [view, managerId])
+  }, [view, managerId, startDate, endDate, statusFilter])
 
   const kpi = useMemo(() => {
     const now = Date.now()
@@ -248,6 +264,28 @@ export default function StatsPage() {
                   <option value="Porażka">Porażka</option>
                 </select>
               </div>
+              <div className="form-group" style={{ margin: 0 }}>
+                <label className="form-label">Status</label>
+                <select className="form-select" value={statusFilter} onChange={e => setStatusFilter(e.target.value as any)}>
+                  <option value="">Wszystkie</option>
+                  <option value="Umowa">Umowa</option>
+                  <option value="Przełożone">Przełożone</option>
+                  <option value="Dogrywka">Dogrywka</option>
+                  <option value="Umówione">Umówione</option>
+                  <option value="Odbyte">Odbyte</option>
+                  <option value="Porażka">Porażka</option>
+                </select>
+              </div>
+              <div className="form-group" style={{ margin: 0 }}>
+                <label className="form-label">Od</label>
+                <input className="form-input" type="date" value={startDate} onChange={e => setStartDate(e.target.value)} />
+              </div>
+              <div className="form-group" style={{ margin: 0 }}>
+                <label className="form-label">Do</label>
+                <input className="form-input" type="date" value={endDate} onChange={e => setEndDate(e.target.value)} />
+              </div>
+              <button className="secondary" type="button" onClick={() => { setStartDate(''); setEndDate(''); setStatusFilter('') }}>Wyczyść</button>
+              <button className="primary" type="button" onClick={() => exportRankingCsv(ranking, metric, statusFilter, startDate, endDate)}>Eksport CSV</button>
             </div>
           </div>
           {repLoading ? (
@@ -297,6 +335,44 @@ export default function StatsPage() {
       )}
     </div>
   )
+}
+
+function exportRankingCsv(rows: Array<{ id: string; firstName: string; lastName: string; total: number; byStatus: Record<string, number> }>, metric: string, statusFilter: string, startDate: string, endDate: string) {
+  if (!rows || rows.length === 0) {
+    alert('Brak danych do eksportu')
+    return
+  }
+  const headers = ['Handlowiec','Spotkania','Umowa','Przełożone','Dogrywka','Umówione','Odbyte','Porażka']
+  const data = rows
+    .slice()
+    .sort((a, b) => {
+      const av = metric === 'Spotkania' ? a.total : (a.byStatus[metric] || 0)
+      const bv = metric === 'Spotkania' ? b.total : (b.byStatus[metric] || 0)
+      return bv - av
+    })
+    .map(r => [
+      `${r.firstName} ${r.lastName}`.trim(),
+      r.total,
+      r.byStatus['Umowa'] || 0,
+      r.byStatus['Przełożone'] || 0,
+      r.byStatus['Dogrywka'] || 0,
+      r.byStatus['Umówione'] || 0,
+      r.byStatus['Odbyte'] || 0,
+      r.byStatus['Porażka'] || 0,
+    ])
+  const sep = ';'
+  const escapeCell = (v: string | number) => '"' + String(v).replace(/"/g, '""') + '"'
+  const lines = [headers.map(escapeCell).join(sep), ...data.map(r => r.map(escapeCell).join(sep))]
+  const csv = '\ufeff' + lines.join('\n')
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
+  const a = document.createElement('a')
+  const url = URL.createObjectURL(blob)
+  a.href = url
+  const datePart = (startDate || endDate) ? `${startDate || 'poczatek'}_${endDate || 'koniec'}` : 'wszystko'
+  const statusPart = statusFilter || 'all'
+  a.download = `ranking_${metric}_${statusPart}_${datePart}.csv`
+  a.click()
+  URL.revokeObjectURL(url)
 }
 
 function RangeButton({ current, value, onSelect, children }: { current: Range; value: Range; onSelect: (r: Range) => void; children: React.ReactNode }) {
