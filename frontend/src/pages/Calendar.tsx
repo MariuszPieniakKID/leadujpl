@@ -493,7 +493,34 @@ export default function CalendarPage() {
         setOffers([])
       }
     } catch (e: any) {
-      setEditError(e?.response?.data?.error || e?.message || 'Nie udało się pobrać szczegółów')
+      // OFFLINE FALLBACK: use in-memory/IndexedDB copy
+      try {
+        let m: any = meetings.find((x: any) => (x as any).id === eventId)
+        if (!m) { try { m = await offlineStore.get<any>('meetings', eventId) } catch {} }
+        if (m) {
+          const start = new Date(m.scheduledAt)
+          const end = m.endsAt ? new Date(m.endsAt) : addHours(start, 1)
+          setEditForm({
+            notes: m.notes || '',
+            location: m.location || '',
+            startLocal: toLocalInputValue(start),
+            endLocal: toLocalInputValue(end),
+            clientFirstName: m.client?.firstName || '',
+            clientLastName: m.client?.lastName || '',
+            clientPhone: m.client?.phone || '',
+            clientEmail: m.client?.email || '',
+            clientStreet: m.client?.street || '',
+            clientCity: m.client?.city || '',
+            clientCategory: m.client?.category || '',
+            pvInstalled: m.pvInstalled === true ? 'TAK' : (m.pvInstalled === false ? 'NIE' : ''),
+            billRange: m.billRange || '',
+            extraComments: m.extraComments || '',
+            status: m.status || '',
+          })
+          setEditClientId(m.clientId || null)
+          setOffers([])
+        }
+      } catch {}
     } finally {
       setEditLoading(false)
     }

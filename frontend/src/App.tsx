@@ -566,7 +566,35 @@ function Dashboard() {
       }
       await loadAttachments(meetingId)
     } catch (e: any) {
-      setEditError(e?.response?.data?.error || e?.message || 'Nie udało się pobrać szczegółów')
+      // OFFLINE FALLBACK: use in-memory or IndexedDB copy, do not show error banner
+      try {
+        let m: any = meetings.find((x: any) => x.id === meetingId)
+        if (!m) { try { m = await offlineStore.get<any>('meetings', meetingId) } catch {}
+        }
+        if (m) {
+          const start = new Date(m.scheduledAt)
+          const end = m.endsAt ? new Date(m.endsAt) : new Date(start.getTime() + 60 * 60 * 1000)
+          setEditForm({
+            notes: m.notes || '',
+            location: m.location || '',
+            startLocal: toLocalInputValue(start),
+            endLocal: toLocalInputValue(end),
+            clientFirstName: m.client?.firstName || '',
+            clientLastName: m.client?.lastName || '',
+            clientPhone: m.client?.phone || '',
+            clientEmail: m.client?.email || '',
+            clientStreet: m.client?.street || '',
+            clientCity: m.client?.city || '',
+            clientCategory: m.client?.category || '',
+            pvInstalled: m.pvInstalled === true ? 'TAK' : (m.pvInstalled === false ? 'NIE' : ''),
+            billRange: m.billRange || '',
+            extraComments: m.extraComments || '',
+            status: m.status || '',
+          })
+          setEditClientId(m.clientId || null)
+          setOffers([])
+        }
+      } catch {}
     } finally {
       setEditLoading(false)
     }
