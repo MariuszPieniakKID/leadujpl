@@ -48,7 +48,17 @@ export default function MyClientsPage() {
       }
     } catch (e: any) {
       // Fallback offline
-      try { const local = await offlineStore.getAll<Client>('clients'); setClients(local || []); setError(null) } catch {
+      try {
+        const local = await offlineStore.getAll<Client>('clients')
+        const q = (query || '').trim().toLowerCase()
+        const filtered = (local || []).filter(c => {
+          if (!q) return true
+          const hay = [c.firstName, c.lastName, c.phone, c.email, c.city, c.street].filter(Boolean).join(' ').toLowerCase()
+          return hay.includes(q)
+        })
+        setClients(filtered)
+        setError(null)
+      } catch {
         setError(e?.response?.data?.error || e?.message || 'Nie udało się pobrać klientów')
       }
     } finally {

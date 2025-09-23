@@ -18,7 +18,16 @@ export default function ClientsPage() {
       setClients(data)
       try { for (const c of data) { await offlineStore.put('clients', c as any) } } catch {}
     } catch (e) {
-      try { const local = await offlineStore.getAll<Client>('clients'); setClients(local || []) } catch {}
+      try {
+        const local = await offlineStore.getAll<Client>('clients')
+        const q = (query || '').trim().toLowerCase()
+        const filtered = (local || []).filter(c => {
+          if (!q) return true
+          const hay = [c.firstName, c.lastName, c.phone, c.email, c.city, c.street].filter(Boolean).join(' ').toLowerCase()
+          return hay.includes(q)
+        })
+        setClients(filtered)
+      } catch {}
     } finally {
       setLoading(false)
     }

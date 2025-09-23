@@ -94,7 +94,10 @@ export default function CalendarPage() {
   const events = useMemo(() => meetings.map(m => {
     const start = new Date(m.scheduledAt)
     const end = (m as any).endsAt ? new Date((m as any).endsAt) : addHours(start, 1)
-    return { id: m.id, title: m.notes || 'Spotkanie', start, end, status: (m as any).status || null, raw: m }
+    const raw: any = m
+    const clientName = raw.client ? `${raw.client.firstName || ''} ${raw.client.lastName || ''}`.trim() : ''
+    const title = clientName || m.notes || 'Spotkanie'
+    return { id: m.id, title, start, end, status: (m as any).status || null, raw: m }
   }), [meetings])
 
   // New meeting modal state
