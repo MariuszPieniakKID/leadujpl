@@ -1529,7 +1529,9 @@ function App() {
           {user && (user.role === 'ADMIN' || user.role === 'MANAGER') && (
             <NavLink to="/clients" className={({ isActive }) => isActive ? 'active' : undefined}>Klienci</NavLink>
           )}
-          <NavLink to="/my-clients" className={({ isActive }) => isActive ? 'active' : undefined}>Moi klienci</NavLink>
+          {user && (user.role === 'SALES_REP' || user.role === 'MANAGER') && (
+            <NavLink to="/my-clients" className={({ isActive }) => isActive ? 'active' : undefined}>Moi klienci</NavLink>
+          )}
           <NavLink to="/calculator" className={({ isActive }) => isActive ? 'active' : undefined}>Kalkulator ofertowy</NavLink>
           {user && user.role === 'MANAGER' && (
             <NavLink to="/sales" className={({ isActive }) => isActive ? 'active' : undefined}>Handlowcy</NavLink>
