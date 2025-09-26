@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { getUser } from '../lib/auth'
+import { fetchUsers, type AppUserSummary } from '../lib/api'
 import { fetchClients, createClient, deleteClient, type Client, listClientAttachments, type AttachmentItem, viewAttachmentUrl, downloadAttachmentUrl, getClientLatestStatus, setClientLatestStatus } from '../lib/api'
 import { offlineStore, pendingQueue, newLocalId } from '../lib/offline'
 
@@ -13,7 +14,7 @@ export default function ClientsPage() {
   const [status, setStatus] = useState('')
   // Admin-only controls ported from MyClients
   const [scope, setScope] = useState<'mine' | 'team'>('mine')
-  const [managers, setManagers] = useState<Array<{ id: string; firstName: string; lastName: string }>>([])
+  const [managers, setManagers] = useState<AppUserSummary[]>([])
   const [managerId, setManagerId] = useState('')
   const [expanded, setExpanded] = useState<Record<string, boolean>>({})
 
@@ -49,13 +50,8 @@ export default function ClientsPage() {
     if (!(user && user.role === 'ADMIN')) return
     ;(async () => {
       try {
-        // Reuse clients endpoint to avoid new API; pull managers via users list
-        const res = await fetch('/api/users', { headers: { 'Authorization': `Bearer ${localStorage.getItem('token') || ''}` } })
-        if (res.ok) {
-          const all = await res.json()
-          const onlyManagers = (all as any[]).filter(u => u.role === 'MANAGER').map(u => ({ id: u.id, firstName: u.firstName, lastName: u.lastName }))
-          setManagers(onlyManagers)
-        }
+        const all = await fetchUsers()
+        setManagers(all.filter(u => u.role === 'MANAGER'))
       } catch {}
     })()
   }, [user?.role])
@@ -129,15 +125,6 @@ export default function ClientsPage() {
               <option value="Odbyte">Odbyte</option>
             </select>
           </div>
-          {(user && user.role === 'MANAGER') && (
-            <div className="form-group" style={{ margin: 0 }}>
-              <label className="form-label">Zakres</label>
-              <select className="form-select" value={scope} onChange={e => setScope(e.target.value as any)}>
-                <option value="mine">Moi klienci</option>
-                <option value="team">Klienci mojego zespołu</option>
-              </select>
-            </div>
-          )}
           {(user && user.role === 'ADMIN') && (
             <div className="form-group" style={{ margin: 0 }}>
               <label className="form-label">Manager</label>
@@ -151,7 +138,7 @@ export default function ClientsPage() {
           )}
           <button className="secondary" onClick={load}>Filtruj</button>
           {(user && user.role === 'ADMIN') && (
-            <button className="primary" onClick={() => exportCsv(clients)}>Eksport CSV</button>
+            <button className="primary" onClick={() => exportCsv(clients)}>Eksport do CSV</button>
           )}
           <span className="text-sm text-gray-500" style={{ flex: '0 0 auto' }}>{clients.length} klientów</span>
           <button className="primary" onClick={() => setIsCreateOpen(true)}>
