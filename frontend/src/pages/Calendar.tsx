@@ -691,13 +691,15 @@ export default function CalendarPage() {
             const now = Date.now()
             const isPast = (event.start as Date).getTime() < now
             const s = (event.status || '').trim()
+            const n = s.toLowerCase()
             let bg = ''
-            if (s === 'Umowa') bg = '#10b981' // green
-            else if (s === 'Spadek') bg = '#ef4444' // red
-            else if (s === 'Przełożone') bg = '#3b82f6' // blue
-            else if (!isPast) bg = '#f97316' // orange = Umówione
-            else bg = '#facc15' // yellow = Odbyte
-            return { style: { backgroundColor: bg, color: 'white', border: 'none' } }
+            if (n === 'umowa' || n === 'sukces') bg = '#10b981' // green (success)
+            else if (n === 'porażka' || n === 'porazka' || n === 'spadek') bg = '#ef4444' // red (failure)
+            else if (n === 'przełożone' || n === 'przelozone') bg = '#3b82f6' // blue (rescheduled)
+            else if (n === 'dogrywka') bg = '#a855f7' // purple (follow-up)
+            else if (!isPast) bg = '#f97316' // orange = Umówione (upcoming)
+            else bg = '#facc15' // yellow = Odbyte (past)
+            return { style: { background: bg, color: 'white', border: 'none' } }
           }}
           messages={{
             today: 'Dziś', previous: 'Poprzedni', next: 'Następny', month: 'Miesiąc', week: 'Tydzień', day: 'Dzień',
@@ -732,13 +734,15 @@ export default function CalendarPage() {
             const now = Date.now()
             const isPast = (event.start as Date).getTime() < now
             const s = (event.status || '').trim()
+            const n = s.toLowerCase()
             let bg = ''
-            if (s === 'Umowa') bg = '#10b981'
-            else if (s === 'Spadek') bg = '#ef4444'
-            else if (s === 'Przełożone') bg = '#3b82f6'
+            if (n === 'umowa' || n === 'sukces') bg = '#10b981'
+            else if (n === 'porażka' || n === 'porazka' || n === 'spadek') bg = '#ef4444'
+            else if (n === 'przełożone' || n === 'przelozone') bg = '#3b82f6'
+            else if (n === 'dogrywka') bg = '#a855f7'
             else if (!isPast) bg = '#f97316'
             else bg = '#facc15'
-            return { style: { backgroundColor: bg, color: 'white', border: 'none' } }
+            return { style: { background: bg, color: 'white', border: 'none' } }
           }}
           messages={{
             today: 'Dziś', previous: 'Poprzedni', next: 'Następny', month: 'Miesiąc', week: 'Tydzień', day: 'Dzień',

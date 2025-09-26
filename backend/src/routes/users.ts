@@ -88,10 +88,11 @@ router.patch('/:id/role', requireAuth, requireAdmin, async (req, res) => {
 });
 
 // Manager creates a sales rep and auto-assigns to themselves
-router.post('/create-sales', requireAuth, requireManagerOrAdmin, async (req, res) => {
+router.post('/create-sales', requireAuth, requireAdmin, async (req, res) => {
   try {
     const current = req.user!
-    if (current.role !== 'MANAGER' && current.role !== 'ADMIN') return res.status(403).json({ error: 'Forbidden' })
+    // Only ADMIN can create sales reps
+    if (current.role !== 'ADMIN') return res.status(403).json({ error: 'Forbidden' })
     const { email, password, firstName, lastName, phone } = req.body as { email: string; password?: string; firstName: string; lastName: string; phone?: string }
     if (!email || !firstName || !lastName) return res.status(400).json({ error: 'Missing required fields' })
     const pwd = password && password.trim() ? password : 'test123'
@@ -104,7 +105,8 @@ router.post('/create-sales', requireAuth, requireManagerOrAdmin, async (req, res
         firstName,
         lastName,
         phone,
-        managerId: current.id,
+        // Created by ADMIN without assignment; can be assigned later
+        managerId: null,
       },
       select: { id: true, email: true, firstName: true, lastName: true, role: true, managerId: true },
     })
