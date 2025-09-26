@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { getUser } from '../lib/auth'
 import { fetchUsers, type AppUserSummary } from '../lib/api'
 import { fetchClients, createClient, deleteClient, type Client, listClientAttachments, type AttachmentItem, viewAttachmentUrl, downloadAttachmentUrl, getClientLatestStatus, setClientLatestStatus } from '../lib/api'
@@ -13,7 +13,6 @@ export default function ClientsPage() {
   const [query, setQuery] = useState('')
   const [status, setStatus] = useState('')
   // Admin-only controls ported from MyClients
-  const [scope, setScope] = useState<'mine' | 'team'>('mine')
   const [managers, setManagers] = useState<AppUserSummary[]>([])
   const [managerId, setManagerId] = useState('')
   const [expanded, setExpanded] = useState<Record<string, boolean>>({})
@@ -22,7 +21,8 @@ export default function ClientsPage() {
     setLoading(true)
     try {
       let params: any = { q: query || undefined, status: status || undefined }
-      if (user && user.role === 'MANAGER' && scope === 'team') params.scope = 'team'
+      // For MANAGER we default to team scope to keep parity with previous view
+      if (user && user.role === 'MANAGER') params.scope = 'team'
       if (user && user.role === 'ADMIN' && managerId) params.managerId = managerId
       const data = await fetchClients(params)
       setClients(data)
