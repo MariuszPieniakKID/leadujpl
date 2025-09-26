@@ -1,20 +1,29 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
+import { getUser } from '../lib/auth'
 import { fetchClients, createClient, deleteClient, type Client, listClientAttachments, type AttachmentItem, viewAttachmentUrl, downloadAttachmentUrl, getClientLatestStatus, setClientLatestStatus } from '../lib/api'
 import { offlineStore, pendingQueue, newLocalId } from '../lib/offline'
 
 export default function ClientsPage() {
+  const user = getUser()
   const [clients, setClients] = useState<Client[]>([])
   const [loading, setLoading] = useState(false)
   const [form, setForm] = useState<Partial<Client>>({ firstName: '', lastName: '', phone: '', email: '', street: '', city: '', postalCode: '', category: '' })
 
   const [query, setQuery] = useState('')
   const [status, setStatus] = useState('')
+  // Admin-only controls ported from MyClients
+  const [scope, setScope] = useState<'mine' | 'team'>('mine')
+  const [managers, setManagers] = useState<Array<{ id: string; firstName: string; lastName: string }>>([])
+  const [managerId, setManagerId] = useState('')
   const [expanded, setExpanded] = useState<Record<string, boolean>>({})
 
   async function load() {
     setLoading(true)
     try {
-      const data = await fetchClients({ q: query || undefined, status: status || undefined })
+      let params: any = { q: query || undefined, status: status || undefined }
+      if (user && user.role === 'MANAGER' && scope === 'team') params.scope = 'team'
+      if (user && user.role === 'ADMIN' && managerId) params.managerId = managerId
+      const data = await fetchClients(params)
       setClients(data)
       try { for (const c of data) { await offlineStore.put('clients', c as any) } } catch {}
     } catch (e) {
@@ -34,6 +43,22 @@ export default function ClientsPage() {
   }
 
   useEffect(() => { load() }, [])
+
+  // Load managers list for admin filter (PWA-safe)
+  useEffect(() => {
+    if (!(user && user.role === 'ADMIN')) return
+    ;(async () => {
+      try {
+        // Reuse clients endpoint to avoid new API; pull managers via users list
+        const res = await fetch('/api/users', { headers: { 'Authorization': `Bearer ${localStorage.getItem('token') || ''}` } })
+        if (res.ok) {
+          const all = await res.json()
+          const onlyManagers = (all as any[]).filter(u => u.role === 'MANAGER').map(u => ({ id: u.id, firstName: u.firstName, lastName: u.lastName }))
+          setManagers(onlyManagers)
+        }
+      } catch {}
+    })()
+  }, [user?.role])
 
   // Listen for offline-added clients and update list immediately
   useEffect(() => {
@@ -104,7 +129,30 @@ export default function ClientsPage() {
               <option value="Odbyte">Odbyte</option>
             </select>
           </div>
+          {(user && user.role === 'MANAGER') && (
+            <div className="form-group" style={{ margin: 0 }}>
+              <label className="form-label">Zakres</label>
+              <select className="form-select" value={scope} onChange={e => setScope(e.target.value as any)}>
+                <option value="mine">Moi klienci</option>
+                <option value="team">Klienci mojego zespołu</option>
+              </select>
+            </div>
+          )}
+          {(user && user.role === 'ADMIN') && (
+            <div className="form-group" style={{ margin: 0 }}>
+              <label className="form-label">Manager</label>
+              <select className="form-select" value={managerId} onChange={e => setManagerId(e.target.value)}>
+                <option value="">Wszyscy</option>
+                {managers.map(m => (
+                  <option key={m.id} value={m.id}>{m.firstName} {m.lastName}</option>
+                ))}
+              </select>
+            </div>
+          )}
           <button className="secondary" onClick={load}>Filtruj</button>
+          {(user && user.role === 'ADMIN') && (
+            <button className="primary" onClick={() => exportCsv(clients)}>Eksport CSV</button>
+          )}
           <span className="text-sm text-gray-500" style={{ flex: '0 0 auto' }}>{clients.length} klientów</span>
           <button className="primary" onClick={() => setIsCreateOpen(true)}>
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -233,6 +281,30 @@ export default function ClientsPage() {
       </div>
     </div>
   )
+}
+
+function exportCsv(clients: Client[]) {
+  if (!clients || clients.length === 0) {
+    alert('Brak danych do eksportu')
+    return
+  }
+  const headers = ['Imię', 'Nazwisko', 'Telefon', 'E-mail', 'Adres', 'Kategoria']
+  const rows = clients.map(c => {
+    const address = [c.street, c.city].filter(Boolean).join(', ')
+    const cat = (c.category && c.category.toUpperCase()) === 'PV' ? 'PV' : (c.category && c.category.toUpperCase()) === 'ME' ? 'ME' : ''
+    return [c.firstName || '', c.lastName || '', c.phone || '', c.email || '', address, cat]
+  })
+  const escapeCell = (v: string) => '"' + String(v).replace(/"/g, '""') + '"'
+  const sep = ';'
+  const lines = [headers.map(escapeCell).join(sep), ...rows.map(r => r.map(escapeCell).join(sep))]
+  const csv = '\ufeff' + lines.join('\n')
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
+  const a = document.createElement('a')
+  const url = URL.createObjectURL(blob)
+  a.href = url
+  a.download = 'klienci_admin.csv'
+  a.click()
+  URL.revokeObjectURL(url)
 }
 
 function ClientStatusSelect({ clientId }: { clientId: string }) {
