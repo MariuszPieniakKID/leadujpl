@@ -205,7 +205,7 @@ export default function MyClientsPage() {
                     <button className="btn btn-sm secondary" onClick={() => {
                       const id = c.id
                       const el = document.getElementById('mc-'+id)
-                      if (el) el.style.display = (el.style.display === 'none' || el.style.display === '') ? 'block' : 'none'
+                      if (el) el.style.display = 'block'
                     }}>Szczegóły</button>
                   </div>
                 </div>
@@ -214,8 +214,11 @@ export default function MyClientsPage() {
                     <div className="list-row"><span>E-mail</span><span>{c.email || <span className="text-gray-400">—</span>}</span></div>
                     <div className="list-row"><span>Adres</span><span style={{ whiteSpace: 'normal', overflowWrap: 'anywhere' }}>{[c.street, c.city].filter(Boolean).join(', ') || <span className="text-gray-400">—</span>}</span></div>
                     <div className="list-row"><span>Kategoria</span><span>{renderCategory(c.category)}</span></div>
-                    <div className="list-row"><span>Załączniki</span><span><ClientAttachments clientId={c.id} /></span></div>
-                    <div className="list-row"><span>Oferty</span><span><ClientOffers clientId={c.id} /></span></div>
+                    <div className="list-row"><span>Załączniki</span><span><ClientAttachments clientId={c.id} defaultOpen /></span></div>
+                    <div className="list-row"><span>Oferty</span><span><ClientOffers clientId={c.id} defaultOpen /></span></div>
+                  </div>
+                  <div className="modal-footer" style={{ justifyContent: 'flex-end' }}>
+                    <button className="secondary" onClick={() => { const el = document.getElementById('mc-'+c.id); if (el) el.style.display = 'none' }}>Zwiń</button>
                   </div>
                 </div>
               </div>
@@ -365,9 +368,9 @@ function ClientStatusAndActions({ clientId }: { clientId: string }) {
   )
 }
 
-function ClientOffers({ clientId }: { clientId: string }) {
+function ClientOffers({ clientId, defaultOpen = false }: { clientId: string; defaultOpen?: boolean }) {
   const [offers, setOffers] = useState<Array<{ id: string; fileName: string; createdAt: string }>>([])
-  const [open, setOpen] = useState(false)
+  const [open, setOpen] = useState(!!defaultOpen)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [showCalcModal, setShowCalcModal] = useState(false)
@@ -385,9 +388,12 @@ function ClientOffers({ clientId }: { clientId: string }) {
     }
   }
 
+  useEffect(() => { if (open) { setShowCalcModal(false); load() } }, [])
   return (
     <div>
-      <button className="btn btn-sm secondary" onClick={() => { const next = !open; setOpen(next); if (next) { setShowCalcModal(false); load() } }}>{open ? 'Ukryj' : 'Pokaż'}</button>
+      {!defaultOpen && (
+        <button className="btn btn-sm secondary" onClick={() => { const next = !open; setOpen(next); if (next) { setShowCalcModal(false); load() } }}>{open ? 'Ukryj' : 'Pokaż'}</button>
+      )}
       {open && (
         <div className="card" style={{ marginTop: 6 }}>
           {loading ? <div className="text-sm text-gray-500">Ładowanie…</div> : error ? <div className="text-error text-sm">{error}</div> : (
@@ -437,9 +443,9 @@ function ClientOffers({ clientId }: { clientId: string }) {
   )
 }
 
-function ClientAttachments({ clientId }: { clientId: string }) {
+function ClientAttachments({ clientId, defaultOpen = false }: { clientId: string; defaultOpen?: boolean }) {
   const [items, setItems] = useState<AttachmentItem[]>([])
-  const [open, setOpen] = useState(false)
+  const [open, setOpen] = useState(!!defaultOpen)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -485,9 +491,12 @@ function ClientAttachments({ clientId }: { clientId: string }) {
     return a.localeCompare(b)
   })
 
+  useEffect(() => { if (open) load() }, [])
   return (
     <div>
-      <button className="btn btn-sm secondary" onClick={() => { setOpen(o => !o); if (!open) load() }}>{open ? 'Ukryj' : 'Pokaż'}</button>
+      {!defaultOpen && (
+        <button className="btn btn-sm secondary" onClick={() => { setOpen(o => !o); if (!open) load() }}>{open ? 'Ukryj' : 'Pokaż'}</button>
+      )}
       {open && (
         <div className="card" style={{ marginTop: 6 }}>
           {loading ? <div className="text-sm text-gray-500">Ładowanie…</div> : error ? <div className="text-error text-sm">{error}</div> : (
