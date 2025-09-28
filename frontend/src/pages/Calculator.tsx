@@ -112,6 +112,12 @@ export default function CalculatorPage() {
     // (margins already applied in subtotalNet)
     const monthly = pmt(rateMonthly, form.termMonths, financed)
 
+    // Prepare alternative terms (12..240 months)
+    const terms: number[] = Array.from({ length: 10 }, (_, i) => (i + 1) * 12)
+    const otherTerms = terms
+      .filter(t => t !== form.termMonths)
+      .map(t => ({ term: t, monthly: pmt(rateMonthly, t, financed) }))
+
     return {
       pvBase,
       pvGroundExtra,
@@ -125,6 +131,7 @@ export default function CalculatorPage() {
       financed,
       rrsoYear,
       monthly,
+      otherTerms,
     }
   }, [form, prices, settings, grantOptions, data, user])
 
@@ -358,6 +365,17 @@ export default function CalculatorPage() {
             <div className="list">
               <div className="list-row" style={{ fontWeight: 600 }}><span>Rata miesięczna</span><span>{Math.abs(calc.monthly).toLocaleString('pl-PL', { style: 'currency', currency: 'PLN' })}</span></div>
               <div className="list-row"><span>Okres (mies.)</span><span>{form.termMonths}</span></div>
+            </div>
+            <div style={{ marginTop: 12 }}>
+              <h4 style={{ margin: '8px 0' }}>Pozostałe możliwości</h4>
+              <div className="list">
+                {calc.otherTerms.map((it: any) => (
+                  <div className="list-row" key={it.term}>
+                    <span>{it.term} mies. ({it.term / 12} lat)</span>
+                    <span>{Math.abs(it.monthly).toLocaleString('pl-PL', { style: 'currency', currency: 'PLN' })}</span>
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
         </div>

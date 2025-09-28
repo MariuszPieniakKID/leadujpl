@@ -85,6 +85,48 @@ router.post('/generate', requireAuth, async (req, res) => {
       .text(`Okres (miesiace): ${safe(form.termMonths)}`)
       .text(`Rata miesieczna: ${pln(Math.abs(calc.monthly || 0))}`)
 
+    // Other options (12..120 months)
+    try {
+      const financed = Number(calc.financed || 0)
+      const rrsoYear = Number(calc.rrsoYear || 0)
+      const rateMonthly = rrsoYear / 12
+      const pmt = (ratePerPeriod: number, numberOfPayments: number, presentValue: number): number => {
+        if (!isFinite(ratePerPeriod) || !isFinite(numberOfPayments) || !isFinite(presentValue)) return 0
+        if (ratePerPeriod === 0) return numberOfPayments > 0 ? -(presentValue / numberOfPayments) : 0
+        const r = ratePerPeriod
+        const n = numberOfPayments
+        return -(presentValue * r * Math.pow(1 + r, n)) / (Math.pow(1 + r, n) - 1)
+      }
+      const provided: Array<{ term: number; monthly: number }> = Array.isArray((calc as any).otherTerms) ? (calc as any).otherTerms : []
+      let alts: Array<{ term: number; monthly: number }>
+      if (provided.length > 0) {
+        alts = provided.filter(t => t.term >= 12 && t.term <= 120)
+      } else {
+        const terms: number[] = Array.from({ length: 10 }, (_, i) => (i + 1) * 12)
+        alts = terms.map(t => ({ term: t, monthly: pmt(rateMonthly, t, financed) }))
+      }
+      doc.moveDown(0.75)
+      doc.fontSize(12).text('Pozostale mozliwosci')
+      doc.moveDown(0.35)
+      const startY = doc.y
+      const leftX = 40
+      const rightX = 320
+      const lineH = 14
+      const rows = Math.ceil(alts.length / 2)
+      for (let i = 0; i < rows; i++) {
+        const y = startY + i * lineH
+        const left = alts[i]
+        if (left) {
+          doc.fontSize(10).text(`${left.term} mies. (${(left.term/12)} lat): ${pln(Math.abs(left.monthly || 0))}`, leftX, y)
+        }
+        const right = alts[i + rows]
+        if (right) {
+          doc.fontSize(10).text(`${right.term} mies. (${(right.term/12)} lat): ${pln(Math.abs(right.monthly || 0))}`, rightX, y)
+        }
+      }
+      doc.moveDown( (rows * lineH) / 12 )
+    } catch {}
+
     doc.moveDown(1)
     doc.fontSize(9).fillColor('#666666').text('Oferta ma charakter pogladowy. Ostateczne warunki moga sie roznic.', { width: 515 })
     doc.fillColor('black')
@@ -170,6 +212,48 @@ router.post('/save', requireAuth, async (req, res) => {
         .text(`RRSO rocznie: ${(((calc.rrsoYear || 0) * 100) as number).toFixed(2)}%`)
         .text(`Okres (miesiace): ${safe(form.termMonths)}`)
         .text(`Rata miesieczna: ${pln(Math.abs(calc.monthly || 0))}`)
+
+      // Other options (12..120 months)
+      try {
+        const financed = Number(calc.financed || 0)
+        const rrsoYear = Number(calc.rrsoYear || 0)
+        const rateMonthly = rrsoYear / 12
+        const pmt = (ratePerPeriod: number, numberOfPayments: number, presentValue: number): number => {
+          if (!isFinite(ratePerPeriod) || !isFinite(numberOfPayments) || !isFinite(presentValue)) return 0
+          if (ratePerPeriod === 0) return numberOfPayments > 0 ? -(presentValue / numberOfPayments) : 0
+          const r = ratePerPeriod
+          const n = numberOfPayments
+          return -(presentValue * r * Math.pow(1 + r, n)) / (Math.pow(1 + r, n) - 1)
+        }
+        const provided: Array<{ term: number; monthly: number }> = Array.isArray((calc as any).otherTerms) ? (calc as any).otherTerms : []
+        let alts: Array<{ term: number; monthly: number }>
+        if (provided.length > 0) {
+          alts = provided.filter(t => t.term >= 12 && t.term <= 120)
+        } else {
+          const terms: number[] = Array.from({ length: 10 }, (_, i) => (i + 1) * 12)
+          alts = terms.map(t => ({ term: t, monthly: pmt(rateMonthly, t, financed) }))
+        }
+        doc.moveDown(0.75)
+        doc.fontSize(12).text('Pozostale mozliwosci')
+        doc.moveDown(0.35)
+        const startY = doc.y
+        const leftX = 40
+        const rightX = 320
+        const lineH = 14
+        const rows = Math.ceil(alts.length / 2)
+        for (let i = 0; i < rows; i++) {
+          const y = startY + i * lineH
+          const left = alts[i]
+          if (left) {
+            doc.fontSize(10).text(`${left.term} mies. (${(left.term/12)} lat): ${pln(Math.abs(left.monthly || 0))}`, leftX, y)
+          }
+          const right = alts[i + rows]
+          if (right) {
+            doc.fontSize(10).text(`${right.term} mies. (${(right.term/12)} lat): ${pln(Math.abs(right.monthly || 0))}`, rightX, y)
+          }
+        }
+        doc.moveDown( (rows * lineH) / 12 )
+      } catch {}
 
       doc.moveDown(1)
       doc.fontSize(9).fillColor('#666666').text('Oferta ma charakter pogladowy. Ostateczne warunki moga sie roznic.', { width: 515 })
