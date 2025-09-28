@@ -11,6 +11,8 @@ export default function SalesPage() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [roleFilter, setRoleFilter] = useState<'ALL' | 'SALES_REP' | 'MANAGER'>('ALL')
+  const [searchQuery, setSearchQuery] = useState('')
+  const [selectedUserId, setSelectedUserId] = useState<string | null>(null)
 
   async function load() {
     setLoading(true)
@@ -30,6 +32,29 @@ export default function SalesPage() {
   const salesOnly = useMemo(() => users.filter(u => u.role === 'SALES_REP'), [users])
   const managersOnly = useMemo(() => users.filter(u => u.role === 'MANAGER'), [users])
   const managersById = useMemo(() => new Map(managersOnly.map(m => [m.id, m])), [managersOnly])
+  const usersById = useMemo(() => new Map(users.map(u => [u.id, u])), [users])
+
+  const filteredUsers = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase()
+    if (!q) return [] as User[]
+    return users.filter(u => (
+      `${u.firstName} ${u.lastName} ${u.email}`.toLowerCase().includes(q)
+    )).slice(0, 10)
+  }, [users, searchQuery])
+
+  const selectedUser = useMemo(() => selectedUserId ? usersById.get(selectedUserId) || null : null, [selectedUserId, usersById])
+  const selectedRelations = useMemo(() => {
+    if (!selectedUser) return { type: 'NONE' as const, items: [] as User[], manager: null as User | null }
+    if (selectedUser.role === 'MANAGER') {
+      const team = salesOnly.filter(s => s.managerId === selectedUser.id)
+      return { type: 'MANAGER' as const, items: team, manager: null }
+    }
+    if (selectedUser.role === 'SALES_REP') {
+      const m = selectedUser.managerId ? managersById.get(selectedUser.managerId) || null : null
+      return { type: 'SALES_REP' as const, items: [], manager: m }
+    }
+    return { type: 'NONE' as const, items: [], manager: null }
+  }, [selectedUser, salesOnly, managersById])
 
   async function assignToMe(userId: string) {
     await api.post(`/api/users/${userId}/assign-to-me`)
@@ -63,6 +88,72 @@ export default function SalesPage() {
           <div style={{ display: 'flex', gap: 'var(--space-2)' }}>
             <PushNotificationButton mySales={mySales} />
             <AddSalesForm onCreated={load} />
+          </div>
+        )}
+      </div>
+
+      {/* Szybkie wyszukiwanie relacji użytkownika */}
+      <div className="card" style={{ marginBottom: 12 }}>
+        <div className="flex justify-between items-center mb-3" style={{ gap: 8, flexWrap: 'wrap' }}>
+          <h3 className="card-title">Relacje użytkownika</h3>
+          <div className="form-group" style={{ margin: 0, minWidth: 240, flex: '1 1 260px' }}>
+            <label className="form-label">Wyszukaj managera lub handlowca</label>
+            <input className="form-input" placeholder="Imię, nazwisko, e-mail" value={searchQuery} onChange={e => { setSearchQuery(e.target.value); setSelectedUserId(null) }} />
+          </div>
+        </div>
+        {searchQuery.trim() && filteredUsers.length > 0 && (
+          <div className="card" style={{ marginTop: 6, maxHeight: 220, overflowY: 'auto' }}>
+            {filteredUsers.map(u => (
+              <div key={u.id} className="list-item" style={{ cursor: 'pointer' }} onClick={() => { setSelectedUserId(u.id) }}>
+                <div>
+                  <div className="font-medium">{u.firstName} {u.lastName} <span className="text-xs text-gray-400">({u.role === 'MANAGER' ? 'Manager' : u.role === 'ADMIN' ? 'Admin' : 'Handlowiec'})</span></div>
+                  <div className="text-sm text-gray-500">{u.email}</div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+        {selectedUser && (
+          <div className="card" style={{ marginTop: 8 }}>
+            {selectedRelations.type === 'MANAGER' && (
+              <>
+                <div className="flex justify-between items-center mb-2">
+                  <strong>Manager: {selectedUser.firstName} {selectedUser.lastName}</strong>
+                  <span className="text-sm text-gray-500">{selectedRelations.items.length} handlowców</span>
+                </div>
+                {selectedRelations.items.length === 0 ? (
+                  <div className="text-sm text-gray-500">Brak przypisanych handlowców</div>
+                ) : (
+                  <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'grid', gap: 6 }}>
+                    {selectedRelations.items.map(s => (
+                      <li key={s.id} className="list-item">
+                        <div>
+                          <div className="font-medium">{s.firstName} {s.lastName}</div>
+                          <div className="text-sm text-gray-500">{s.email}</div>
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </>
+            )}
+            {selectedRelations.type === 'SALES_REP' && (
+              <>
+                <div className="flex justify-between items-center mb-2">
+                  <strong>Handlowiec: {selectedUser.firstName} {selectedUser.lastName}</strong>
+                </div>
+                {selectedRelations.manager ? (
+                  <div className="list-item">
+                    <div>
+                      <div className="font-medium">Manager: {selectedRelations.manager.firstName} {selectedRelations.manager.lastName}</div>
+                      <div className="text-sm text-gray-500">{selectedRelations.manager.email}</div>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="text-sm text-gray-500">Nie przypisano do żadnego managera</div>
+                )}
+              </>
+            )}
           </div>
         )}
       </div>
