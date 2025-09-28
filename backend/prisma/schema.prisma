@@ -56,6 +56,7 @@ model User {
   sales     User[]   @relation("ManagerToSales")
   offers    Offer[]
   attachments Attachment[]
+  termsAcceptedAt DateTime?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }

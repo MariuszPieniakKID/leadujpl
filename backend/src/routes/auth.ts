@@ -17,11 +17,22 @@ router.post('/login', async (req, res) => {
     const token = jwt.sign({ id: user.id, role: user.role }, process.env.JWT_SECRET || 'dev_secret', {
       expiresIn: '7d',
     });
-    return res.json({ token, user: { id: user.id, email: user.email, firstName: user.firstName, lastName: user.lastName, role: user.role, managerId: user.managerId || null } });
+    return res.json({ token, user: { id: user.id, email: user.email, firstName: user.firstName, lastName: user.lastName, role: user.role, managerId: user.managerId || null, termsAcceptedAt: (user as any).termsAcceptedAt || null } });
   } catch (e) {
     return res.status(500).json({ error: 'Login failed' });
   }
 });
+
+router.post('/accept-terms', async (req, res) => {
+  try {
+    const { userId } = req.body as { userId: string }
+    if (!userId) return res.status(400).json({ error: 'Missing userId' })
+    const updated = await prisma.user.update({ where: { id: userId }, data: { termsAcceptedAt: new Date() }, select: { id: true, termsAcceptedAt: true } })
+    res.json(updated)
+  } catch {
+    res.status(500).json({ error: 'Failed to accept terms' })
+  }
+})
 
 export default router;
 

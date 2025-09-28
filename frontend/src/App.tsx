@@ -22,6 +22,7 @@ import { clearAuth, getToken, getUser } from './lib/auth'
 import MobileNav from './components/MobileNav'
 import Logo from './components/Logo'
 import SyncStatus from './components/SyncStatus'
+// getUser already imported above
 
 function QuickTile({ label, to, icon }: { label: string; to: string; icon: React.ReactNode }) {
   return (
@@ -160,6 +161,34 @@ function Dashboard() {
     }
     run()
   }, [])
+
+  // Terms modal state
+  const [showTerms, setShowTerms] = useState(false)
+  const [accepting, setAccepting] = useState(false)
+  useEffect(() => {
+    try {
+      const flag = localStorage.getItem('needs_terms_accept') === '1'
+      if (flag && user && (user.role === 'MANAGER' || user.role === 'SALES_REP') && !user.termsAcceptedAt) {
+        setShowTerms(true)
+      }
+    } catch {}
+  }, [user])
+  async function acceptTerms() {
+    if (!user) return
+    try {
+      setAccepting(true)
+      await api.post('/api/auth/accept-terms', { userId: user.id })
+      // update local stored user
+      const updated = { ...user, termsAcceptedAt: new Date().toISOString() }
+      try { localStorage.setItem('auth_user', JSON.stringify(updated)) } catch {}
+      try { localStorage.removeItem('needs_terms_accept') } catch {}
+      setShowTerms(false)
+    } catch (e: any) {
+      alert(e?.response?.data?.error || 'Nie udało się zapisać akceptacji regulaminu')
+    } finally {
+      setAccepting(false)
+    }
+  }
 
   const upcoming = useMemo(() => {
     const now = Date.now()
@@ -1009,6 +1038,34 @@ function Dashboard() {
 
 
       {user?.role !== 'MANAGER' && loading && <div className="text-center text-gray-500 mt-6">Ładowanie danych…</div>}
+
+      {showTerms && (
+        <div className="modal-overlay" role="dialog" aria-modal="true">
+          <div className="modal-content" style={{ maxWidth: '560px' }}>
+            <div className="modal-header">
+              <h3 className="modal-title">Regulamin witryny</h3>
+              <button className="secondary" onClick={() => { /* wymuszamy akceptację, brak zamknięcia bez zgody */ }} style={{ padding: 'var(--space-2)', visibility: 'hidden' }}>
+                ✕
+              </button>
+            </div>
+            <div style={{ maxHeight: 280, overflow: 'auto', padding: '8px 0', fontSize: 14 }}>
+              <p>Prosimy o akceptację regulaminu korzystania z witryny i przetwarzania danych w celach obsługi CRM.</p>
+              <ul style={{ marginTop: 8, paddingLeft: 18 }}>
+                <li>Przetwarzanie danych zgodnie z RODO.</li>
+                <li>Wykorzystywanie danych wyłącznie do celów obsługi klientów.</li>
+                <li>Zakaz udostępniania danych osobom trzecim bez podstawy prawnej.</li>
+              </ul>
+            </div>
+            <div className="modal-footer">
+              <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: 8, marginRight: 'auto' }}>
+                <input type="checkbox" checked readOnly />
+                <span>Akceptuję regulamin</span>
+              </label>
+              <button className="primary" onClick={acceptTerms} disabled={accepting}>{accepting ? 'Zapisywanie…' : 'Zatwierdź'}</button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {isCreateOpen && (
         <div className="modal-overlay sheet">
