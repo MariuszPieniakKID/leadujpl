@@ -100,13 +100,22 @@ export default function SalesPage() {
             <label className="form-label">Wyszukaj managera lub handlowca</label>
             <input className="form-input" placeholder="Imię, nazwisko, e-mail" value={searchQuery} onChange={e => { setSearchQuery(e.target.value); setSelectedUserId(null) }} />
           </div>
+          {selectedUser && (
+            <button className="secondary btn-sm" onClick={() => { setSelectedUserId(null); setSearchQuery('') }}>Wyczyść wybór</button>
+          )}
         </div>
+        {!searchQuery.trim() && !selectedUser && (
+          <div className="text-sm text-gray-500">Zacznij wpisywać, aby wyszukać użytkownika.</div>
+        )}
         {searchQuery.trim() && filteredUsers.length > 0 && (
           <div className="card" style={{ marginTop: 6, maxHeight: 220, overflowY: 'auto' }}>
             {filteredUsers.map(u => (
               <div key={u.id} className="list-item" style={{ cursor: 'pointer' }} onClick={() => { setSelectedUserId(u.id) }}>
                 <div>
-                  <div className="font-medium">{u.firstName} {u.lastName} <span className="text-xs text-gray-400">({u.role === 'MANAGER' ? 'Manager' : u.role === 'ADMIN' ? 'Admin' : 'Handlowiec'})</span></div>
+                  <div className="font-medium">
+                    {u.firstName} {u.lastName}
+                    <span className="text-xs text-gray-400"> — {u.role === 'MANAGER' ? 'Manager' : u.role === 'ADMIN' ? 'Admin' : 'Handlowiec'}</span>
+                  </div>
                   <div className="text-sm text-gray-500">{u.email}</div>
                 </div>
               </div>
@@ -118,7 +127,7 @@ export default function SalesPage() {
             {selectedRelations.type === 'MANAGER' && (
               <>
                 <div className="flex justify-between items-center mb-2">
-                  <strong>Manager: {selectedUser.firstName} {selectedUser.lastName}</strong>
+                  <strong>Zespół managera: {selectedUser.firstName} {selectedUser.lastName}</strong>
                   <span className="text-sm text-gray-500">{selectedRelations.items.length} handlowców</span>
                 </div>
                 {selectedRelations.items.length === 0 ? (
@@ -128,7 +137,7 @@ export default function SalesPage() {
                     {selectedRelations.items.map(s => (
                       <li key={s.id} className="list-item">
                         <div>
-                          <div className="font-medium">{s.firstName} {s.lastName}</div>
+                          <div className="font-medium">{s.firstName} {s.lastName} <span className="text-xs text-gray-400">— Handlowiec</span></div>
                           <div className="text-sm text-gray-500">{s.email}</div>
                         </div>
                       </li>
@@ -140,12 +149,12 @@ export default function SalesPage() {
             {selectedRelations.type === 'SALES_REP' && (
               <>
                 <div className="flex justify-between items-center mb-2">
-                  <strong>Handlowiec: {selectedUser.firstName} {selectedUser.lastName}</strong>
+                  <strong>Przypisanie handlowca: {selectedUser.firstName} {selectedUser.lastName}</strong>
                 </div>
                 {selectedRelations.manager ? (
                   <div className="list-item">
                     <div>
-                      <div className="font-medium">Manager: {selectedRelations.manager.firstName} {selectedRelations.manager.lastName}</div>
+                      <div className="font-medium">{selectedRelations.manager.firstName} {selectedRelations.manager.lastName} <span className="text-xs text-gray-400">— Manager</span></div>
                       <div className="text-sm text-gray-500">{selectedRelations.manager.email}</div>
                     </div>
                   </div>
@@ -164,7 +173,7 @@ export default function SalesPage() {
         </div>
       )}
 
-      {isAdmin ? (
+      {!selectedUser && (isAdmin ? (
         <div className="card">
           <div className="flex justify-between items-center mb-4" style={{ gap: 12, flexWrap: 'wrap' }}>
             <h3 className="card-title">Użytkownicy</h3>
@@ -271,7 +280,7 @@ export default function SalesPage() {
             )}
           </div>
         </>
-      )}
+      ))}
     </div>
   )
 }
