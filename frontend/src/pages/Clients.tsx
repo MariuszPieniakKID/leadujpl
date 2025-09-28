@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { getUser } from '../lib/auth'
 import { fetchUsers, type AppUserSummary, listClientOffers, downloadOffer, viewOffer, fetchOffer } from '../lib/api'
+import EmbeddedCalculator from '../components/EmbeddedCalculator'
 import { fetchClients, createClient, deleteClient, type Client, listClientAttachments, type AttachmentItem, viewAttachmentUrl, downloadAttachmentUrl, getClientLatestStatus, setClientLatestStatus } from '../lib/api'
 import { offlineStore, pendingQueue, newLocalId } from '../lib/offline'
 
@@ -417,7 +418,6 @@ function ClientAttachments({ clientId, defaultOpen = true }: { clientId: string;
 
 function ClientOffers({ clientId }: { clientId: string }) {
   const [offers, setOffers] = useState<Array<{ id: string; fileName: string; createdAt: string }>>([])
-  const [open, setOpen] = useState(true)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [editOffer, setEditOffer] = useState<any | null>(null)
@@ -435,30 +435,28 @@ function ClientOffers({ clientId }: { clientId: string }) {
     }
   }
 
-  useEffect(() => { if (open) load() }, [open])
+  useEffect(() => { load() }, [])
 
   return (
     <div>
-      {open && (
-        <div className="card">
-          {loading ? <div className="text-sm text-gray-500">Ładowanie…</div> : error ? <div className="text-error text-sm">{error}</div> : (
-            offers.length === 0 ? <div className="text-sm text-gray-500">Brak ofert</div> : (
-              <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'grid', gap: 6 }}>
-                {offers.map(o => (
-                  <li key={o.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
-                    <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>{o.fileName}</span>
-                    <span style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
-                      <a className="btn btn-sm secondary" href={viewOffer(o.id)} target="_blank" rel="noreferrer">Podgląd</a>
-                      <button className="btn btn-sm secondary" onClick={async () => { try { const full = await fetchOffer(o.id); setEditOffer(full) } catch {} }}>Edytuj</button>
-                      <a className="btn btn-sm" href={downloadOffer(o.id)} target="_blank" rel="noreferrer">Pobierz</a>
-                    </span>
-                  </li>
-                ))}
-              </ul>
-            )
-          )}
-        </div>
-      )}
+      <div className="card">
+        {loading ? <div className="text-sm text-gray-500">Ładowanie…</div> : error ? <div className="text-error text-sm">{error}</div> : (
+          offers.length === 0 ? <div className="text-sm text-gray-500">Brak ofert</div> : (
+            <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'grid', gap: 6 }}>
+              {offers.map(o => (
+                <li key={o.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
+                  <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>{o.fileName}</span>
+                  <span style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
+                    <a className="btn btn-sm secondary" href={viewOffer(o.id)} target="_blank" rel="noreferrer">Podgląd</a>
+                    <button className="btn btn-sm secondary" onClick={async () => { try { const full = await fetchOffer(o.id); setEditOffer(full) } catch {} }}>Edytuj</button>
+                    <a className="btn btn-sm" href={downloadOffer(o.id)} target="_blank" rel="noreferrer">Pobierz</a>
+                  </span>
+                </li>
+              ))}
+            </ul>
+          )
+        )}
+      </div>
 
       {editOffer && (
         <div className="modal-overlay">
