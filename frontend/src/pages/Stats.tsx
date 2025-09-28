@@ -263,12 +263,12 @@ export default function StatsPage() {
 
       {view === 'ranking' && getUser()?.role === 'ADMIN' && (
         <section className="card">
-          <div className="flex items-center justify-between" style={{ marginBottom: 'var(--space-4)' }}>
+          <div className="flex items-center justify-between" style={isMobile ? { display: 'grid', gap: 8, alignItems: 'start', marginBottom: 'var(--space-4)' } : { marginBottom: 'var(--space-4)' }}>
             <h3 className="card-title" style={{ margin: 0 }}>Ranking handlowców</h3>
-            <div className="flex items-center" style={isMobile ? { display: 'grid', gap: 8, gridTemplateColumns: '1fr' } : { display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+            <div className="flex items-center" style={isMobile ? { display: 'grid', gap: 8, gridTemplateColumns: '1fr', width: '100%' } : { display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
               <div className="form-group" style={{ margin: 0, ...(isMobile ? { width: '100%' } : {}) }}>
                 <label className="form-label">Metryka</label>
-                <select className="form-select" value={metric} onChange={e => setMetric(e.target.value as any)} style={isMobile ? { width: '100%' } : undefined}>
+                <select className="form-select" value={metric} onChange={e => setMetric(e.target.value as any)} style={isMobile ? { width: '100%', maxWidth: '100%', boxSizing: 'border-box', minWidth: 0 } : undefined}>
                   <option value="Spotkania">Ilość spotkań</option>
                   <option value="Umowa">Umowa</option>
                   <option value="Przełożone">Przełożone</option>
@@ -280,14 +280,14 @@ export default function StatsPage() {
               </div>
               <div className="form-group" style={{ margin: 0, ...(isMobile ? { width: '100%' } : {}) }}>
                 <label className="form-label">Punkty</label>
-                <select className="form-select" value={showPoints ? 'on' : 'off'} onChange={e => setShowPoints(e.target.value === 'on')} style={isMobile ? { width: '100%' } : undefined}>
+                <select className="form-select" value={showPoints ? 'on' : 'off'} onChange={e => setShowPoints(e.target.value === 'on')} style={isMobile ? { width: '100%', maxWidth: '100%', boxSizing: 'border-box', minWidth: 0 } : undefined}>
                   <option value="off">Wyłączone</option>
                   <option value="on">Pokaż ranking punktów</option>
                 </select>
               </div>
               <div className="form-group" style={{ margin: 0, ...(isMobile ? { width: '100%' } : {}) }}>
                 <label className="form-label">Status</label>
-                <select className="form-select" value={statusFilter} onChange={e => setStatusFilter(e.target.value as any)} style={isMobile ? { width: '100%' } : undefined}>
+                <select className="form-select" value={statusFilter} onChange={e => setStatusFilter(e.target.value as any)} style={isMobile ? { width: '100%', maxWidth: '100%', boxSizing: 'border-box', minWidth: 0 } : undefined}>
                   <option value="">Wszystkie</option>
                   <option value="Umowa">Umowa</option>
                   <option value="Przełożone">Przełożone</option>
@@ -299,15 +299,15 @@ export default function StatsPage() {
               </div>
               <div className="form-group" style={{ margin: 0, ...(isMobile ? { width: '100%' } : {}) }}>
                 <label className="form-label">Od</label>
-                <input className="form-input" type="date" value={startDate} onChange={e => setStartDate(e.target.value)} style={isMobile ? { width: '100%' } : undefined} />
+                <input className="form-input" type="date" value={startDate} onChange={e => setStartDate(e.target.value)} style={isMobile ? { width: '100%', maxWidth: '100%', boxSizing: 'border-box', minWidth: 0 } : undefined} />
               </div>
               <div className="form-group" style={{ margin: 0, ...(isMobile ? { width: '100%' } : {}) }}>
                 <label className="form-label">Do</label>
-                <input className="form-input" type="date" value={endDate} onChange={e => setEndDate(e.target.value)} style={isMobile ? { width: '100%' } : undefined} />
+                <input className="form-input" type="date" value={endDate} onChange={e => setEndDate(e.target.value)} style={isMobile ? { width: '100%', maxWidth: '100%', boxSizing: 'border-box', minWidth: 0 } : undefined} />
               </div>
-              <div style={isMobile ? { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 } : { display: 'flex', gap: 8 }}>
-                <button className="secondary" type="button" onClick={() => { setStartDate(''); setEndDate(''); setStatusFilter('') }} style={isMobile ? { width: '100%' } : undefined}>Wyczyść</button>
-                <button className="primary" type="button" onClick={() => exportRankingCsv(ranking, metric, statusFilter, startDate, endDate)} style={isMobile ? { width: '100%' } : undefined}>Eksport CSV</button>
+              <div style={isMobile ? { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, width: '100%' } : { display: 'flex', gap: 8 }}>
+                <button className="secondary" type="button" onClick={() => { setStartDate(''); setEndDate(''); setStatusFilter('') }} style={isMobile ? { width: '100%', maxWidth: '100%' } : undefined}>Wyczyść</button>
+                <button className="primary" type="button" onClick={() => exportRankingCsv(ranking, metric, statusFilter, startDate, endDate)} style={isMobile ? { width: '100%', maxWidth: '100%' } : undefined}>Eksport CSV</button>
               </div>
             </div>
           </div>
