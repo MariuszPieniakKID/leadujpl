@@ -64,6 +64,12 @@ router.post('/generate', requireAuth, async (req, res) => {
       .text(toAscii(`Przekop: ${safe(form.trench)}`))
       .text(toAscii(`Dotacja: ${safe(form.grant)}`))
 
+    // Show quick PV calculator summary inline (if available)
+    if (quick && typeof quick.resultKwp === 'number') {
+      doc.moveDown(0.25)
+      doc.fontSize(11).text(toAscii(`Moc PV (kalkulator): ${Number(quick.resultKwp || 0).toFixed(2)} kWp`))
+    }
+
     doc.moveDown(0.75)
     doc.fontSize(14).text(toAscii('Podsumowanie kosztów (netto)'))
     doc.moveDown(0.5)
@@ -209,6 +215,12 @@ router.post('/save', requireAuth, async (req, res) => {
         .text(`Backup: ${safe(form.backup)}`)
         .text(`Przekop: ${safe(form.trench)}`)
         .text(`Dotacja: ${safe(form.grant)}`)
+
+      // Show quick PV calculator summary inline (if available)
+      if (quick && typeof quick.resultKwp === 'number') {
+        doc.moveDown(0.25)
+        doc.fontSize(11).text(toAscii(`Moc PV (kalkulator): ${Number(quick.resultKwp || 0).toFixed(2)} kWp`))
+      }
 
       doc.moveDown(0.75)
       doc.fontSize(14).text('Podsumowanie kosztow (netto)')
