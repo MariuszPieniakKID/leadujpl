@@ -35,7 +35,11 @@ router.post('/generate', requireAuth, async (req, res) => {
       res.send(pdf)
     })
 
-    const pln = (n: number) => (isFinite(n) ? n : 0).toLocaleString('pl-PL', { style: 'currency', currency: 'PLN' })
+    const pln = (n: number) => {
+      const v = (isFinite(n) ? n : 0)
+      const s = v.toLocaleString('pl-PL', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+      return `${s} PLN`
+    }
     const safe = (s: any) => (s == null ? '' : String(s))
     const form = snapshot.form || {}
     const calc = snapshot.calc || {}
@@ -100,25 +104,25 @@ router.post('/generate', requireAuth, async (req, res) => {
       doc.text(typeof value === 'number' ? pln(value) : (value as string), 300, y, { align: 'right' })
       if (bold) doc.font('Helvetica-Bold').text('', 40, y).font('Helvetica')
     }
-    row('Zestaw PV', calc.pvBase || 0)
-    if (form.systemType === 'PV – Grunt' && (calc.pvGroundExtra || 0) > 0) row('Doplata za grunt', calc.pvGroundExtra || 0)
-    if (form.systemType === 'Falownik + Magazyn' && (calc.inverterPrice || 0) > 0) row('Falownik', calc.inverterPrice || 0)
-    if (form.battery) row('Magazyn energii', calc.batteryPrice || 0)
-    if (form.backup === 'Tak') row('Backup', calc.backupPrice || 0)
-    if (form.trench === 'Tak') row('Przekop', calc.trenchPrice || 0)
+    row(toAscii('Zestaw PV'), calc.pvBase || 0)
+    if (form.systemType === 'PV – Grunt' && (calc.pvGroundExtra || 0) > 0) row(toAscii('Doplata za grunt'), calc.pvGroundExtra || 0)
+    if (form.systemType === 'Falownik + Magazyn' && (calc.inverterPrice || 0) > 0) row(toAscii('Falownik'), calc.inverterPrice || 0)
+    if (form.battery) row(toAscii('Magazyn energii'), calc.batteryPrice || 0)
+    if (form.backup === 'Tak') row(toAscii('Backup'), calc.backupPrice || 0)
+    if (form.trench === 'Tak') row(toAscii('Przekop'), calc.trenchPrice || 0)
     doc.moveDown(0.25)
     row('Suma netto', calc.subtotalNet || 0, true)
 
     doc.moveDown(0.75)
     doc.fontSize(14).text('Rozliczenie')
     doc.moveDown(0.5)
-    row('Dotacja', `- ${pln(calc.grant || 0)}`)
-    row('Wkład własny', `- ${pln(form.downPayment || 0)}`)
+    row(toAscii('Dotacja'), `- ${pln(calc.grant || 0)}`)
+    row(toAscii('Wklad wlasny'), `- ${pln(form.downPayment || 0)}`)
     doc.moveDown(0.25)
     row('Kwota finansowana', calc.financed || 0, true)
 
     doc.moveDown(1)
-    doc.fontSize(14).text('Finansowanie')
+    doc.fontSize(14).text(toAscii('Finansowanie'))
     doc.moveDown(0.5)
     doc.fontSize(11)
       .text(`RRSO rocznie: ${(((calc.rrsoYear || 0) * 100) as number).toFixed(2)}%`)
@@ -146,7 +150,7 @@ router.post('/generate', requireAuth, async (req, res) => {
         alts = terms.map(t => ({ term: t, monthly: pmt(rateMonthly, t, financed) }))
       }
       doc.moveDown(0.75)
-      doc.fontSize(12).text('Pozostale mozliwosci')
+      doc.fontSize(12).text(toAscii('Pozostale mozliwosci'))
       doc.moveDown(0.35)
       const startY = doc.y
       const leftX = 40
