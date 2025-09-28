@@ -168,8 +168,11 @@ function Dashboard() {
   useEffect(() => {
     try {
       const flag = localStorage.getItem('needs_terms_accept') === '1'
-      if (flag && user && (user.role === 'MANAGER' || user.role === 'SALES_REP') && !user.termsAcceptedAt) {
+      const u = getUser()
+      if (u && (u.role === 'MANAGER' || u.role === 'SALES_REP') && !u.termsAcceptedAt && flag) {
         setShowTerms(true)
+      } else {
+        setShowTerms(false)
       }
     } catch {}
   }, [user])
@@ -177,7 +180,7 @@ function Dashboard() {
     if (!user) return
     try {
       setAccepting(true)
-      await api.post('/api/auth/accept-terms', { userId: user.id })
+      await api.post('/api/auth/accept-terms')
       // update local stored user
       const updated = { ...user, termsAcceptedAt: new Date().toISOString() }
       try { localStorage.setItem('auth_user', JSON.stringify(updated)) } catch {}

@@ -9,8 +9,17 @@ export type User = {
 }
 
 export function saveAuth(token: string, user: User) {
+  const existingRaw = localStorage.getItem('auth_user')
+  let existing: User | null = null
+  try { existing = existingRaw ? JSON.parse(existingRaw) as User : null } catch { existing = null }
+  const merged: User = (() => {
+    if (existing && existing.id === user.id && existing.termsAcceptedAt && !user.termsAcceptedAt) {
+      return { ...user, termsAcceptedAt: existing.termsAcceptedAt }
+    }
+    return user
+  })()
   localStorage.setItem('auth_token', token)
-  localStorage.setItem('auth_user', JSON.stringify(user))
+  localStorage.setItem('auth_user', JSON.stringify(merged))
 }
 
 export function getToken() {

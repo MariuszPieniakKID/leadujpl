@@ -16,11 +16,18 @@ export default function Login() {
     try {
       const res = await api.post('/api/auth/login', { email, password })
       const u = res.data.user as User
+      // Save while preserving locally-known acceptance status
       saveAuth(res.data.token, u)
-      if ((u.role === 'MANAGER' || u.role === 'SALES_REP') && !u.termsAcceptedAt) {
-        // Trigger terms modal on next page
-        try { localStorage.setItem('needs_terms_accept', '1') } catch {}
-      }
+      // Decide flag based on MERGED user (post-save)
+      try {
+        const mergedRaw = localStorage.getItem('auth_user')
+        const merged = mergedRaw ? (JSON.parse(mergedRaw) as User) : u
+        if ((merged.role === 'MANAGER' || merged.role === 'SALES_REP') && !merged.termsAcceptedAt) {
+          localStorage.setItem('needs_terms_accept', '1')
+        } else {
+          localStorage.removeItem('needs_terms_accept')
+        }
+      } catch {}
       navigate('/')
     } catch (e: any) {
       setError(e?.response?.data?.error || 'Błąd logowania')
