@@ -1649,8 +1649,8 @@ function App() {
             <NavLink to="/my-clients" className={({ isActive }) => isActive ? 'active' : undefined}>Moi klienci</NavLink>
           )}
           <NavLink to="/calculator" className={({ isActive }) => isActive ? 'active' : undefined}>Kalkulator ofertowy</NavLink>
-          {user && user.role === 'MANAGER' && (
-            <NavLink to="/sales" className={({ isActive }) => isActive ? 'active' : undefined}>Handlowcy</NavLink>
+          {user && (user.role === 'MANAGER' || user.role === 'ADMIN') && (
+            <NavLink to="/sales" className={({ isActive }) => isActive ? 'active' : undefined}>Zespół</NavLink>
           )}
           <NavLink to="/stats" className={({ isActive }) => isActive ? 'active' : undefined}>Statystyki i Analityka</NavLink>
           <NavLink to="/account" className={({ isActive }) => isActive ? 'active' : undefined}>Moje Konto</NavLink>
