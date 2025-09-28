@@ -22,7 +22,10 @@ export default function Login() {
       try {
         const mergedRaw = localStorage.getItem('auth_user')
         const merged = mergedRaw ? (JSON.parse(mergedRaw) as User) : u
-        if ((merged.role === 'MANAGER' || merged.role === 'SALES_REP') && !merged.termsAcceptedAt) {
+        const acceptedLocal = (() => {
+          try { return localStorage.getItem(`terms_accept_${merged.id}`) === '1' } catch { return false }
+        })()
+        if ((merged.role === 'MANAGER' || merged.role === 'SALES_REP') && !merged.termsAcceptedAt && !acceptedLocal) {
           localStorage.setItem('needs_terms_accept', '1')
         } else {
           localStorage.removeItem('needs_terms_accept')

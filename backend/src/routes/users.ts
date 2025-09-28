@@ -154,3 +154,36 @@ router.post('/:id/unassign', requireAuth, requireManagerOrAdmin, async (req, res
 })
 
 
+// Total points for current user
+router.get('/me/points', requireAuth, async (req, res) => {
+  try {
+    const uid = req.user!.id
+    const sum = await prisma.pointsEvent.aggregate({ _sum: { points: true }, where: { userId: uid } })
+    res.json({ total: sum._sum.points || 0 })
+  } catch (e) {
+    res.status(500).json({ error: (e as Error).message })
+  }
+})
+
+// Leaderboard by points (optionally filter by managerId -> only that manager's sales reps)
+router.get('/leaderboard/points', requireAuth, async (req, res) => {
+  try {
+    const managerId = (req.query.managerId as string | undefined) || undefined
+    let users
+    if (managerId) {
+      users = await prisma.user.findMany({ where: { role: 'SALES_REP', managerId }, select: { id: true, firstName: true, lastName: true } })
+    } else {
+      users = await prisma.user.findMany({ where: { role: 'SALES_REP' }, select: { id: true, firstName: true, lastName: true, managerId: true } })
+    }
+    if (users.length === 0) return res.json([])
+    const ids = users.map(u => u.id)
+    const sums = await prisma.pointsEvent.groupBy({ by: ['userId'], where: { userId: { in: ids } }, _sum: { points: true } })
+    const map = new Map<string, number>(sums.map(s => [s.userId, s._sum.points || 0]))
+    const rows = users.map((u: any) => ({ id: u.id, firstName: u.firstName, lastName: u.lastName, total: map.get(u.id) || 0 }))
+    rows.sort((a: any, b: any) => b.total - a.total)
+    res.json(rows)
+  } catch (e) {
+    res.status(500).json({ error: (e as Error).message })
+  }
+})
+

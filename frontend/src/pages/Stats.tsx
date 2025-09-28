@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import api, { fetchUsers, type AppUserSummary } from '../lib/api'
+import api, { fetchUsers, type AppUserSummary, fetchPointsLeaderboard } from '../lib/api'
 import { getUser } from '../lib/auth'
 
 type Meeting = { id: string; scheduledAt: string; status?: string | null }
@@ -13,6 +13,7 @@ export default function StatsPage() {
   const [managers, setManagers] = useState<AppUserSummary[]>([])
   const [managerId, setManagerId] = useState('')
   const [view, setView] = useState<'stats' | 'ranking'>('stats')
+  const [showPoints, setShowPoints] = useState(false)
 
   // Ranking state (ADMIN only)
   const [repLoading, setRepLoading] = useState(false)
@@ -77,43 +78,46 @@ export default function StatsPage() {
       try {
         setRepError(null)
         setRepLoading(true)
-        const users = await fetchUsers()
-        const reps = users.filter(u => u.role === 'SALES_REP' && (!managerId || u.managerId === managerId))
-        // Fetch meetings for each rep
-        const arrays = await Promise.all(reps.map(u => api.get<Meeting[]>('/api/meetings', { params: { userId: u.id } }).then(r => r.data).catch(() => [])))
-        const items: Array<{ id: string; firstName: string; lastName: string; total: number; byStatus: Record<string, number> }> = reps.map((u, i) => {
-          let list = arrays[i] || []
-          // Apply date range filter
-          if (startDate) {
-            const from = new Date(startDate + 'T00:00:00')
-            list = list.filter(m => new Date(m.scheduledAt) >= from)
-          }
-          if (endDate) {
-            const to = new Date(endDate + 'T23:59:59.999')
-            list = list.filter(m => new Date(m.scheduledAt) <= to)
-          }
-          // Optional status filter
-          if (statusFilter) {
-            list = list.filter(m => (m.status || '').trim() === statusFilter)
-          }
-          const by: Record<string, number> = {}
-          let total = 0
-          for (const m of list) {
-            total += 1
-            const s = (m.status || '').trim()
-            if (!s) continue
-            by[s] = (by[s] || 0) + 1
-          }
-          return { id: u.id, firstName: u.firstName, lastName: u.lastName, total, byStatus: by }
-        })
-        setRanking(items)
+        if (showPoints) {
+          const rows = await fetchPointsLeaderboard({ managerId: managerId || undefined })
+          const items = rows.map(r => ({ id: r.id, firstName: r.firstName, lastName: r.lastName, total: r.total, byStatus: {} as Record<string, number> }))
+          setRanking(items)
+        } else {
+          const users = await fetchUsers()
+          const reps = users.filter(u => u.role === 'SALES_REP' && (!managerId || u.managerId === managerId))
+          const arrays = await Promise.all(reps.map(u => api.get<Meeting[]>('/api/meetings', { params: { userId: u.id } }).then(r => r.data).catch(() => [])))
+          const items: Array<{ id: string; firstName: string; lastName: string; total: number; byStatus: Record<string, number> }> = reps.map((u, i) => {
+            let list = arrays[i] || []
+            if (startDate) {
+              const from = new Date(startDate + 'T00:00:00')
+              list = list.filter(m => new Date(m.scheduledAt) >= from)
+            }
+            if (endDate) {
+              const to = new Date(endDate + 'T23:59:59.999')
+              list = list.filter(m => new Date(m.scheduledAt) <= to)
+            }
+            if (statusFilter) {
+              list = list.filter(m => (m.status || '').trim() === statusFilter)
+            }
+            const by: Record<string, number> = {}
+            let total = 0
+            for (const m of list) {
+              total += 1
+              const s = (m.status || '').trim()
+              if (!s) continue
+              by[s] = (by[s] || 0) + 1
+            }
+            return { id: u.id, firstName: u.firstName, lastName: u.lastName, total, byStatus: by }
+          })
+          setRanking(items)
+        }
       } catch (e: any) {
         setRepError(e?.response?.data?.error || 'Nie udało się pobrać rankingu')
       } finally {
         setRepLoading(false)
       }
     })()
-  }, [view, managerId, startDate, endDate, statusFilter])
+  }, [view, managerId, startDate, endDate, statusFilter, showPoints])
 
   const kpi = useMemo(() => {
     const now = Date.now()
@@ -260,6 +264,13 @@ export default function StatsPage() {
                   <option value="Umówione">Umówione</option>
                   <option value="Odbyte">Odbyte</option>
                   <option value="Porażka">Porażka</option>
+                </select>
+              </div>
+              <div className="form-group" style={{ margin: 0 }}>
+                <label className="form-label">Punkty</label>
+                <select className="form-select" value={showPoints ? 'on' : 'off'} onChange={e => setShowPoints(e.target.value === 'on')}>
+                  <option value="off">Wyłączone</option>
+                  <option value="on">Pokaż ranking punktów</option>
                 </select>
               </div>
               <div className="form-group" style={{ margin: 0 }}>

@@ -120,6 +120,7 @@ router.post('/', requireAuth, async (req, res) => {
 
     // If client payload provided, create client and link by clientId
     // Create only if we have at least identifying info (name or contact). Pure address should not create a client.
+    let createdClientId: string | undefined
     if (client && (client.firstName || client.lastName || client.email || client.phone)) {
       const createdClient = await prisma.client.create({ data: {
         firstName: client.firstName || '',
@@ -138,9 +139,27 @@ router.post('/', requireAuth, async (req, res) => {
         buildingType: client.buildingType,
       }});
       createData.clientId = createdClient.id;
+      createdClientId = createdClient.id
     }
 
     const meeting = await prisma.meeting.create({ data: createData });
+
+    // Award points:
+    // - +2 for adding a new client (inline creation here)
+    // - +8 for scheduling first-ever meeting for a client
+    try {
+      // +2 for new client creation inline
+      if (createdClientId) {
+        await prisma.pointsEvent.create({ data: { userId: ownerId, points: 2, reason: 'nowy klient', clientId: createdClientId } })
+      }
+      // +8 for first meeting with this client (only if this is their first meeting)
+      if (meeting.clientId) {
+        const count = await prisma.meeting.count({ where: { clientId: meeting.clientId } })
+        if (count === 1) {
+          await prisma.pointsEvent.create({ data: { userId: ownerId, points: 8, reason: 'pierwsze spotkanie z klientem', clientId: meeting.clientId, meetingId: meeting.id } })
+        }
+      }
+    } catch {}
     res.status(201).json(meeting);
   } catch (e) {
     res.status(500).json({ error: (e as Error).message });
@@ -236,6 +255,14 @@ router.patch('/:id', requireAuth, async (req, res) => {
     }
 
     const updated = await prisma.meeting.update({ where: { id }, data: patchData });
+
+    // Award points for status 'Umowa' (normalize to 'Sukces' in other routes, here we accept both)
+    try {
+      const finalStatus = (patchData.status || '').trim()
+      if (finalStatus === 'Umowa' || finalStatus === 'Sukces') {
+        await prisma.pointsEvent.create({ data: { userId: meeting.attendeeId, points: 90, reason: 'umowa', clientId: meeting.clientId || undefined, meetingId: meeting.id } })
+      }
+    } catch {}
     res.json(updated);
   } catch (e) {
     res.status(500).json({ error: (e as Error).message });

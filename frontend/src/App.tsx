@@ -4,7 +4,7 @@ import { BrowserRouter, Routes, Route, Navigate, NavLink, useLocation, Link } fr
 import './App.css'
 
 // removed fetchLeads (no longer used)
-import api, { uploadAttachments, listMeetingAttachments, type AttachmentItem, viewAttachmentUrl, downloadAttachmentUrl, listClientOffers, downloadOffer, fetchOffer } from './lib/api'
+import api, { uploadAttachments, listMeetingAttachments, type AttachmentItem, viewAttachmentUrl, downloadAttachmentUrl, listClientOffers, downloadOffer, fetchOffer, fetchMyPoints } from './lib/api'
 import { offlineStore, pendingQueue, newLocalId } from './lib/offline'
 import type { Client } from './lib/api'
 import Login from './pages/Login'
@@ -82,6 +82,7 @@ function Dashboard() {
   const [teamUsers, setTeamUsers] = useState<Array<{ id: string; firstName: string; lastName: string }>>([])
   const [selectedTeamUserId, setSelectedTeamUserId] = useState<string | null>(null)
   const [managerUpcoming, setManagerUpcoming] = useState<Array<{ id: string; date: string; time: string; place: string; topic: string }>>([])
+  const [myPoints, setMyPoints] = useState<number>(0)
   const [managerRecent, setManagerRecent] = useState<Array<{ id: string; date: string; time: string; place: string; topic: string }>>([])
 
   async function refreshManagerAggregates() {
@@ -151,6 +152,7 @@ function Dashboard() {
         try { for (const m of res.data) { await offlineStore.put('meetings', m) } } catch {}
         // If manager, also load team-wide stats and upcoming
         if (user && user.role === 'MANAGER') await refreshManagerAggregates()
+        try { const pts = await fetchMyPoints(); setMyPoints(pts.total || 0) } catch {}
       } catch (e) {
         console.error(e)
         // offline fallback
@@ -184,6 +186,8 @@ function Dashboard() {
       // update local stored user
       const updated = { ...user, termsAcceptedAt: new Date().toISOString() }
       try { localStorage.setItem('auth_user', JSON.stringify(updated)) } catch {}
+      // also persist a local acceptance flag to avoid reprompt if backend field not yet available
+      try { localStorage.setItem(`terms_accept_${updated.id}`, '1') } catch {}
       try { localStorage.removeItem('needs_terms_accept') } catch {}
       setShowTerms(false)
     } catch (e: any) {
@@ -704,6 +708,7 @@ function Dashboard() {
       <div className="dashboard-compact">
         <div className="dashboard-compact-left">
           <span className="muted">Witaj{user ? `, ${user.firstName}` : ''}!</span>
+          <span className="points-chip" style={{ marginLeft: 8 }} title="Twoje punkty">⭐ {myPoints}</span>
           {!navigator.onLine && (
             <span className="text-warning" style={{ marginLeft: 8, fontSize: 12 }}>Jesteś offline – zmiany zsynchronizują się po odzyskaniu internetu</span>
           )}
@@ -766,6 +771,7 @@ function Dashboard() {
           alignItems: 'center',
           marginTop: 'var(--space-6)'
         }}>
+          <span className="points-chip" title="Twoje punkty">⭐ {myPoints}</span>
           <button 
             className="primary" 
             onClick={openCreate}

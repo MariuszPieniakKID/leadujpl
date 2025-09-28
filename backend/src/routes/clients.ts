@@ -183,6 +183,13 @@ router.patch('/:id/status', requireAuth, async (req, res) => {
     })
     if (!meeting) return res.status(404).json({ error: 'No meeting for client' })
     const updated = await prisma.meeting.update({ where: { id: meeting.id }, data: { status } })
+    // Award points for 'Sukces' / 'Umowa'
+    try {
+      const finalStatus = (updated.status || '').trim()
+      if (finalStatus === 'Sukces' || finalStatus === 'Umowa') {
+        await prisma.pointsEvent.create({ data: { userId: current.id, points: 90, reason: 'umowa', clientId: id, meetingId: updated.id } })
+      }
+    } catch {}
     return res.json({ meetingId: updated.id, status: updated.status || null })
   } catch (e) {
     res.status(500).json({ error: (e as Error).message })

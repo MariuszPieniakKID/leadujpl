@@ -57,6 +57,7 @@ model User {
   offers    Offer[]
   attachments Attachment[]
   termsAcceptedAt DateTime?
+  points    PointsEvent[]
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
@@ -184,4 +185,19 @@ model Attachment {
   @@index([meetingId])
   @@index([clientId])
   @@index([ownerId])
+}
+
+// Points system: track awarded points per user and reason
+model PointsEvent {
+  id        String   @id @default(cuid())
+  user      User     @relation(fields: [userId], references: [id])
+  userId    String
+  points    Int
+  reason    String
+  clientId  String?
+  meetingId String?
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([createdAt])
 }

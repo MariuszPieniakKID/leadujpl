@@ -205,4 +205,15 @@ export async function fetchUsers(): Promise<AppUserSummary[]> {
   return res.data
 }
 
+// Points
+export async function fetchMyPoints(): Promise<{ total: number }> {
+  const res = await api.get('/api/users/me/points')
+  return res.data
+}
+
+export async function fetchPointsLeaderboard(params?: { managerId?: string }): Promise<Array<{ id: string; firstName: string; lastName: string; total: number }>> {
+  const res = await api.get('/api/users/leaderboard/points', { params })
+  return res.data
+}
+
 

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import api from '../lib/api'
+import api, { fetchPointsLeaderboard } from '../lib/api'
 import { getUser } from '../lib/auth'
 
 type Meeting = { id: string; scheduledAt: string; status?: string | null; clientId?: string | null }
@@ -10,6 +10,8 @@ export default function ManagerStatsPage() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [range, setRange] = useState<Range>('month')
+  const [pointsMin, setPointsMin] = useState<number | ''>('')
+  const [pointsRanking, setPointsRanking] = useState<Array<{ id: string; firstName: string; lastName: string; total: number }>>([])
 
   useEffect(() => {
     const load = async () => {
@@ -31,6 +33,18 @@ export default function ManagerStatsPage() {
       }
     }
     load()
+  }, [])
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const me = getUser()
+        if (!me) return
+        // leaderboard for my team
+        const rows = await fetchPointsLeaderboard({ managerId: me.id })
+        setPointsRanking(rows)
+      } catch {}
+    })()
   }, [])
 
   const kpi = useMemo(() => {
@@ -68,6 +82,33 @@ export default function ManagerStatsPage() {
           <div className="stat-card"><span className="stat-value">{kpi.leads}</span><span className="stat-label">Leady</span></div>
           <div className="stat-card"><span className="stat-value">{kpi.eff}%</span><span className="stat-label">Skuteczność</span></div>
         </div>
+      </section>
+
+      <section className="card" style={{ marginBottom: 'var(--space-6)' }}>
+        <div className="flex items-center justify-between" style={{ marginBottom: 'var(--space-4)' }}>
+          <h3 className="card-title" style={{ margin: 0 }}>Punkty zespołu</h3>
+          <div className="form-group" style={{ margin: 0 }}>
+            <label className="form-label">Minimalna liczba punktów</label>
+            <input className="form-input" type="number" value={pointsMin === '' ? '' : String(pointsMin)} onChange={e => setPointsMin(e.target.value === '' ? '' : Number(e.target.value))} placeholder="np. 50" />
+          </div>
+        </div>
+        {pointsRanking.length === 0 ? (
+          <div className="text-sm text-gray-500">Brak danych punktowych</div>
+        ) : (
+          <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'grid', gap: 6 }}>
+            {pointsRanking
+              .filter(r => pointsMin === '' ? true : r.total >= Number(pointsMin))
+              .sort((a,b) => b.total - a.total)
+              .map(r => (
+              <li key={r.id} className="list-item">
+                <div>
+                  <div className="font-medium">{r.firstName} {r.lastName}</div>
+                  <div className="text-sm text-gray-500">Punkty: <strong>{r.total}</strong></div>
+                </div>
+              </li>
+            ))}
+          </ul>
+        )}
       </section>
 
       <section className="card" style={{ marginBottom: 'var(--space-6)' }}>
