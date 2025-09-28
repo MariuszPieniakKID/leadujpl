@@ -26,6 +26,7 @@ router.post('/generate', requireAuth, async (req, res) => {
     const safe = (s: any) => (s == null ? '' : String(s))
     const form = snapshot.form || {}
     const calc = snapshot.calc || {}
+    const quick = (snapshot as any).quickCalc || null
     const today = new Date()
     const dateStr = today.toLocaleDateString('pl-PL')
 
@@ -131,6 +132,17 @@ router.post('/generate', requireAuth, async (req, res) => {
     doc.fontSize(9).fillColor('#666666').text('Oferta ma charakter pogladowy. Ostateczne warunki moga sie roznic.', { width: 515 })
     doc.fillColor('black')
 
+    if (quick && typeof quick.resultKwp === 'number') {
+      doc.moveDown(0.75)
+      doc.fontSize(14).text('Szybki kalkulator mocy PV')
+      doc.moveDown(0.5)
+      doc.fontSize(11)
+        .text(`Średnie mies. zużycie: ${(Number(quick.monthlyKwh || 0)).toLocaleString('pl-PL')} kWh`)
+        .text(`Margines bezpieczeństwa: ${Number(quick.margin || 0).toFixed(2)}`)
+        .text(`Roczna produkcja 1 kWp: ${Number(quick.yieldPerKwp || 0).toLocaleString('pl-PL')} kWh`)
+        .text(`Wynik: ${Number(quick.resultKwp || 0).toFixed(2)} kWp`)
+    }
+
     doc.end()
   } catch (e) {
     res.status(500).json({ error: (e as Error).message })
@@ -154,6 +166,7 @@ router.post('/save', requireAuth, async (req, res) => {
       const safe = (s: any) => (s == null ? '' : String(s))
       const form = snapshot.form || {}
       const calc = snapshot.calc || {}
+      const quick = (snapshot as any).quickCalc || null
       const today = new Date()
       const dateStr = today.toLocaleDateString('pl-PL')
 
@@ -258,6 +271,17 @@ router.post('/save', requireAuth, async (req, res) => {
       doc.moveDown(1)
       doc.fontSize(9).fillColor('#666666').text('Oferta ma charakter pogladowy. Ostateczne warunki moga sie roznic.', { width: 515 })
       doc.fillColor('black')
+
+      if (quick && typeof quick.resultKwp === 'number') {
+        doc.moveDown(0.75)
+        doc.fontSize(14).text('Szybki kalkulator mocy PV')
+        doc.moveDown(0.5)
+        doc.fontSize(11)
+          .text(`Średnie mies. zużycie: ${(Number(quick.monthlyKwh || 0)).toLocaleString('pl-PL')} kWh`)
+          .text(`Margines bezpieczeństwa: ${Number(quick.margin || 0).toFixed(2)}`)
+          .text(`Roczna produkcja 1 kWp: ${Number(quick.yieldPerKwp || 0).toLocaleString('pl-PL')} kWh`)
+          .text(`Wynik: ${Number(quick.resultKwp || 0).toFixed(2)} kWp`)
+      }
 
       doc.end()
     })

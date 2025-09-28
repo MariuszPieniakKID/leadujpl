@@ -48,6 +48,16 @@ export default function CalculatorPage() {
     extraItems: [] as Array<{ label: string; amount: number }>,
   })
 
+  // Quick PV power calculator
+  const [quickCalc, setQuickCalc] = useState<{ monthlyKwh: string; margin: number; yieldPerKwp: number }>({ monthlyKwh: '', margin: 1.2, yieldPerKwp: 1000 })
+  const quickKwp = useMemo(() => {
+    const mkwh = Number(String(quickCalc.monthlyKwh).replace(',', '.'))
+    const margin = Number(quickCalc.margin || 0)
+    const yieldPer = Number(quickCalc.yieldPerKwp || 0)
+    if (!(mkwh > 0 && margin > 0 && yieldPer > 0)) return null as number | null
+    return (mkwh * 12 * margin) / yieldPer
+  }, [quickCalc])
+
   const prices = (data as any).pricing
   const settings = (data as any).settings
 
@@ -144,7 +154,15 @@ export default function CalculatorPage() {
   const [selectedClientId, setSelectedClientId] = useState<string | null>(null)
 
   async function onGeneratePDF() {
-    const snapshot = { form, calc }
+    const snapshot: any = { form, calc }
+    if (quickKwp && quickKwp > 0) {
+      snapshot.quickCalc = {
+        monthlyKwh: Number(String(quickCalc.monthlyKwh).replace(',', '.')),
+        margin: Number(quickCalc.margin || 0),
+        yieldPerKwp: Number(quickCalc.yieldPerKwp || 0),
+        resultKwp: quickKwp,
+      }
+    }
     const blob = await generateOfferPDF(snapshot)
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
@@ -167,7 +185,15 @@ export default function CalculatorPage() {
       setSaveError(null)
       setSaving(true)
       if (!selectedClientId) { setSaveError('Wybierz klienta'); return }
-      const snapshot = { form, calc }
+      const snapshot: any = { form, calc }
+      if (quickKwp && quickKwp > 0) {
+        snapshot.quickCalc = {
+          monthlyKwh: Number(String(quickCalc.monthlyKwh).replace(',', '.')),
+          margin: Number(quickCalc.margin || 0),
+          yieldPerKwp: Number(quickCalc.yieldPerKwp || 0),
+          resultKwp: quickKwp,
+        }
+      }
       await saveOfferForClient(selectedClientId, undefined, snapshot)
       setSaveOpen(false)
     } catch (e: any) {
@@ -200,6 +226,29 @@ export default function CalculatorPage() {
 
   return (
     <div className="container">
+      <section className="card" style={{ maxWidth: 1100, marginBottom: 12 }}>
+        <h3 style={{ marginTop: 0 }}>Szybki kalkulator mocy PV</h3>
+        <div className="form-grid-2">
+          <div className="form-group">
+            <label className="form-label">Średnie miesięczne zużycie (kWh)</label>
+            <input className="form-input" inputMode="decimal" value={quickCalc.monthlyKwh} onChange={e => setQuickCalc({ ...quickCalc, monthlyKwh: e.target.value })} placeholder="np. 400" />
+          </div>
+          <div className="form-group">
+            <label className="form-label">Margines bezpieczeństwa</label>
+            <input className="form-input" type="number" step="0.01" value={quickCalc.margin} onChange={e => setQuickCalc({ ...quickCalc, margin: Number(e.target.value || 0) })} />
+          </div>
+          <div className="form-group">
+            <label className="form-label">Roczna produkcja z 1 kWp (kWh)</label>
+            <input className="form-input" type="number" step="1" value={quickCalc.yieldPerKwp} onChange={e => setQuickCalc({ ...quickCalc, yieldPerKwp: Number(e.target.value || 0) })} />
+          </div>
+        </div>
+        <div className="list" style={{ marginTop: 6 }}>
+          <div className="list-row" style={{ fontWeight: 600 }}>
+            <span>Szacowana moc instalacji</span>
+            <span>{quickKwp && quickKwp > 0 ? `${quickKwp.toFixed(2)} kWp` : '—'}</span>
+          </div>
+        </div>
+      </section>
       <div className="page-header">
         <div>
           <h1 className="page-title">Kalkulator ofertowy</h1>
