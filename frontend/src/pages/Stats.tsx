@@ -309,7 +309,7 @@ export default function StatsPage() {
                     <th>Handlowiec</th>
                     <th>Spotkania</th>
                     <th>Umowa</th>
-                    <th>Przełożone</th>
+                    <th>Punkty</th>
                     <th>Dogrywka</th>
                     <th>Umówione</th>
                     <th>Odbyte</th>
@@ -329,7 +329,7 @@ export default function StatsPage() {
                         <td>{r.firstName} {r.lastName}</td>
                         <td>{r.total}</td>
                         <td>{r.byStatus['Umowa'] || 0}</td>
-                        <td>{r.byStatus['Przełożone'] || 0}</td>
+                        <td>{/* points */}{(() => { try { return (r as any).total } catch { return 0 } })()}</td>
                         <td>{r.byStatus['Dogrywka'] || 0}</td>
                         <td>{r.byStatus['Umówione'] || 0}</td>
                         <td>{r.byStatus['Odbyte'] || 0}</td>
@@ -351,7 +351,7 @@ function exportRankingCsv(rows: Array<{ id: string; firstName: string; lastName:
     alert('Brak danych do eksportu')
     return
   }
-  const headers = ['Handlowiec','Spotkania','Umowa','Przełożone','Dogrywka','Umówione','Odbyte','Porażka']
+  const headers = ['Handlowiec','Spotkania','Umowa','Punkty','Dogrywka','Umówione','Odbyte','Porażka']
   const data = rows
     .slice()
     .sort((a, b) => {
@@ -363,7 +363,7 @@ function exportRankingCsv(rows: Array<{ id: string; firstName: string; lastName:
       `${r.firstName} ${r.lastName}`.trim(),
       r.total,
       r.byStatus['Umowa'] || 0,
-      r.byStatus['Przełożone'] || 0,
+      (r as any).total || 0,
       r.byStatus['Dogrywka'] || 0,
       r.byStatus['Umówione'] || 0,
       r.byStatus['Odbyte'] || 0,
