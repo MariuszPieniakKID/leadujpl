@@ -210,7 +210,7 @@ export default function EmbeddedCalculator({ clientId, meetingId, offerId, onSav
   return (
     <div className="card" style={{ border: '1px solid var(--gray-200)', marginTop: 8 }}>
       <div className="card" style={{ border: '1px solid var(--gray-200)', marginBottom: 8 }}>
-        <h3 style={{ marginTop: 0 }}>Szybki kalkulator mocy PV</h3>
+        <h3 style={{ marginTop: 0 }}>Kalkulator mocy PV</h3>
         <div className="form-grid-2">
           <div className="form-group">
             <label className="form-label">Średnie miesięczne zużycie (kWh)</label>

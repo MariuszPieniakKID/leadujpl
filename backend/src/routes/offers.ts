@@ -134,13 +134,19 @@ router.post('/generate', requireAuth, async (req, res) => {
 
     if (quick && typeof quick.resultKwp === 'number') {
       doc.moveDown(0.75)
-      doc.fontSize(14).text('Szybki kalkulator mocy PV')
+      doc.fontSize(14).text('Kalkulator mocy PV')
       doc.moveDown(0.5)
       doc.fontSize(11)
-        .text(`Średnie mies. zużycie: ${(Number(quick.monthlyKwh || 0)).toLocaleString('pl-PL')} kWh`)
-        .text(`Margines bezpieczeństwa: ${Number(quick.margin || 0).toFixed(2)}`)
-        .text(`Roczna produkcja 1 kWp: ${Number(quick.yieldPerKwp || 0).toLocaleString('pl-PL')} kWh`)
-        .text(`Wynik: ${Number(quick.resultKwp || 0).toFixed(2)} kWp`)
+      const rowKV = (label: string, value: string) => {
+        const y = doc.y
+        doc.text(label, 40, y, { continued: true })
+        doc.text(' ', { continued: true })
+        doc.text(value, 300, y, { align: 'right' })
+      }
+      rowKV('Średnie mies. zużycie', `${(Number(quick.monthlyKwh || 0)).toLocaleString('pl-PL')} kWh`)
+      rowKV('Margines bezpieczeństwa', `${Number(quick.margin || 0).toFixed(2)}`)
+      rowKV('Roczna prod. 1 kWp', `${Number(quick.yieldPerKwp || 0).toLocaleString('pl-PL')} kWh`)
+      rowKV('Wynik', `${Number(quick.resultKwp || 0).toFixed(2)} kWp`)
     }
 
     doc.end()
@@ -274,13 +280,19 @@ router.post('/save', requireAuth, async (req, res) => {
 
       if (quick && typeof quick.resultKwp === 'number') {
         doc.moveDown(0.75)
-        doc.fontSize(14).text('Szybki kalkulator mocy PV')
+        doc.fontSize(14).text('Kalkulator mocy PV')
         doc.moveDown(0.5)
         doc.fontSize(11)
-          .text(`Średnie mies. zużycie: ${(Number(quick.monthlyKwh || 0)).toLocaleString('pl-PL')} kWh`)
-          .text(`Margines bezpieczeństwa: ${Number(quick.margin || 0).toFixed(2)}`)
-          .text(`Roczna produkcja 1 kWp: ${Number(quick.yieldPerKwp || 0).toLocaleString('pl-PL')} kWh`)
-          .text(`Wynik: ${Number(quick.resultKwp || 0).toFixed(2)} kWp`)
+        const rowKV = (label: string, value: string) => {
+          const y = doc.y
+          doc.text(label, 40, y, { continued: true })
+          doc.text(' ', { continued: true })
+          doc.text(value, 300, y, { align: 'right' })
+        }
+        rowKV('Średnie mies. zużycie', `${(Number(quick.monthlyKwh || 0)).toLocaleString('pl-PL')} kWh`)
+        rowKV('Margines bezpieczeństwa', `${Number(quick.margin || 0).toFixed(2)}`)
+        rowKV('Roczna prod. 1 kWp', `${Number(quick.yieldPerKwp || 0).toLocaleString('pl-PL')} kWh`)
+        rowKV('Wynik', `${Number(quick.resultKwp || 0).toFixed(2)} kWp`)
       }
 
       doc.end()
