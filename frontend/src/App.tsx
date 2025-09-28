@@ -1336,6 +1336,7 @@ function Dashboard() {
                                 const rev = await reverseGeocode(latitude, longitude)
                                 await api.post(`/api/meetings/${editMeetingId}/capture-location`, rev)
                                 alert('Lokalizacja zapisana')
+                                resolve()
                               } catch (e) { reject(e) }
                             }, (err) => reject(err), { enableHighAccuracy: true, timeout: 10000 })
                           })
