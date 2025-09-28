@@ -232,8 +232,9 @@ export default function ClientsPage() {
                     <span style={{ color: 'var(--gray-600)', fontSize: 12 }}>{c.phone || '—'}</span>
                   </div>
                   <div className="client-actions" style={{ display: 'flex', gap: 8, flexShrink: 0, minWidth: 0 }}>
-                    <button className="btn btn-sm secondary" onClick={() => setExpanded(prev => ({ ...prev, [c.id]: !prev[c.id] }))}>{expanded[c.id] ? 'Zwiń' : 'Szczegóły'}</button>
-                    <button className="btn btn-sm danger" onClick={() => onDelete(c.id)}>Usuń</button>
+                    {!expanded[c.id] && (
+                      <button className="btn btn-sm secondary" onClick={() => setExpanded(prev => ({ ...prev, [c.id]: true }))}>Szczegóły</button>
+                    )}
                   </div>
                 </div>
                 {expanded[c.id] && (
@@ -258,6 +259,10 @@ export default function ClientsPage() {
                       <div style={{ marginTop: 6 }}>
                         <ClientAttachments clientId={c.id} />
                       </div>
+                    </div>
+                    <div className="modal-footer" style={{ justifyContent: 'flex-end' }}>
+                      <button className="secondary" onClick={() => setExpanded(prev => ({ ...prev, [c.id]: false }))}>Zwiń</button>
+                      <button className="danger" onClick={() => onDelete(c.id)}>Usuń</button>
                     </div>
                   </div>
                 )}
@@ -356,8 +361,8 @@ function AttachmentCategoriesInline({ clientId }: { clientId: string }) {
   )
 }
 
-function ClientAttachments({ clientId }: { clientId: string }) {
-  const [open, setOpen] = useState(false)
+function ClientAttachments({ clientId, defaultOpen = true }: { clientId: string; defaultOpen?: boolean }) {
+  const [open, setOpen] = useState(!!defaultOpen)
   const [items, setItems] = useState<AttachmentItem[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -375,9 +380,12 @@ function ClientAttachments({ clientId }: { clientId: string }) {
     }
   }
 
+  useEffect(() => { if (open) load() }, [])
   return (
     <div>
-      <button className="btn btn-sm secondary" onClick={() => { setOpen(o => !o); if (!open) load() }}>{open ? 'Ukryj' : 'Pokaż'}</button>
+      {!defaultOpen && (
+        <button className="btn btn-sm secondary" onClick={() => { setOpen(o => !o); if (!open) load() }}>{open ? 'Ukryj' : 'Pokaż'}</button>
+      )}
       {open && (
         <div className="card" style={{ marginTop: 6 }}>
           {loading ? <div className="text-sm text-gray-500">Ładowanie…</div> : error ? <div className="text-error text-sm">{error}</div> : (
