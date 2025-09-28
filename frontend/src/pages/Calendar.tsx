@@ -174,26 +174,30 @@ export default function CalendarPage() {
     return `${pad(date.getHours())}:${pad(date.getMinutes())}`
   }
 
-  function roundToNextFullHour(d: Date): Date {
+  function roundToNextHalfHour(d: Date): Date {
     const x = new Date(d)
-    if (x.getMinutes() > 0 || x.getSeconds() > 0 || x.getMilliseconds() > 0) {
-      x.setHours(x.getHours() + 1)
+    const m = x.getMinutes()
+    if (m === 0 || m === 30) {
+      x.setSeconds(0, 0)
+      return x
     }
-    x.setMinutes(0, 0, 0)
+    if (m < 30) {
+      x.setMinutes(30, 0, 0)
+      return x
+    }
+    x.setHours(x.getHours() + 1, 0, 0, 0)
     return x
   }
 
   function computeEndForStart(dateStr: string, timeStr: string): { endDate: string; endTime: string } {
     if (!dateStr || !timeStr) return { endDate: dateStr, endTime: timeStr }
     const [y, m, d] = dateStr.split('-').map(Number)
-    const [hh] = timeStr.split(':').map(Number)
-    const start = new Date(y, (m || 1) - 1, d || 1, hh || 0, 0, 0, 0)
+    const [hh, mm] = timeStr.split(':').map(Number)
+    const start = new Date(y, (m || 1) - 1, d || 1, hh || 0, mm || 0, 0, 0)
     const end = new Date(start)
     end.setHours(end.getHours() + 1)
-    // Keep same day; clamp if crosses midnight
-    const sameDay = end.getFullYear() === start.getFullYear() && end.getMonth() === start.getMonth() && end.getDate() === start.getDate()
-    const endDate = toLocalDateValue(start)
-    const endTime = sameDay ? toLocalTimeValue(end) : '23:00'
+    const endDate = toLocalDateValue(end)
+    const endTime = toLocalTimeValue(end)
     return { endDate, endTime }
   }
 
@@ -207,7 +211,7 @@ export default function CalendarPage() {
 
   function openCreateNow() {
     setCreateError(null)
-    const start = roundToNextFullHour(new Date())
+    const start = roundToNextHalfHour(new Date())
     const end = addHours(start, 1)
     setCreateForm(f => ({
       ...f,
@@ -288,7 +292,7 @@ export default function CalendarPage() {
 
   async function onSelect(slot: SlotInfo) {
     setCreateError(null)
-    const start = roundToNextFullHour(slot.start as Date)
+    const start = roundToNextHalfHour(slot.start as Date)
     const end = addHours(start, 1)
     setCreateForm(f => ({
       ...f,
@@ -823,14 +827,18 @@ export default function CalendarPage() {
                 </div>
                 <div className="form-group">
                   <label className="form-label">Godzina</label>
-                  <select className="form-select" value={(createForm.startTime || '00:00').split(':')[0]} onChange={e => {
-                    const hour = e.target.value.padStart(2,'0')
-                    const startTime = hour + ':00'
+                  <select className="form-select" value={createForm.startTime || '00:00'} onChange={e => {
+                    const startTime = e.target.value
                     const { endDate, endTime } = computeEndForStart(createForm.startDate, startTime)
                     setCreateForm({ ...createForm, startTime, endDate, endTime })
                   }}>
-                    {Array.from({ length: 24 }).map((_, i) => (
-                      <option key={i} value={String(i).padStart(2, '0')}>{String(i).padStart(2,'0')}:00</option>
+                    {Array.from({ length: 24 }).map((_, h) => (
+                      [0,30].map(mn => {
+                        const hh = String(h).padStart(2, '0')
+                        const mm = String(mn).padStart(2, '0')
+                        const v = `${hh}:${mm}`
+                        return <option key={v} value={v}>{v}</option>
+                      })
                     ))}
                   </select>
                 </div>

@@ -296,12 +296,12 @@ function Dashboard() {
     const pad = (n: number) => n.toString().padStart(2, '0')
     return `${pad(date.getHours())}:${pad(date.getMinutes())}`
   }
-  function roundToNextFullHour(d: Date): Date {
+  function roundToNextHalfHour(d: Date): Date {
     const x = new Date(d)
-    if (x.getMinutes() > 0 || x.getSeconds() > 0 || x.getMilliseconds() > 0) {
-      x.setHours(x.getHours() + 1)
-    }
-    x.setMinutes(0, 0, 0)
+    const m = x.getMinutes()
+    if (m === 0 || m === 30) { x.setSeconds(0, 0); return x }
+    if (m < 30) { x.setMinutes(30, 0, 0); return x }
+    x.setHours(x.getHours() + 1, 0, 0, 0)
     return x
   }
   function toLocalInputValue(date: Date) {
@@ -323,7 +323,7 @@ function Dashboard() {
 
   function openCreate() {
     setCreateError(null)
-    const start = roundToNextFullHour(new Date())
+    const start = roundToNextHalfHour(new Date())
     const end = new Date(start.getTime() + 60 * 60 * 1000)
     setCreateForm(f => ({
       ...f,
@@ -1100,17 +1100,21 @@ function Dashboard() {
               </div>
               <div className="form-group">
                 <label className="form-label">Godzina</label>
-                <select className="form-select" value={(createForm.startTime || '00:00').split(':')[0]} onChange={e => {
-                  const hour = e.target.value.padStart(2,'0')
-                  const hh = hour + ':00'
+                <select className="form-select" value={createForm.startTime || '00:00'} onChange={e => {
+                  const v = e.target.value
                   const [y, m, d] = createForm.startDate.split('-').map(Number)
-                  const H = Number(hour)
-                  const start = new Date(y, (m || 1) - 1, d || 1, isNaN(H) ? 0 : H, 0, 0, 0)
+                  const [hh, mm] = v.split(':').map(Number)
+                  const start = new Date(y, (m || 1) - 1, d || 1, isNaN(hh) ? 0 : hh, isNaN(mm) ? 0 : mm, 0, 0)
                   const end = new Date(start.getTime() + 60 * 60 * 1000)
-                  setCreateForm({ ...createForm, startTime: hh, endDate: toLocalDateValue(start), endTime: toLocalTimeValue(end) })
+                  setCreateForm({ ...createForm, startTime: v, endDate: toLocalDateValue(end), endTime: toLocalTimeValue(end) })
                 }}>
-                  {Array.from({ length: 24 }).map((_, i) => (
-                    <option key={i} value={String(i).padStart(2, '0')}>{String(i).padStart(2,'0')}:00</option>
+                  {Array.from({ length: 24 }).map((_, h) => (
+                    [0,30].map(mn => {
+                      const hh = String(h).padStart(2, '0')
+                      const mm = String(mn).padStart(2, '0')
+                      const v = `${hh}:${mm}`
+                      return <option key={v} value={v}>{v}</option>
+                    })
                   ))}
                 </select>
               </div>
