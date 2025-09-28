@@ -25,6 +25,7 @@ export default function MyClientsPage() {
   const [scope, setScope] = useState<'mine' | 'team'>('mine')
   const [managers, setManagers] = useState<AppUserSummary[]>([])
   const [managerId, setManagerId] = useState<string>('')
+  const [expanded, setExpanded] = useState<Record<string, boolean>>({})
   const user = getUser()
 
   async function load() {
@@ -201,26 +202,41 @@ export default function MyClientsPage() {
                     <span style={{ color: 'var(--gray-600)', fontSize: 12 }}>{c.phone || '—'}</span>
                   </div>
                   <div className="client-actions" style={{ display: 'flex', gap: 8, flexShrink: 0, minWidth: 0 }}>
-                    <ClientStatusAndActions clientId={c.id} />
-                    <button className="btn btn-sm secondary" onClick={() => {
-                      const id = c.id
-                      const el = document.getElementById('mc-'+id)
-                      if (el) el.style.display = 'block'
-                    }}>Szczegóły</button>
+                    {!expanded[c.id] && (
+                      <button className="btn btn-sm secondary" onClick={() => setExpanded(prev => ({ ...prev, [c.id]: true }))}>Szczegóły</button>
+                    )}
                   </div>
                 </div>
-                <div id={'mc-'+c.id} style={{ display: 'none', marginTop: 8 }}>
-                  <div className="list">
-                    <div className="list-row"><span>E-mail</span><span>{c.email || <span className="text-gray-400">—</span>}</span></div>
-                    <div className="list-row"><span>Adres</span><span style={{ whiteSpace: 'normal', overflowWrap: 'anywhere' }}>{[c.street, c.city].filter(Boolean).join(', ') || <span className="text-gray-400">—</span>}</span></div>
-                    <div className="list-row"><span>Kategoria</span><span>{renderCategory(c.category)}</span></div>
-                    <div className="list-row"><span>Załączniki</span><span><ClientAttachments clientId={c.id} defaultOpen /></span></div>
-                    <div className="list-row"><span>Oferty</span><span><ClientOffers clientId={c.id} defaultOpen /></span></div>
+                {expanded[c.id] && (
+                  <div style={{ marginTop: 8, display: 'grid', gridTemplateColumns: '1fr', gap: 8, minWidth: 0, overflow: 'hidden' }}>
+                    <div className="list" style={{ width: '100%', minWidth: 0 }}>
+                      <div className="list-row"><span>E-mail</span><span>{c.email || <span className="text-gray-400">—</span>}</span></div>
+                      <div className="list-row"><span>Adres</span><span style={{ whiteSpace: 'normal', overflowWrap: 'anywhere' }}>{[c.street, c.city].filter(Boolean).join(', ') || <span className="text-gray-400">—</span>}</span></div>
+                      <div className="list-row"><span>Kod pocztowy</span><span>{(c as any).postalCode || <span className="text-gray-400">—</span>}</span></div>
+                      <div className="list-row"><span>Kategoria</span><span>{renderCategory(c.category)}</span></div>
+                    </div>
+                    <div className="client-status-actions" style={{ display: 'grid', gridTemplateColumns: '1fr', rowGap: 8, width: '100%', minWidth: 0 }}>
+                      <div style={{ width: '100%', minWidth: 0 }}>
+                        <ClientStatusAndActions clientId={c.id} />
+                      </div>
+                    </div>
+                    <div>
+                      <strong>Załączniki</strong>
+                      <div style={{ marginTop: 6 }}>
+                        <ClientAttachments clientId={c.id} />
+                      </div>
+                    </div>
+                    <div>
+                      <strong>Oferty</strong>
+                      <div style={{ marginTop: 6 }}>
+                        <ClientOffers clientId={c.id} />
+                      </div>
+                    </div>
+                    <div className="modal-footer" style={{ justifyContent: 'flex-end' }}>
+                      <button className="secondary" onClick={() => setExpanded(prev => ({ ...prev, [c.id]: false }))}>Zwiń</button>
+                    </div>
                   </div>
-                  <div className="modal-footer" style={{ justifyContent: 'flex-end' }}>
-                    <button className="secondary" onClick={() => { const el = document.getElementById('mc-'+c.id); if (el) el.style.display = 'none' }}>Zwiń</button>
-                  </div>
-                </div>
+                )}
               </div>
             ))}
           </div>
