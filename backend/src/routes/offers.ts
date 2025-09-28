@@ -64,7 +64,7 @@ router.post('/generate', requireAuth, async (req, res) => {
       .text(toAscii(`Przekop: ${safe(form.trench)}`))
       .text(toAscii(`Dotacja: ${safe(form.grant)}`))
 
-    // Show quick PV calculator summary inline (if available)
+    // Show quick PV and battery calculator summary inline (if available)
     if (quick) {
       const usage = typeof quick.resultKwpUsage === 'number' ? Number(quick.resultKwpUsage || 0) : null
       const cost = typeof quick.resultKwpCost === 'number' ? Number(quick.resultKwpCost || 0) : null
@@ -75,6 +75,18 @@ router.post('/generate', requireAuth, async (req, res) => {
         if (usage != null) doc.text(toAscii(`Moc PV (zużycie): ${usage.toFixed(2)} kWp`))
         if (cost != null) doc.text(toAscii(`Moc PV (koszt): ${cost.toFixed(2)} kWp`))
         if (usage == null && cost == null && legacy != null) doc.text(toAscii(`Moc PV (kalkulator): ${legacy.toFixed(2)} kWp`))
+      }
+      // Battery
+      const bat = (snapshot as any).batteryCalc || null
+      if (bat) {
+        const bUsage = typeof bat.resultKwhUsage === 'number' ? Number(bat.resultKwhUsage || 0) : null
+        const bCost = typeof bat.resultKwhCost === 'number' ? Number(bat.resultKwhCost || 0) : null
+        if (bUsage != null || bCost != null) {
+          doc.moveDown(0.25)
+          doc.fontSize(11)
+          if (bUsage != null) doc.text(toAscii(`Magazyn (zużycie): ${bUsage.toFixed(2)} kWh`))
+          if (bCost != null) doc.text(toAscii(`Magazyn (koszt): ${bCost.toFixed(2)} kWh`))
+        }
       }
     }
 
@@ -224,7 +236,7 @@ router.post('/save', requireAuth, async (req, res) => {
         .text(`Przekop: ${safe(form.trench)}`)
         .text(`Dotacja: ${safe(form.grant)}`)
 
-      // Show quick PV calculator summary inline (if available)
+      // Show quick PV and battery calculator summary inline (if available)
       if (quick) {
         const usage = typeof (quick as any).resultKwpUsage === 'number' ? Number((quick as any).resultKwpUsage || 0) : null
         const cost = typeof (quick as any).resultKwpCost === 'number' ? Number((quick as any).resultKwpCost || 0) : null
@@ -235,6 +247,18 @@ router.post('/save', requireAuth, async (req, res) => {
           if (usage != null) doc.text(toAscii(`Moc PV (zużycie): ${usage.toFixed(2)} kWp`))
           if (cost != null) doc.text(toAscii(`Moc PV (koszt): ${cost.toFixed(2)} kWp`))
           if (usage == null && cost == null && legacy != null) doc.text(toAscii(`Moc PV (kalkulator): ${legacy.toFixed(2)} kWp`))
+        }
+        // Battery
+        const bat = (snapshot as any).batteryCalc || null
+        if (bat) {
+          const bUsage = typeof (bat as any).resultKwhUsage === 'number' ? Number((bat as any).resultKwhUsage || 0) : null
+          const bCost = typeof (bat as any).resultKwhCost === 'number' ? Number((bat as any).resultKwhCost || 0) : null
+          if (bUsage != null || bCost != null) {
+            doc.moveDown(0.25)
+            doc.fontSize(11)
+            if (bUsage != null) doc.text(toAscii(`Magazyn (zużycie): ${bUsage.toFixed(2)} kWh`))
+            if (bCost != null) doc.text(toAscii(`Magazyn (koszt): ${bCost.toFixed(2)} kWh`))
+          }
         }
       }
 

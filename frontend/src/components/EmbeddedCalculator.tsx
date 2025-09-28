@@ -65,6 +65,23 @@ export default function EmbeddedCalculator({ clientId, meetingId, offerId, onSav
     return (monthlyKwh * 12 * margin) / yieldPer
   }, [quickCalc])
 
+  // Battery capacity calculators (two methods)
+  const [batteryCalc, setBatteryCalc] = useState<{ monthlyKwh: string; factor: number; monthlyCost: string; pricePerKwh: string }>({ monthlyKwh: '', factor: 1.25, monthlyCost: '', pricePerKwh: '1.00' })
+  const batteryKwhUsage = useMemo(() => {
+    const mkwh = Number(String(batteryCalc.monthlyKwh).replace(',', '.'))
+    const factor = Number(batteryCalc.factor || 0)
+    if (!(mkwh > 0 && factor > 0)) return null as number | null
+    return (mkwh * 12 * factor) / 1000
+  }, [batteryCalc])
+  const batteryKwhCost = useMemo(() => {
+    const cost = Number(String(batteryCalc.monthlyCost).replace(',', '.'))
+    const price = Number(String(batteryCalc.pricePerKwh).replace(',', '.'))
+    const factor = Number(batteryCalc.factor || 0)
+    if (!(cost > 0 && price > 0 && factor > 0)) return null as number | null
+    const monthlyKwh = cost / price
+    return (monthlyKwh * 12 * factor) / 1000
+  }, [batteryCalc])
+
   const prices = (data as any).pricing
   const settings = (data as any).settings
 
@@ -187,6 +204,14 @@ export default function EmbeddedCalculator({ clientId, meetingId, offerId, onSav
       resultKwpUsage: quickKwpUsage || null,
       resultKwpCost: quickKwpCost || null,
     }
+    snapshot.batteryCalc = {
+      monthlyKwh: Number(String(batteryCalc.monthlyKwh).replace(',', '.')) || null,
+      monthlyCost: Number(String(batteryCalc.monthlyCost).replace(',', '.')) || null,
+      pricePerKwh: Number(String(batteryCalc.pricePerKwh).replace(',', '.')) || null,
+      factor: Number(batteryCalc.factor || 0),
+      resultKwhUsage: batteryKwhUsage || null,
+      resultKwhCost: batteryKwhCost || null,
+    }
     const blob = await generateOfferPDF(snapshot)
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
@@ -206,6 +231,14 @@ export default function EmbeddedCalculator({ clientId, meetingId, offerId, onSav
       yieldPerKwp: Number(quickCalc.yieldPerKwp || 0),
       resultKwpUsage: quickKwpUsage || null,
       resultKwpCost: quickKwpCost || null,
+    }
+    snapshot.batteryCalc = {
+      monthlyKwh: Number(String(batteryCalc.monthlyKwh).replace(',', '.')) || null,
+      monthlyCost: Number(String(batteryCalc.monthlyCost).replace(',', '.')) || null,
+      pricePerKwh: Number(String(batteryCalc.pricePerKwh).replace(',', '.')) || null,
+      factor: Number(batteryCalc.factor || 0),
+      resultKwhUsage: batteryKwhUsage || null,
+      resultKwhCost: batteryKwhCost || null,
     }
     if (onSavedSnapshot) {
       onSavedSnapshot(snapshot)
@@ -260,6 +293,43 @@ export default function EmbeddedCalculator({ clientId, meetingId, offerId, onSav
           <div className="list-row" style={{ fontWeight: 600 }}>
             <span>Szacowana moc (Metoda B — koszt)</span>
             <span>{quickKwpCost && quickKwpCost > 0 ? `${quickKwpCost.toFixed(2)} kWp` : '—'}</span>
+          </div>
+        </div>
+      </div>
+      <div className="card" style={{ border: '1px solid var(--gray-200)', marginBottom: 8 }}>
+        <h3 style={{ marginTop: 0 }}>Kalkulator pojemności magazynu</h3>
+        <div className="form-grid-2">
+          <div className="form-group" style={{ gridColumn: '1 / -1' }}>
+            <strong>Metoda A: na podstawie zużycia (kWh)</strong>
+          </div>
+          <div className="form-group">
+            <label className="form-label">Średnie miesięczne zużycie (kWh)</label>
+            <input className="form-input" inputMode="decimal" value={batteryCalc.monthlyKwh} onChange={e => setBatteryCalc({ ...batteryCalc, monthlyKwh: e.target.value })} placeholder="np. 300" />
+          </div>
+          <div className="form-group">
+            <label className="form-label">Współczynnik (kWh/1000 kWh/rok)</label>
+            <input className="form-input" type="number" step="0.01" value={batteryCalc.factor} onChange={e => setBatteryCalc({ ...batteryCalc, factor: Number(e.target.value || 0) })} />
+          </div>
+          <div className="form-group" style={{ gridColumn: '1 / -1', marginTop: 8 }}>
+            <strong>Metoda B: na podstawie kosztu (zł)</strong>
+          </div>
+          <div className="form-group">
+            <label className="form-label">Średni miesięczny koszt (zł)</label>
+            <input className="form-input" inputMode="decimal" value={batteryCalc.monthlyCost} onChange={e => setBatteryCalc({ ...batteryCalc, monthlyCost: e.target.value })} placeholder="np. 300" />
+          </div>
+          <div className="form-group">
+            <label className="form-label">Cena 1 kWh (zł)</label>
+            <input className="form-input" inputMode="decimal" value={batteryCalc.pricePerKwh} onChange={e => setBatteryCalc({ ...batteryCalc, pricePerKwh: e.target.value })} placeholder="np. 1,00" />
+          </div>
+        </div>
+        <div className="list" style={{ marginTop: 6 }}>
+          <div className="list-row" style={{ fontWeight: 600 }}>
+            <span>Szacowana pojemność (Metoda A — zużycie)</span>
+            <span>{batteryKwhUsage && batteryKwhUsage > 0 ? `${batteryKwhUsage.toFixed(2)} kWh` : '—'}</span>
+          </div>
+          <div className="list-row" style={{ fontWeight: 600 }}>
+            <span>Szacowana pojemność (Metoda B — koszt)</span>
+            <span>{batteryKwhCost && batteryKwhCost > 0 ? `${batteryKwhCost.toFixed(2)} kWh` : '—'}</span>
           </div>
         </div>
       </div>
