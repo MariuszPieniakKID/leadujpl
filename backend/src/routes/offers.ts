@@ -24,35 +24,39 @@ router.post('/generate', requireAuth, async (req, res) => {
 
     const pln = (n: number) => (isFinite(n) ? n : 0).toLocaleString('pl-PL', { style: 'currency', currency: 'PLN' })
     const safe = (s: any) => (s == null ? '' : String(s))
+    const toAscii = (s: string) => String(s)
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/ł/g, 'l').replace(/Ł/g, 'L')
     const form = snapshot.form || {}
     const calc = snapshot.calc || {}
     const quick = (snapshot as any).quickCalc || null
     const today = new Date()
     const dateStr = today.toLocaleDateString('pl-PL')
 
-    doc.fontSize(22).text('Oferta fotowoltaiczna', { align: 'center' })
+    doc.fontSize(22).text(toAscii('Oferta fotowoltaiczna'), { align: 'center' })
     doc.moveDown(0.5)
     doc.fontSize(10).text(`Data: ${dateStr}`, { align: 'center' })
     doc.moveDown(1)
-    doc.fontSize(11).text(`Przygotowal: ${user ? `${user.firstName} ${user.lastName}` : current.id}`)
-    if (user?.email) doc.fontSize(10).fillColor('#555555').text(`Email: ${user.email}`).fillColor('black')
+    doc.fontSize(11).text(toAscii(`Przygotował: ${user ? `${user.firstName} ${user.lastName}` : current.id}`))
+    if (user?.email) doc.fontSize(10).fillColor('#555555').text(toAscii(`Email: ${user.email}`)).fillColor('black')
     doc.moveDown(0.5)
     doc.moveTo(40, doc.y).lineTo(555, doc.y).strokeColor('#dddddd').stroke().strokeColor('black')
     doc.moveDown(0.75)
 
-    doc.fontSize(14).text('Konfiguracja systemu')
+    doc.fontSize(14).text(toAscii('Konfiguracja systemu'))
     doc.moveDown(0.5)
     doc.fontSize(11)
-      .text(`Rodzaj systemu: ${safe(form.systemType)}`)
-      .text(`Zestaw PV: ${safe(form.pvSet) || '—'}`)
-      .text(`Magazyn energii: ${safe(form.battery) || '—'}`)
-      .text(`Model falownika: ${safe(form.inverter) || '—'}`)
-      .text(`Backup: ${safe(form.backup)}`)
-      .text(`Przekop: ${safe(form.trench)}`)
-      .text(`Dotacja: ${safe(form.grant)}`)
+      .text(toAscii(`Rodzaj systemu: ${safe(form.systemType)}`))
+      .text(toAscii(`Zestaw PV: ${safe(form.pvSet) || '—'}`))
+      .text(toAscii(`Magazyn energii: ${safe(form.battery) || '—'}`))
+      .text(toAscii(`Model falownika: ${safe(form.inverter) || '—'}`))
+      .text(toAscii(`Backup: ${safe(form.backup)}`))
+      .text(toAscii(`Przekop: ${safe(form.trench)}`))
+      .text(toAscii(`Dotacja: ${safe(form.grant)}`))
 
     doc.moveDown(0.75)
-    doc.fontSize(14).text('Podsumowanie kosztow (netto)')
+    doc.fontSize(14).text(toAscii('Podsumowanie kosztów (netto)'))
     doc.moveDown(0.5)
     const row = (label: string, value: string | number, bold = false) => {
       const y = doc.y
@@ -139,7 +143,7 @@ router.post('/generate', requireAuth, async (req, res) => {
       doc.fontSize(11)
       const rowKV = (label: string, value: string) => {
         const y = doc.y
-        doc.text(label, 40, y, { continued: true })
+      doc.text(toAscii(label), 40, y, { continued: true })
         doc.text(' ', { continued: true })
         doc.text(value, 300, y, { align: 'right' })
       }
@@ -217,7 +221,7 @@ router.post('/save', requireAuth, async (req, res) => {
       row('Suma netto', calc.subtotalNet || 0, true)
 
       doc.moveDown(0.75)
-      doc.fontSize(14).text('Rozliczenie')
+    doc.fontSize(14).text(toAscii('Rozliczenie'))
       doc.moveDown(0.5)
       row('Dotacja', `- ${pln(calc.grant || 0)}`)
       row('Wkład własny', `- ${pln(form.downPayment || 0)}`)
@@ -225,12 +229,12 @@ router.post('/save', requireAuth, async (req, res) => {
       row('Kwota finansowana', calc.financed || 0, true)
 
       doc.moveDown(1)
-      doc.fontSize(14).text('Finansowanie')
+    doc.fontSize(14).text(toAscii('Finansowanie'))
       doc.moveDown(0.5)
       doc.fontSize(11)
-        .text(`RRSO rocznie: ${(((calc.rrsoYear || 0) * 100) as number).toFixed(2)}%`)
-        .text(`Okres (miesiace): ${safe(form.termMonths)}`)
-        .text(`Rata miesieczna: ${pln(Math.abs(calc.monthly || 0))}`)
+      .text(toAscii(`RRSO rocznie: ${(((calc.rrsoYear || 0) * 100) as number).toFixed(2)}%`))
+      .text(toAscii(`Okres (miesiące): ${safe(form.termMonths)}`))
+      .text(toAscii(`Rata miesięczna: ${pln(Math.abs(calc.monthly || 0))}`))
 
       // Other options (12..120 months)
       try {
@@ -275,12 +279,12 @@ router.post('/save', requireAuth, async (req, res) => {
       } catch {}
 
       doc.moveDown(1)
-      doc.fontSize(9).fillColor('#666666').text('Oferta ma charakter pogladowy. Ostateczne warunki moga sie roznic.', { width: 515 })
+    doc.fontSize(9).fillColor('#666666').text(toAscii('Oferta ma charakter poglądowy. Ostateczne warunki mogą się różnić.'), { width: 515 })
       doc.fillColor('black')
 
       if (quick && typeof quick.resultKwp === 'number') {
         doc.moveDown(0.75)
-        doc.fontSize(14).text('Kalkulator mocy PV')
+      doc.fontSize(14).text(toAscii('Kalkulator mocy PV'))
         doc.moveDown(0.5)
         doc.fontSize(11)
         const rowKV = (label: string, value: string) => {
@@ -289,10 +293,10 @@ router.post('/save', requireAuth, async (req, res) => {
           doc.text(' ', { continued: true })
           doc.text(value, 300, y, { align: 'right' })
         }
-        rowKV('Średnie mies. zużycie', `${(Number(quick.monthlyKwh || 0)).toLocaleString('pl-PL')} kWh`)
-        rowKV('Margines bezpieczeństwa', `${Number(quick.margin || 0).toFixed(2)}`)
-        rowKV('Roczna prod. 1 kWp', `${Number(quick.yieldPerKwp || 0).toLocaleString('pl-PL')} kWh`)
-        rowKV('Wynik', `${Number(quick.resultKwp || 0).toFixed(2)} kWp`)
+      rowKV(toAscii('Średnie mies. zużycie'), `${(Number(quick.monthlyKwh || 0)).toLocaleString('pl-PL')} kWh`)
+      rowKV(toAscii('Margines bezpieczeństwa'), `${Number(quick.margin || 0).toFixed(2)}`)
+      rowKV(toAscii('Roczna prod. 1 kWp'), `${Number(quick.yieldPerKwp || 0).toLocaleString('pl-PL')} kWh`)
+      rowKV(toAscii('Wynik'), `${Number(quick.resultKwp || 0).toFixed(2)} kWp`)
       }
 
       doc.end()
