@@ -526,6 +526,8 @@ function Dashboard() {
       setMeetings(res.data)
       try { for (const m of res.data) { await offlineStore.put('meetings', m) } } catch {}
       await refreshManagerAggregates()
+      // refresh my points after creating meeting (may award +2/+8)
+      try { const pts = await fetchMyPoints(); setMyPoints(pts.total || 0) } catch {}
     } catch (e: any) {
       setCreateError(e?.response?.data?.error || e?.message || 'Nie udało się utworzyć spotkania')
     }
