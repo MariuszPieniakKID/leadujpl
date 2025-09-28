@@ -1289,15 +1289,15 @@ function Dashboard() {
             ) : (
             <>
             <div className="form-grid-2">
-              <div className="form-group">
+              <div>
                 <label className="form-label">Temat/Notatka</label>
                 <input className="form-input" value={editForm.notes} onChange={e => setEditForm({ ...editForm, notes: e.target.value })} />
               </div>
-              <div className="form-group">
+              <div>
                 <label className="form-label">Lokalizacja</label>
                 <input className="form-input" value={editForm.location} onChange={e => setEditForm({ ...editForm, location: e.target.value })} />
               </div>
-              <div className="form-group">
+              <div>
                 <label className="form-label">Początek</label>
                 <input className="form-input" type="datetime-local" value={editForm.startLocal} onChange={e => {
                   const v = e.target.value
@@ -1314,10 +1314,39 @@ function Dashboard() {
                   setEditForm({ ...editForm, startLocal: v, endLocal: newEnd })
                 }} />
               </div>
-              <div className="form-group">
+              <div>
                 <label className="form-label">Koniec</label>
                 <input className="form-input" type="datetime-local" value={editForm.endLocal} onChange={e => setEditForm({ ...editForm, endLocal: e.target.value })} />
               </div>
+              {editMeetingId && (() => {
+                try {
+                  const now = Date.now()
+                  const startTs = new Date(editForm.startLocal).getTime()
+                  const endTs = editForm.endLocal ? new Date(editForm.endLocal).getTime() : (startTs + 2 * 60 * 60 * 1000)
+                  const ongoing = !!(startTs && now >= startTs && now <= endTs)
+                  return ongoing ? (
+                    <div style={{ gridColumn: '1 / -1' }}>
+                      <button className="secondary" onClick={async () => {
+                        if (!navigator.geolocation || !editMeetingId) { alert('Brak wsparcia geolokalizacji'); return }
+                        try {
+                          await new Promise<void>((resolve, reject) => {
+                            navigator.geolocation.getCurrentPosition(async (pos) => {
+                              try {
+                                const { latitude, longitude } = pos.coords
+                                const rev = await reverseGeocode(latitude, longitude)
+                                await api.post(`/api/meetings/${editMeetingId}/capture-location`, rev)
+                                alert('Lokalizacja zapisana')
+                              } catch (e) { reject(e) }
+                            }, (err) => reject(err), { enableHighAccuracy: true, timeout: 10000 })
+                          })
+                        } catch (e: any) {
+                          alert(e?.response?.data?.error || e?.message || 'Nie udało się pobrać/zapisać lokalizacji')
+                        }
+                      }}>Pobierz lokalizację</button>
+                    </div>
+                  ) : null
+                } catch { return null }
+              })()}
             </div>
 
             <div style={{ marginTop: 'var(--space-6)', paddingTop: 'var(--space-4)', borderTop: '1px solid var(--gray-200)' }}>
@@ -1581,6 +1610,19 @@ function App() {
       <InstallPrompt />
     </BrowserRouter>
   )
+}
+
+async function reverseGeocode(lat: number, lon: number): Promise<{ address: string; city: string; postalCode: string; street: string; houseNumber: string }> {
+  const url = `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${encodeURIComponent(lat)}&lon=${encodeURIComponent(lon)}&addressdetails=1`;
+  const res = await fetch(url, { headers: { 'Accept': 'application/json' } });
+  const data = await res.json();
+  const addr = data.address || {};
+  const street = addr.road || addr.pedestrian || addr.footway || '';
+  const houseNumber = addr.house_number || '';
+  const city = addr.city || addr.town || addr.village || addr.municipality || '';
+  const postalCode = addr.postcode || '';
+  const addressStr = [street && `${street}${houseNumber ? ' ' + houseNumber : ''}`, city, postalCode].filter(Boolean).join(', ');
+  return { address: addressStr, city, postalCode, street, houseNumber };
 }
 
 export default App
