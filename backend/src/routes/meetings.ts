@@ -242,6 +242,52 @@ router.patch('/:id', requireAuth, async (req, res) => {
   }
 });
 
+// Capture sales rep location during an ongoing meeting (one-time, immutable)
+router.post('/:id/capture-location', requireAuth, async (req, res) => {
+  try {
+    const currentUser = req.user!;
+    const { id } = req.params;
+    const { address, street, houseNumber, city, postalCode } = req.body as { address?: string; street?: string; houseNumber?: string; city?: string; postalCode?: string };
+    const meeting = await prisma.meeting.findUnique({ where: { id }, include: { attendee: { select: { managerId: true, id: true } } } });
+    if (!meeting) return res.status(404).json({ error: 'Not found' });
+    // Permissions: attendee themselves, or their manager/admin can record
+    if (currentUser.role !== 'ADMIN') {
+      if (meeting.attendeeId !== currentUser.id) {
+        if (currentUser.role === 'MANAGER') {
+          if (meeting.attendee.managerId !== currentUser.id) return res.status(403).json({ error: 'Forbidden' });
+        } else {
+          return res.status(403).json({ error: 'Forbidden' });
+        }
+      }
+    }
+
+    // Immutable once captured
+    if (meeting.salesLocationCapturedAt) {
+      return res.status(400).json({ error: 'Lokalizacja została już zapisana dla tego spotkania' });
+    }
+
+    // Only allowed while meeting is ongoing
+    const now = Date.now();
+    const start = new Date(meeting.scheduledAt).getTime();
+    const end = meeting.endsAt ? new Date(meeting.endsAt).getTime() : (start + 2 * 60 * 60 * 1000);
+    if (now < start || now > end) {
+      return res.status(400).json({ error: 'Można zapisać lokalizację tylko w trakcie trwania spotkania' });
+    }
+
+    const updated = await prisma.meeting.update({ where: { id }, data: {
+      salesLocationAddress: address || null,
+      salesLocationStreet: street || null,
+      salesLocationHouseNumber: houseNumber || null,
+      salesLocationCity: city || null,
+      salesLocationPostalCode: postalCode || null,
+      salesLocationCapturedAt: new Date(),
+    }});
+    res.json({ ok: true, id: updated.id });
+  } catch (e) {
+    res.status(500).json({ error: (e as Error).message });
+  }
+});
+
 // Delete meeting. Normal user can delete only own. Manager/Admin any.
 router.delete('/:id', requireAuth, async (req, res) => {
   try {

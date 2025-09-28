@@ -101,6 +101,13 @@ model Meeting {
   updatedAt   DateTime @updatedAt
   attachments Attachment[]
   offers      Offer[]
+  // Sales rep captured location during meeting
+  salesLocationAddress     String?
+  salesLocationStreet      String?
+  salesLocationHouseNumber String?
+  salesLocationCity        String?
+  salesLocationPostalCode  String?
+  salesLocationCapturedAt  DateTime?
   @@index([leadId])
   @@index([clientId])
   @@index([attendeeId])

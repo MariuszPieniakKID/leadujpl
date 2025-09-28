@@ -438,11 +438,8 @@ function PushNotificationButton({ mySales }: { mySales: User[] }) {
       }, 2000)
     } catch (e: any) {
       console.error('Push notification error:', e)
-      if (e?.response?.status === 403) {
-        setError('Brak uprawnień do wysyłania powiadomień. Sprawdź czy jesteś zalogowany.')
-      } else {
-        setError(e?.response?.data?.error || e?.message || 'Nie udało się wysłać powiadomienia')
-      }
+      // Pokaż dokładny komunikat z backendu (np. brak zespołu / nie Twoi odbiorcy)
+      setError(e?.response?.data?.error || e?.message || 'Nie udało się wysłać powiadomienia')
     } finally {
       setSending(false)
     }

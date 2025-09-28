@@ -18,6 +18,24 @@ import { listClientOffers, downloadOffer, fetchOffer } from '../lib/api'
 import type { Client } from '../lib/api'
 import { getUser } from '../lib/auth'
 
+type EditMeta = {
+  canCaptureLocation: boolean
+  salesLocation: { address: string; city: string; postalCode: string; street: string; houseNumber: string }
+}
+
+async function reverseGeocode(lat: number, lon: number): Promise<{ address: string; city: string; postalCode: string; street: string; houseNumber: string }> {
+  const url = `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${encodeURIComponent(lat)}&lon=${encodeURIComponent(lon)}&addressdetails=1`;
+  const res = await fetch(url, { headers: { 'Accept': 'application/json' } });
+  const data = await res.json();
+  const addr = data.address || {};
+  const street = addr.road || addr.pedestrian || addr.footway || '';
+  const houseNumber = addr.house_number || '';
+  const city = addr.city || addr.town || addr.village || addr.municipality || '';
+  const postalCode = addr.postcode || '';
+  const addressStr = [street && `${street}${houseNumber ? ' ' + houseNumber : ''}`, city, postalCode].filter(Boolean).join(', ');
+  return { address: addressStr, city, postalCode, street, houseNumber };
+}
+
 type Meeting = {
   id: string
   scheduledAt: string
@@ -33,6 +51,7 @@ export default function CalendarPage() {
   const [meetings, setMeetings] = useState<Meeting[]>([])
   const [users, setUsers] = useState<User[]>([])
   const [selectedUserId, setSelectedUserId] = useState<string | undefined>(undefined)
+  const [editMeta, setEditMeta] = useState<EditMeta>({ canCaptureLocation: false, salesLocation: { address: '', city: '', postalCode: '', street: '', houseNumber: '' } })
   const allowedViews: any[] = [Views.MONTH, Views.WEEK, Views.DAY]
   const [currentDate, setCurrentDate] = useState<Date>(() => {
     const raw = typeof window !== 'undefined' ? localStorage.getItem('calendar_date') : null
@@ -486,6 +505,24 @@ export default function CalendarPage() {
         extraComments: m.extraComments || '',
         status: m.status || '',
       })
+      setEditMeta({
+        canCaptureLocation: (() => {
+          try {
+            if (m.salesLocationCapturedAt) return false
+            const now = Date.now()
+            const startTs = new Date(m.scheduledAt).getTime()
+            const endTs = m.endsAt ? new Date(m.endsAt).getTime() : (startTs + 2 * 60 * 60 * 1000)
+            return now >= startTs && now <= endTs
+          } catch { return false }
+        })(),
+        salesLocation: {
+          address: m.salesLocationAddress || '',
+          city: m.salesLocationCity || '',
+          postalCode: m.salesLocationPostalCode || '',
+          street: m.salesLocationStreet || '',
+          houseNumber: m.salesLocationHouseNumber || '',
+        }
+      })
       await loadAttachments(eventId)
       setEditClientId(m.clientId || null)
       // Determine if navigation is possible (has address)
@@ -526,6 +563,7 @@ export default function CalendarPage() {
             extraComments: m.extraComments || '',
             status: m.status || '',
           })
+          setEditMeta({ canCaptureLocation: false, salesLocation: { address: '', city: '', postalCode: '', street: '', houseNumber: '' } })
           setEditClientId(m.clientId || null)
           try {
             const street = m?.client?.street || ''
@@ -1065,6 +1103,40 @@ export default function CalendarPage() {
                 <label>Koniec</label>
                 <input type="datetime-local" value={editForm.endLocal} onChange={e => setEditForm({ ...editForm, endLocal: e.target.value })} />
               </div>
+              {editMeetingId && (
+                <div style={{ gridColumn: '1 / -1', display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+                  {editMeta.canCaptureLocation ? (
+                    <button className="secondary" onClick={async () => {
+                      if (!navigator.geolocation) { alert('Brak wsparcia geolokalizacji w przeglądarce'); return }
+                      const id = editMeetingId
+                      try {
+                        await new Promise<void>((resolve, reject) => {
+                          navigator.geolocation.getCurrentPosition(async (pos) => {
+                            try {
+                              const { latitude, longitude } = pos.coords
+                              const rev = await reverseGeocode(latitude, longitude)
+                              await api.post(`/api/meetings/${id}/capture-location`, rev)
+                              setEditMeta(m => ({ ...m, canCaptureLocation: false, salesLocation: rev }))
+                              alert('Lokalizacja zapisana')
+                              resolve()
+                            } catch (e: any) { reject(e) }
+                          }, (err) => reject(err), { enableHighAccuracy: true, timeout: 10000 })
+                        })
+                      } catch (e: any) {
+                        alert(e?.response?.data?.error || e?.message || 'Nie udało się pobrać/zapisać lokalizacji')
+                      }
+                    }}>
+                      Pobierz lokalizację
+                    </button>
+                  ) : (
+                    <div className="text-sm text-gray-500">{(() => {
+                      const s = editMeta.salesLocation
+                      const display = [s.street && `${s.street}${s.houseNumber ? ' ' + s.houseNumber : ''}`, s.city, s.postalCode].filter(Boolean).join(', ')
+                      return display ? `Lokalizacja handlowca: ${display}` : ''
+                    })()}</div>
+                  )}
+                </div>
+              )}
             </div>
             )}
 
