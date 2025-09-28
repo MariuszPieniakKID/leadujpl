@@ -45,13 +45,24 @@ export default function EmbeddedCalculator({ clientId, meetingId, offerId, onSav
   })
 
   // Quick PV power calculator (embedded)
-  const [quickCalc, setQuickCalc] = useState<{ monthlyKwh: string; margin: number; yieldPerKwp: number }>({ monthlyKwh: '', margin: 1.2, yieldPerKwp: 1000 })
-  const quickKwp = useMemo(() => {
+  const [quickCalc, setQuickCalc] = useState<{ monthlyKwh: string; margin: number; yieldPerKwp: number; monthlyCost: string; pricePerKwh: string }>({ monthlyKwh: '', margin: 1.2, yieldPerKwp: 1000, monthlyCost: '', pricePerKwh: '1.00' })
+  // Method 1: based on monthly kWh usage
+  const quickKwpUsage = useMemo(() => {
     const mkwh = Number(String(quickCalc.monthlyKwh).replace(',', '.'))
     const margin = Number(quickCalc.margin || 0)
     const yieldPer = Number(quickCalc.yieldPerKwp || 0)
     if (!(mkwh > 0 && margin > 0 && yieldPer > 0)) return null as number | null
     return (mkwh * 12 * margin) / yieldPer
+  }, [quickCalc])
+  // Method 2: based on monthly bill cost and price per kWh
+  const quickKwpCost = useMemo(() => {
+    const cost = Number(String(quickCalc.monthlyCost).replace(',', '.'))
+    const price = Number(String(quickCalc.pricePerKwh).replace(',', '.'))
+    const margin = Number(quickCalc.margin || 0)
+    const yieldPer = Number(quickCalc.yieldPerKwp || 0)
+    if (!(cost > 0 && price > 0 && margin > 0 && yieldPer > 0)) return null as number | null
+    const monthlyKwh = cost / price
+    return (monthlyKwh * 12 * margin) / yieldPer
   }, [quickCalc])
 
   const prices = (data as any).pricing
@@ -167,13 +178,14 @@ export default function EmbeddedCalculator({ clientId, meetingId, offerId, onSav
 
   async function onGeneratePDF() {
     const snapshot: any = { form, calc }
-    if (quickKwp && quickKwp > 0) {
-      snapshot.quickCalc = {
-        monthlyKwh: Number(String(quickCalc.monthlyKwh).replace(',', '.')),
-        margin: Number(quickCalc.margin || 0),
-        yieldPerKwp: Number(quickCalc.yieldPerKwp || 0),
-        resultKwp: quickKwp,
-      }
+    snapshot.quickCalc = {
+      monthlyKwh: Number(String(quickCalc.monthlyKwh).replace(',', '.')) || null,
+      monthlyCost: Number(String(quickCalc.monthlyCost).replace(',', '.')) || null,
+      pricePerKwh: Number(String(quickCalc.pricePerKwh).replace(',', '.')) || null,
+      margin: Number(quickCalc.margin || 0),
+      yieldPerKwp: Number(quickCalc.yieldPerKwp || 0),
+      resultKwpUsage: quickKwpUsage || null,
+      resultKwpCost: quickKwpCost || null,
     }
     const blob = await generateOfferPDF(snapshot)
     const url = URL.createObjectURL(blob)
@@ -186,13 +198,14 @@ export default function EmbeddedCalculator({ clientId, meetingId, offerId, onSav
 
   async function onSave() {
     const snapshot: any = { form, calc }
-    if (quickKwp && quickKwp > 0) {
-      snapshot.quickCalc = {
-        monthlyKwh: Number(String(quickCalc.monthlyKwh).replace(',', '.')),
-        margin: Number(quickCalc.margin || 0),
-        yieldPerKwp: Number(quickCalc.yieldPerKwp || 0),
-        resultKwp: quickKwp,
-      }
+    snapshot.quickCalc = {
+      monthlyKwh: Number(String(quickCalc.monthlyKwh).replace(',', '.')) || null,
+      monthlyCost: Number(String(quickCalc.monthlyCost).replace(',', '.')) || null,
+      pricePerKwh: Number(String(quickCalc.pricePerKwh).replace(',', '.')) || null,
+      margin: Number(quickCalc.margin || 0),
+      yieldPerKwp: Number(quickCalc.yieldPerKwp || 0),
+      resultKwpUsage: quickKwpUsage || null,
+      resultKwpCost: quickKwpCost || null,
     }
     if (onSavedSnapshot) {
       onSavedSnapshot(snapshot)
@@ -212,6 +225,9 @@ export default function EmbeddedCalculator({ clientId, meetingId, offerId, onSav
       <div className="card" style={{ border: '1px solid var(--gray-200)', marginBottom: 8 }}>
         <h3 style={{ marginTop: 0 }}>Kalkulator mocy PV</h3>
         <div className="form-grid-2">
+          <div className="form-group" style={{ gridColumn: '1 / -1' }}>
+            <strong>Metoda A: na podstawie zużycia (kWh)</strong>
+          </div>
           <div className="form-group">
             <label className="form-label">Średnie miesięczne zużycie (kWh)</label>
             <input className="form-input" inputMode="decimal" value={quickCalc.monthlyKwh} onChange={e => setQuickCalc({ ...quickCalc, monthlyKwh: e.target.value })} placeholder="np. 400" />
@@ -224,11 +240,26 @@ export default function EmbeddedCalculator({ clientId, meetingId, offerId, onSav
             <label className="form-label">Roczna produkcja z 1 kWp (kWh)</label>
             <input className="form-input" type="number" step="1" value={quickCalc.yieldPerKwp} onChange={e => setQuickCalc({ ...quickCalc, yieldPerKwp: Number(e.target.value || 0) })} />
           </div>
+          <div className="form-group" style={{ gridColumn: '1 / -1', marginTop: 8 }}>
+            <strong>Metoda B: na podstawie kosztu (zł)</strong>
+          </div>
+          <div className="form-group">
+            <label className="form-label">Średni miesięczny koszt (zł)</label>
+            <input className="form-input" inputMode="decimal" value={quickCalc.monthlyCost} onChange={e => setQuickCalc({ ...quickCalc, monthlyCost: e.target.value })} placeholder="np. 400" />
+          </div>
+          <div className="form-group">
+            <label className="form-label">Cena 1 kWh (zł)</label>
+            <input className="form-input" inputMode="decimal" value={quickCalc.pricePerKwh} onChange={e => setQuickCalc({ ...quickCalc, pricePerKwh: e.target.value })} placeholder="np. 1,00" />
+          </div>
         </div>
         <div className="list" style={{ marginTop: 6 }}>
           <div className="list-row" style={{ fontWeight: 600 }}>
-            <span>Szacowana moc instalacji</span>
-            <span>{quickKwp && quickKwp > 0 ? `${quickKwp.toFixed(2)} kWp` : '—'}</span>
+            <span>Szacowana moc (Metoda A — zużycie)</span>
+            <span>{quickKwpUsage && quickKwpUsage > 0 ? `${quickKwpUsage.toFixed(2)} kWp` : '—'}</span>
+          </div>
+          <div className="list-row" style={{ fontWeight: 600 }}>
+            <span>Szacowana moc (Metoda B — koszt)</span>
+            <span>{quickKwpCost && quickKwpCost > 0 ? `${quickKwpCost.toFixed(2)} kWp` : '—'}</span>
           </div>
         </div>
       </div>
