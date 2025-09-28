@@ -32,6 +32,13 @@ export async function subscribeToPushNotifications(): Promise<boolean> {
       return false;
     }
 
+    // Request notification permission first
+    const permission = await requestNotificationPermission();
+    if (permission !== 'granted') {
+      console.warn('Notification permission denied:', permission);
+      return false;
+    }
+
     // Get service worker registration
     const registration = await navigator.serviceWorker.ready;
 
@@ -39,20 +46,30 @@ export async function subscribeToPushNotifications(): Promise<boolean> {
     let subscription = await registration.pushManager.getSubscription();
 
     if (!subscription) {
-      // Create new subscription
-      subscription = await registration.pushManager.subscribe({
-        userVisibleOnly: true,
-        applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY)
-      });
+      try {
+        // Create new subscription
+        subscription = await registration.pushManager.subscribe({
+          userVisibleOnly: true,
+          applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY)
+        });
+      } catch (subscribeError) {
+        console.error('Failed to create push subscription:', subscribeError);
+        return false;
+      }
     }
 
-    // Send subscription to server
-    await api.post('/api/push-notifications/subscribe', {
-      subscription: subscription.toJSON()
-    });
+    try {
+      // Send subscription to server
+      await api.post('/api/push-notifications/subscribe', {
+        subscription: subscription.toJSON()
+      });
 
-    console.log('Successfully subscribed to push notifications');
-    return true;
+      console.log('Successfully subscribed to push notifications');
+      return true;
+    } catch (apiError) {
+      console.error('Failed to send subscription to server:', apiError);
+      return false;
+    }
   } catch (error) {
     console.error('Failed to subscribe to push notifications:', error);
     return false;
@@ -98,17 +115,25 @@ export async function checkPushNotificationStatus(): Promise<boolean> {
 
 export function requestNotificationPermission(): Promise<NotificationPermission> {
   return new Promise((resolve) => {
+    console.log('Requesting notification permission...');
+    
     if (!('Notification' in window)) {
       console.warn('Notifications not supported');
       resolve('denied');
       return;
     }
 
-    if (Notification.permission !== 'default') {
-      resolve(Notification.permission);
+    const currentPermission = Notification.permission;
+    console.log('Current notification permission:', currentPermission);
+
+    if (currentPermission !== 'default') {
+      resolve(currentPermission);
       return;
     }
 
-    Notification.requestPermission().then(resolve);
+    Notification.requestPermission().then((permission) => {
+      console.log('Notification permission result:', permission);
+      resolve(permission);
+    });
   });
 }

@@ -14,6 +14,23 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
+// Add response interceptor for better error logging (only in development)
+if (import.meta.env.DEV) {
+  api.interceptors.response.use(
+    (response) => response,
+    (error) => {
+      console.error('API Error:', {
+        url: error.config?.url,
+        method: error.config?.method,
+        status: error.response?.status,
+        data: error.response?.data,
+        message: error.message
+      });
+      return Promise.reject(error);
+    }
+  );
+}
+
 // Also add a global interceptor for default axios (in case some modules use it directly)
 axios.interceptors.request.use((config) => {
   const token = getToken();

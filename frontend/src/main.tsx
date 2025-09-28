@@ -3,7 +3,6 @@ import { createRoot } from 'react-dom/client'
 import './index.css'
 import App from './App.tsx'
 import { startOfflineSync } from './lib/offline'
-import { subscribeToPushNotifications, requestNotificationPermission } from './lib/push-notifications'
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
@@ -75,20 +74,10 @@ window.addEventListener('touchmove', (e) => {
 // Setup push notifications
 async function setupPushNotifications(registration: ServiceWorkerRegistration) {
   try {
-    // Request notification permission
-    const permission = await requestNotificationPermission();
-    
-    if (permission === 'granted') {
-      // Subscribe to push notifications
-      await subscribeToPushNotifications();
-      
-      // Import push notification handlers to the service worker
-      if (registration.active) {
-        // The push handlers are loaded automatically by the service worker
-        console.log('Push notifications setup completed');
-      }
-    } else {
-      console.log('Notification permission denied');
+    // Only setup service worker, don't automatically subscribe
+    // Users will subscribe when they interact with the push notification button
+    if (registration.active) {
+      console.log('Push notification service worker ready');
     }
   } catch (error) {
     console.error('Failed to setup push notifications:', error);

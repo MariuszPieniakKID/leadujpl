@@ -415,6 +415,15 @@ function PushNotificationButton({ mySales }: { mySales: User[] }) {
       setSending(true)
       setError(null)
       
+      // First ensure we have push notifications set up
+      const { subscribeToPushNotifications } = await import('../lib/push-notifications')
+      const subscribed = await subscribeToPushNotifications()
+      
+      if (!subscribed) {
+        setError('Nie udało się skonfigurować powiadomień push. Sprawdź uprawnienia w przeglądarce.')
+        return
+      }
+      
       const userIds = mySales.map(u => u.id)
       await api.post('/api/push-notifications/send', {
         message: message.trim(),
@@ -428,7 +437,12 @@ function PushNotificationButton({ mySales }: { mySales: User[] }) {
         setSuccess(false)
       }, 2000)
     } catch (e: any) {
-      setError(e?.response?.data?.error || e?.message || 'Nie udało się wysłać powiadomienia')
+      console.error('Push notification error:', e)
+      if (e?.response?.status === 403) {
+        setError('Brak uprawnień do wysyłania powiadomień. Sprawdź czy jesteś zalogowany.')
+      } else {
+        setError(e?.response?.data?.error || e?.message || 'Nie udało się wysłać powiadomienia')
+      }
     } finally {
       setSending(false)
     }
