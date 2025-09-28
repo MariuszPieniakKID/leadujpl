@@ -6,6 +6,19 @@ import { requireAuth } from '../middleware/auth'
 const prisma = new PrismaClient()
 const router = Router()
 
+// PDF helper: normalize labels to ASCII to avoid garbled diacritics in some PDF viewers
+function toAscii(input: string): string {
+  try {
+    return String(input)
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/ł/g, 'l')
+      .replace(/Ł/g, 'L')
+  } catch {
+    return String(input)
+  }
+}
+
 router.post('/generate', requireAuth, async (req, res) => {
   try {
     const current = req.user!
@@ -24,10 +37,6 @@ router.post('/generate', requireAuth, async (req, res) => {
 
     const pln = (n: number) => (isFinite(n) ? n : 0).toLocaleString('pl-PL', { style: 'currency', currency: 'PLN' })
     const safe = (s: any) => (s == null ? '' : String(s))
-    const toAscii = (s: string) => String(s)
-      .normalize('NFD')
-      .replace(/[\u0300-\u036f]/g, '')
-      .replace(/ł/g, 'l').replace(/Ł/g, 'L')
     const form = snapshot.form || {}
     const calc = snapshot.calc || {}
     const quick = (snapshot as any).quickCalc || null
