@@ -5,7 +5,17 @@ import * as XLSX from 'xlsx/xlsx.mjs'
 XLSX.set_fs(fs)
 
 const ROOT = process.cwd()
-const xlsxPath = path.join(ROOT, 'Kalkulator B2C_08.2025.xlsx')
+// Prefer the new Bazówka file if present
+const candidateFiles = [
+  'Bazówka 585 (1).xlsx',
+  'Bazówka 585 (1).xlsx',
+  'Kalkulator B2C_08.2025.xlsx',
+]
+let xlsxPath = ''
+for (const f of candidateFiles) {
+  const p = path.join(ROOT, f)
+  if (fs.existsSync(p)) { xlsxPath = p; break }
+}
 if (!fs.existsSync(xlsxPath)) {
   console.error('XLSX not found:', xlsxPath)
   process.exit(1)
