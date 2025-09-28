@@ -11,6 +11,7 @@ import calculatorRouter from './routes/calculator';
 import offersRouter from './routes/offers';
 import { PrismaClient } from '@prisma/client';
 import attachmentsRouter from './routes/attachments';
+import pushNotificationsRouter from './routes/push-notifications';
 
 dotenv.config();
 
@@ -30,6 +31,7 @@ app.use('/api/clients', clientsRouter);
 app.use('/api/calculator', calculatorRouter);
 app.use('/api/attachments', attachmentsRouter);
 app.use('/api/offers', offersRouter);
+app.use('/api/push-notifications', pushNotificationsRouter);
 
 app.get('/health', async (_req, res) => {
   let dbHealthy = true;
