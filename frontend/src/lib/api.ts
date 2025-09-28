@@ -179,6 +179,12 @@ export function downloadOffer(offerId: string): string {
   return `${base}/api/offers/${offerId}/download${token ? `?token=${encodeURIComponent(token)}` : ''}`
 }
 
+export function viewOffer(offerId: string): string {
+  const token = getToken()
+  const base = import.meta.env.VITE_API_BASE || ''
+  return `${base}/api/offers/${offerId}/view${token ? `?token=${encodeURIComponent(token)}` : ''}`
+}
+
 export async function fetchOffer(offerId: string): Promise<{ id: string; fileName: string; createdAt: string; snapshot: any; clientId: string; ownerId: string }>{
   const res = await api.get(`/api/offers/${offerId}`)
   return res.data

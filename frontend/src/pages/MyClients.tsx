@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
-import api, { listClientOffers, downloadOffer, listClientAttachments, type AttachmentItem, viewAttachmentUrl, downloadAttachmentUrl, getClientLatestStatus, setClientLatestStatus, deleteAttachment, fetchUsers, type AppUserSummary } from '../lib/api'
+import api, { listClientOffers, downloadOffer, viewOffer, fetchOffer, listClientAttachments, type AttachmentItem, viewAttachmentUrl, downloadAttachmentUrl, getClientLatestStatus, setClientLatestStatus, deleteAttachment, fetchUsers, type AppUserSummary } from '../lib/api'
 import { offlineStore, pendingQueue, newLocalId } from '../lib/offline'
 import { getUser } from '../lib/auth'
 import EmbeddedCalculator from '../components/EmbeddedCalculator'
@@ -409,9 +409,24 @@ function ClientOffers({ clientId, defaultOpen = false }: { clientId: string; def
             ) : (
               <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'grid', gap: 6 }}>
                 {offers.map(o => (
-                  <li key={o.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <span>{o.fileName}</span>
-                    <a className="btn btn-sm" href={downloadOffer(o.id)} target="_blank" rel="noreferrer">Pobierz</a>
+                  <li key={o.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
+                    <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>{o.fileName}</span>
+                    <span style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
+                      <a className="btn btn-sm secondary" href={viewOffer(o.id)} target="_blank" rel="noreferrer">Podgląd</a>
+                      <button className="btn btn-sm secondary" onClick={async () => {
+                        try {
+                          const full = await fetchOffer(o.id)
+                          setShowCalcModal(true)
+                          setTimeout(() => {
+                            const host = document.querySelector('#calc-host')
+                            if (host) {
+                              ;(host as any).__offer = full
+                            }
+                          }, 0)
+                        } catch {}
+                      }}>Edytuj</button>
+                      <a className="btn btn-sm" href={downloadOffer(o.id)} target="_blank" rel="noreferrer">Pobierz</a>
+                    </span>
                   </li>
                 ))}
               </ul>
@@ -432,8 +447,13 @@ function ClientOffers({ clientId, defaultOpen = false }: { clientId: string; def
                 </svg>
               </button>
             </div>
-            <div style={{ padding: 12 }}>
-              <EmbeddedCalculator clientId={clientId} onSaved={async () => { setShowCalcModal(false); await load() }} />
+            <div id="calc-host" style={{ padding: 12 }}>
+              <EmbeddedCalculator
+                clientId={clientId}
+                onSaved={async () => { setShowCalcModal(false); await load() }}
+                offerId={(document.querySelector('#calc-host') as any)?.__offer?.id}
+                initialSnapshot={(document.querySelector('#calc-host') as any)?.__offer?.snapshot}
+              />
             </div>
           </div>
         </div>,

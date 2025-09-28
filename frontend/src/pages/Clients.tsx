@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { getUser } from '../lib/auth'
-import { fetchUsers, type AppUserSummary } from '../lib/api'
+import { fetchUsers, type AppUserSummary, listClientOffers, downloadOffer, viewOffer, fetchOffer } from '../lib/api'
 import { fetchClients, createClient, deleteClient, type Client, listClientAttachments, type AttachmentItem, viewAttachmentUrl, downloadAttachmentUrl, getClientLatestStatus, setClientLatestStatus } from '../lib/api'
 import { offlineStore, pendingQueue, newLocalId } from '../lib/offline'
 
@@ -260,6 +260,12 @@ export default function ClientsPage() {
                         <ClientAttachments clientId={c.id} />
                       </div>
                     </div>
+                    <div>
+                      <strong>Oferty</strong>
+                      <div style={{ marginTop: 6 }}>
+                        <ClientOffers clientId={c.id} />
+                      </div>
+                    </div>
                     <div className="modal-footer" style={{ justifyContent: 'flex-end' }}>
                       <button className="secondary" onClick={() => setExpanded(prev => ({ ...prev, [c.id]: false }))}>Zwiń</button>
                       <button className="danger" onClick={() => onDelete(c.id)}>Usuń</button>
@@ -403,6 +409,72 @@ function ClientAttachments({ clientId, defaultOpen = true }: { clientId: string;
               </ul>
             )
           )}
+        </div>
+      )}
+    </div>
+  )
+}
+
+function ClientOffers({ clientId }: { clientId: string }) {
+  const [offers, setOffers] = useState<Array<{ id: string; fileName: string; createdAt: string }>>([])
+  const [open, setOpen] = useState(true)
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [editOffer, setEditOffer] = useState<any | null>(null)
+
+  async function load() {
+    try {
+      setLoading(true)
+      setError(null)
+      const list = await listClientOffers(clientId)
+      setOffers(list)
+    } catch (e: any) {
+      setError(e?.response?.data?.error || 'Nie udało się pobrać ofert')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  useEffect(() => { if (open) load() }, [open])
+
+  return (
+    <div>
+      {open && (
+        <div className="card">
+          {loading ? <div className="text-sm text-gray-500">Ładowanie…</div> : error ? <div className="text-error text-sm">{error}</div> : (
+            offers.length === 0 ? <div className="text-sm text-gray-500">Brak ofert</div> : (
+              <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'grid', gap: 6 }}>
+                {offers.map(o => (
+                  <li key={o.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
+                    <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>{o.fileName}</span>
+                    <span style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
+                      <a className="btn btn-sm secondary" href={viewOffer(o.id)} target="_blank" rel="noreferrer">Podgląd</a>
+                      <button className="btn btn-sm secondary" onClick={async () => { try { const full = await fetchOffer(o.id); setEditOffer(full) } catch {} }}>Edytuj</button>
+                      <a className="btn btn-sm" href={downloadOffer(o.id)} target="_blank" rel="noreferrer">Pobierz</a>
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            )
+          )}
+        </div>
+      )}
+
+      {editOffer && (
+        <div className="modal-overlay">
+          <div className="modal-content" style={{ maxWidth: '1000px' }}>
+            <div className="modal-header">
+              <h3 className="modal-title">Edytuj ofertę</h3>
+              <button className="secondary" onClick={() => setEditOffer(null)} style={{ padding: 'var(--space-2)' }}>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M18 6L6 18M6 6l12 12"/>
+                </svg>
+              </button>
+            </div>
+            <div style={{ padding: 12 }}>
+              <EmbeddedCalculator clientId={clientId} offerId={editOffer.id} initialSnapshot={editOffer.snapshot} onSaved={() => { setEditOffer(null); load() }} />
+            </div>
+          </div>
         </div>
       )}
     </div>
