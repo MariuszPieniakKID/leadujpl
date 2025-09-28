@@ -6,6 +6,18 @@ type Meeting = { id: string; scheduledAt: string; status?: string | null }
 type Range = 'week' | 'month' | 'quarter' | 'year'
 
 export default function StatsPage() {
+  function useIsMobile() {
+    const [isMobile, setIsMobile] = useState(false)
+    useEffect(() => {
+      const mq = window.matchMedia('(max-width: 768px)')
+      const update = () => setIsMobile(mq.matches)
+      update()
+      mq.addEventListener('change', update)
+      return () => mq.removeEventListener('change', update)
+    }, [])
+    return isMobile
+  }
+  const isMobile = useIsMobile()
   const [meetings, setMeetings] = useState<Meeting[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -302,43 +314,71 @@ export default function StatsPage() {
           ) : repError ? (
             <div className="text-error">{repError}</div>
           ) : (
-            <div className="table" style={{ overflowX: 'auto' }}>
-              <table className="table" style={{ width: '100%' }}>
-                <thead>
-                  <tr>
-                    <th>Handlowiec</th>
-                    <th>Spotkania</th>
-                    <th>Umowa</th>
-                    <th>Punkty</th>
-                    <th>Dogrywka</th>
-                    <th>Umówione</th>
-                    <th>Odbyte</th>
-                    <th>Porażka</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {ranking
-                    .slice()
-                    .sort((a, b) => {
-                      const av = metric === 'Spotkania' ? a.total : (a.byStatus[metric] || 0)
-                      const bv = metric === 'Spotkania' ? b.total : (b.byStatus[metric] || 0)
-                      return bv - av
-                    })
-                    .map((r) => (
-                      <tr key={r.id}>
-                        <td>{r.firstName} {r.lastName}</td>
-                        <td>{r.total}</td>
-                        <td>{r.byStatus['Umowa'] || 0}</td>
-                        <td>{/* points */}{(() => { try { return (r as any).total } catch { return 0 } })()}</td>
-                        <td>{r.byStatus['Dogrywka'] || 0}</td>
-                        <td>{r.byStatus['Umówione'] || 0}</td>
-                        <td>{r.byStatus['Odbyte'] || 0}</td>
-                        <td>{r.byStatus['Porażka'] || 0}</td>
-                      </tr>
+            isMobile ? (
+              <div style={{ display: 'grid', gap: 8 }}>
+                {ranking
+                  .slice()
+                  .sort((a, b) => {
+                    const av = metric === 'Spotkania' ? a.total : (a.byStatus[metric] || 0)
+                    const bv = metric === 'Spotkania' ? b.total : (b.byStatus[metric] || 0)
+                    return bv - av
+                  })
+                  .map((r) => (
+                    <div key={r.id} className="list-item" style={{ alignItems: 'stretch' }}>
+                      <div className="font-medium">{r.firstName} {r.lastName}</div>
+                      <div className="list" style={{ marginTop: 6 }}>
+                        <div className="list-row"><span>Spotkania</span><span>{r.total}</span></div>
+                        <div className="list-row"><span>Umowa</span><span>{r.byStatus['Umowa'] || 0}</span></div>
+                        {showPoints && (
+                          <div className="list-row"><span>Punkty</span><span>{(r as any).total || 0}</span></div>
+                        )}
+                        <div className="list-row"><span>Dogrywka</span><span>{r.byStatus['Dogrywka'] || 0}</span></div>
+                        <div className="list-row"><span>Umówione</span><span>{r.byStatus['Umówione'] || 0}</span></div>
+                        <div className="list-row"><span>Odbyte</span><span>{r.byStatus['Odbyte'] || 0}</span></div>
+                        <div className="list-row"><span>Porażka</span><span>{r.byStatus['Porażka'] || 0}</span></div>
+                      </div>
+                    </div>
                   ))}
-                </tbody>
-              </table>
-            </div>
+              </div>
+            ) : (
+              <div className="table" style={{ overflowX: 'auto' }}>
+                <table className="table" style={{ width: '100%' }}>
+                  <thead>
+                    <tr>
+                      <th>Handlowiec</th>
+                      <th>Spotkania</th>
+                      <th>Umowa</th>
+                      <th>Punkty</th>
+                      <th>Dogrywka</th>
+                      <th>Umówione</th>
+                      <th>Odbyte</th>
+                      <th>Porażka</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {ranking
+                      .slice()
+                      .sort((a, b) => {
+                        const av = metric === 'Spotkania' ? a.total : (a.byStatus[metric] || 0)
+                        const bv = metric === 'Spotkania' ? b.total : (b.byStatus[metric] || 0)
+                        return bv - av
+                      })
+                      .map((r) => (
+                        <tr key={r.id}>
+                          <td>{r.firstName} {r.lastName}</td>
+                          <td>{r.total}</td>
+                          <td>{r.byStatus['Umowa'] || 0}</td>
+                          <td>{/* points */}{(() => { try { return (r as any).total } catch { return 0 } })()}</td>
+                          <td>{r.byStatus['Dogrywka'] || 0}</td>
+                          <td>{r.byStatus['Umówione'] || 0}</td>
+                          <td>{r.byStatus['Odbyte'] || 0}</td>
+                          <td>{r.byStatus['Porażka'] || 0}</td>
+                        </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )
           )}
         </section>
       )}
