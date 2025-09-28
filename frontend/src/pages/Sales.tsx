@@ -59,7 +59,12 @@ export default function SalesPage() {
             <AddSalesForm onCreated={load} />
           </div>
         )}
-        {!isAdmin && <AddSalesForm onCreated={load} />}
+        {!isAdmin && (
+          <div style={{ display: 'flex', gap: 'var(--space-2)' }}>
+            <PushNotificationButton mySales={mySales} />
+            <AddSalesForm onCreated={load} />
+          </div>
+        )}
       </div>
 
       {error && (
@@ -379,5 +384,129 @@ function AddManagerForm({ onCreated }: { onCreated: () => void }) {
   )
 }
 
+function PushNotificationButton({ mySales }: { mySales: User[] }) {
+  const [open, setOpen] = useState(false)
+  const [message, setMessage] = useState('')
+  const [sending, setSending] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [success, setSuccess] = useState(false)
+  const [isMobile, setIsMobile] = useState(false)
 
+  useEffect(() => {
+    const mq = window.matchMedia('(max-width: 768px)')
+    const update = () => setIsMobile(mq.matches)
+    update()
+    mq.addEventListener('change', update)
+    return () => mq.removeEventListener('change', update)
+  }, [])
+
+  async function sendNotification() {
+    if (!message.trim()) {
+      setError('Wiadomość nie może być pusta')
+      return
+    }
+
+    if (mySales.length === 0) {
+      setError('Brak przypisanych handlowców do powiadomienia')
+      return
+    }
+
+    try {
+      setSending(true)
+      setError(null)
+      
+      const userIds = mySales.map(u => u.id)
+      await api.post('/api/push-notifications/send', {
+        message: message.trim(),
+        userIds
+      })
+
+      setSuccess(true)
+      setMessage('')
+      setTimeout(() => {
+        setOpen(false)
+        setSuccess(false)
+      }, 2000)
+    } catch (e: any) {
+      setError(e?.response?.data?.error || e?.message || 'Nie udało się wysłać powiadomienia')
+    } finally {
+      setSending(false)
+    }
+  }
+
+  if (!open) {
+    return (
+      <button 
+        className="secondary btn-sm" 
+        onClick={() => setOpen(true)}
+        disabled={mySales.length === 0}
+        title={mySales.length === 0 ? 'Brak handlowców do powiadomienia' : 'Wyślij powiadomienie push do zespołu'}
+      >
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+          <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+        </svg>
+        Powiadomienie PUSH
+      </button>
+    )
+  }
+
+  return createPortal(
+    <div className={`modal-overlay${isMobile ? ' sheet' : ''}`} role="dialog" aria-modal="true">
+      <div className={`modal-content${isMobile ? ' sheet' : ''}`} style={isMobile ? undefined : { maxWidth: '500px' }}>
+        <div className="modal-header">
+          <h3 className="modal-title">Powiadomienie PUSH</h3>
+          <button className="secondary" onClick={() => setOpen(false)} style={{ padding: 'var(--space-2)' }}>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M18 6L6 18M6 6l12 12"/>
+            </svg>
+          </button>
+        </div>
+        
+        <div className="form-group">
+          <label className="form-label">
+            Wiadomość dla {mySales.length} handlowca/handlowców
+          </label>
+          <textarea 
+            className="form-input" 
+            placeholder="Wprowadź wiadomość do wysłania..."
+            value={message}
+            onChange={e => setMessage(e.target.value)}
+            rows={4}
+            disabled={sending || success}
+          />
+          <div className="text-sm text-gray-500 mt-1">
+            Odbiorcy: {mySales.map(u => `${u.firstName} ${u.lastName}`).join(', ')}
+          </div>
+        </div>
+        
+        {error && (
+          <div className="text-error text-sm mt-4 p-3 bg-error-50 rounded border border-error-200">
+            {error}
+          </div>
+        )}
+
+        {success && (
+          <div className="text-green-700 text-sm mt-4 p-3 bg-green-50 rounded border border-green-200">
+            ✅ Powiadomienie zostało wysłane pomyślnie!
+          </div>
+        )}
+        
+        <div className="modal-footer">
+          <button className="secondary" onClick={() => setOpen(false)} disabled={sending}>
+            {success ? 'Zamknij' : 'Anuluj'}
+          </button>
+          <button 
+            className="primary" 
+            disabled={sending || success || !message.trim()} 
+            onClick={sendNotification}
+          >
+            {sending ? 'Wysyłanie…' : success ? 'Wysłano!' : 'Wyślij'}
+          </button>
+        </div>
+      </div>
+    </div>,
+    document.body
+  )
+}
 

@@ -9,6 +9,9 @@ export default defineConfig({
     VitePWA({
       registerType: 'autoUpdate',
       includeAssets: ['leady_logo.png'],
+      srcDir: 'src',
+      filename: 'sw.ts',
+      strategies: 'injectManifest',
       workbox: {
         clientsClaim: true,
         skipWaiting: true,
