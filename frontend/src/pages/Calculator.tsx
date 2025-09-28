@@ -203,20 +203,26 @@ export default function CalculatorPage() {
     }
   }
 
-  // search my clients (after 3 characters) across all fields
+  // Search clients when saving (server-side filtering)
   useEffect(() => {
     const handler = setTimeout(async () => {
       const q = clientQuery.trim()
       if (!saveOpen || selectedClientId) return
-      if (q.length < 3) { setClientOptions([]); return }
+      if (q.length < 2) { setClientOptions([]); return }
       try {
-        const res = await api.get('/api/clients/mine')
-        const list = (res.data as any[]).filter(c => (
-          `${c.firstName} ${c.lastName} ${c.phone||''} ${c.email||''} ${c.city||''} ${c.street||''}`
-            .toLowerCase()
-            .includes(q.toLowerCase())
-        ))
-        setClientOptions(list.slice(0, 10))
+        const me = getUser()
+        let list: any[] = []
+        if (me && me.role === 'ADMIN') {
+          const res = await api.get('/api/clients', { params: { q } })
+          list = res.data as any[]
+        } else if (me && me.role === 'MANAGER') {
+          const res = await api.get('/api/clients', { params: { q, scope: 'team' } })
+          list = res.data as any[]
+        } else {
+          const res = await api.get('/api/clients/mine', { params: { q } })
+          list = res.data as any[]
+        }
+        setClientOptions((list || []).slice(0, 10))
       } catch {
         setClientOptions([])
       }
