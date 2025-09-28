@@ -6,12 +6,25 @@ import webpush from 'web-push';
 const prisma = new PrismaClient();
 const router = Router();
 
-// Configure web-push
-webpush.setVapidDetails(
-  'mailto:admin@leaduj.local',
-  process.env.VAPID_PUBLIC_KEY || 'BCyel-OSO5pHk5Qvj-8CpIzTNh4MQm4dHrBA53YH2XYrXZvmuGlPtkBgb8m948HTxB6l0tOsE_Z9pCts_Y_otgY',
-  process.env.VAPID_PRIVATE_KEY || 'bLPIT1jnklybwFHrj3opc-bubNgaoaFkM2ZTyCPVN_U'
-);
+// Configure web-push (do not crash if keys are missing/invalid)
+let pushConfigured = false;
+(() => {
+  const pub = process.env.VAPID_PUBLIC_KEY;
+  const priv = process.env.VAPID_PRIVATE_KEY;
+  if (pub && priv) {
+    try {
+      webpush.setVapidDetails('mailto:admin@leaduj.local', pub, priv);
+      pushConfigured = true;
+    } catch (err) {
+      // eslint-disable-next-line no-console
+      console.error('web-push VAPID configuration failed. Push disabled.', (err as Error).message);
+      pushConfigured = false;
+    }
+  } else {
+    // eslint-disable-next-line no-console
+    console.warn('VAPID keys not set. Push disabled. Set VAPID_PUBLIC_KEY and VAPID_PRIVATE_KEY.');
+  }
+})();
 
 // Store push subscriptions for users
 const userSubscriptions: Map<string, any> = new Map();
@@ -28,7 +41,7 @@ router.post('/subscribe', requireAuth, async (req, res) => {
 
     userSubscriptions.set(userId, subscription);
     
-    res.json({ success: true, message: 'Successfully subscribed to push notifications' });
+    res.json({ success: true, pushConfigured, message: pushConfigured ? 'Successfully subscribed to push notifications' : 'Subscribed, but push is disabled on server (missing VAPID keys)' });
   } catch (error) {
     console.error('Push subscription error:', error);
     res.status(500).json({ error: 'Failed to subscribe to push notifications' });
@@ -38,6 +51,9 @@ router.post('/subscribe', requireAuth, async (req, res) => {
 // Send push notification to specific users (only managers can send)
 router.post('/send', requireManagerOrAdmin, async (req, res) => {
   try {
+    if (!pushConfigured) {
+      return res.status(503).json({ error: 'Push notifications are not configured on the server' });
+    }
     const senderId = req.user!.id;
     const { message, userIds } = req.body as { message?: string; userIds?: string[] };
 
@@ -83,7 +99,7 @@ router.post('/send', requireManagerOrAdmin, async (req, res) => {
 
     // Get recipient info
     const recipients = await prisma.user.findMany({
-      where: { id: { in: userIds } },
+      where: { id: { in: targetUserIds } },
       select: { id: true, firstName: true, lastName: true }
     });
 

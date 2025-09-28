@@ -262,7 +262,7 @@ router.post('/:id/capture-location', requireAuth, async (req, res) => {
     }
 
     // Immutable once captured
-    if (meeting.salesLocationCapturedAt) {
+    if ((meeting as any).salesLocationCapturedAt) {
       return res.status(400).json({ error: 'Lokalizacja została już zapisana dla tego spotkania' });
     }
 
@@ -275,13 +275,13 @@ router.post('/:id/capture-location', requireAuth, async (req, res) => {
     }
 
     const updated = await prisma.meeting.update({ where: { id }, data: {
-      salesLocationAddress: address || null,
-      salesLocationStreet: street || null,
-      salesLocationHouseNumber: houseNumber || null,
-      salesLocationCity: city || null,
-      salesLocationPostalCode: postalCode || null,
+      ...(address !== undefined ? { salesLocationAddress: address } : {}),
+      ...(street !== undefined ? { salesLocationStreet: street } : {}),
+      ...(houseNumber !== undefined ? { salesLocationHouseNumber: houseNumber } : {}),
+      ...(city !== undefined ? { salesLocationCity: city } : {}),
+      ...(postalCode !== undefined ? { salesLocationPostalCode: postalCode } : {}),
       salesLocationCapturedAt: new Date(),
-    }});
+    } } as any);
     res.json({ ok: true, id: updated.id });
   } catch (e) {
     res.status(500).json({ error: (e as Error).message });
