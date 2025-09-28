@@ -298,6 +298,7 @@ export default function CalculatorPage() {
 
       <section className="card" style={{ maxWidth: 1100 }}>
         {/* Kalkulator mocy PV nad wyborem rodzaju systemu */}
+        {form.systemType !== 'Falownik + Magazyn' && (
         <div className="card" style={{ border: '1px solid var(--gray-200)', marginBottom: 12 }}>
           <h3 style={{ marginTop: 0 }}>Kalkulator mocy PV</h3>
           <div className="form-grid-2">
@@ -339,6 +340,8 @@ export default function CalculatorPage() {
             </div>
           </div>
         </div>
+        )}
+        {form.systemType === 'Falownik + Magazyn' && (
         <div className="card" style={{ border: '1px solid var(--gray-200)', marginBottom: 12 }}>
           <h3 style={{ marginTop: 0 }}>Kalkulator pojemności magazynu</h3>
           <div className="form-grid-2">
@@ -376,6 +379,7 @@ export default function CalculatorPage() {
             </div>
           </div>
         </div>
+        )}
         <div className="form-grid-2">
           <div className="form-group">
             <label className="form-label">Rodzaj systemu</label>
