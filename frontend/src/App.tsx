@@ -433,6 +433,15 @@ function Dashboard() {
         setCreateError('Aby zapisać wydarzenie, zaznacz wymagany checkbox zgody.')
         return
       }
+      // Required extra info (except comments)
+      if (!createForm.pvInstalled) { setCreateError('Wybierz, czy klient posiada instalację PV'); return }
+      if (createForm.pvInstalled === 'TAK') {
+        if (!createForm.newRules) { setCreateError('Wybierz nowe/stare zasady (net-billing)'); return }
+        const pvNum = Number(String((createForm as any).pvPower || '').replace(',', '.'))
+        if (!(pvNum > 0)) { setCreateError('Podaj moc instalacji (kW)'); return }
+      }
+      if (!createForm.billRange) { setCreateError('Wybierz wysokość rachunków'); return }
+      if (!createForm.buildingType) { setCreateError('Wybierz rodzaj zabudowy'); return }
       const attendeeId = (user && user.role === 'MANAGER' && selectedTeamUserId) ? selectedTeamUserId : user!.id
       const scheduledAt = composeIsoFromLocal(createForm.startDate, createForm.startTime)
       const endsAt = (createForm.endDate && createForm.endTime)
