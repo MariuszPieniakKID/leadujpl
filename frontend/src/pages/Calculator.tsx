@@ -255,6 +255,30 @@ export default function CalculatorPage() {
       </div>
 
       <section className="card" style={{ maxWidth: 1100 }}>
+        {/* Kalkulator mocy PV nad wyborem rodzaju systemu */}
+        <div className="card" style={{ border: '1px solid var(--gray-200)', marginBottom: 12 }}>
+          <h3 style={{ marginTop: 0 }}>Kalkulator mocy PV</h3>
+          <div className="form-grid-2">
+            <div className="form-group">
+              <label className="form-label">Średnie miesięczne zużycie (kWh)</label>
+              <input className="form-input" inputMode="decimal" value={quickCalc.monthlyKwh} onChange={e => setQuickCalc({ ...quickCalc, monthlyKwh: e.target.value })} placeholder="np. 400" />
+            </div>
+            <div className="form-group">
+              <label className="form-label">Margines bezpieczeństwa</label>
+              <input className="form-input" type="number" step="0.01" value={quickCalc.margin} onChange={e => setQuickCalc({ ...quickCalc, margin: Number(e.target.value || 0) })} />
+            </div>
+            <div className="form-group">
+              <label className="form-label">Roczna produkcja z 1 kWp (kWh)</label>
+              <input className="form-input" type="number" step="1" value={quickCalc.yieldPerKwp} onChange={e => setQuickCalc({ ...quickCalc, yieldPerKwp: Number(e.target.value || 0) })} />
+            </div>
+          </div>
+          <div className="list" style={{ marginTop: 6 }}>
+            <div className="list-row" style={{ fontWeight: 600 }}>
+              <span>Szacowana moc instalacji</span>
+              <span>{quickKwp && quickKwp > 0 ? `${quickKwp.toFixed(2)} kWp` : '—'}</span>
+            </div>
+          </div>
+        </div>
         <div className="form-grid-2">
           <div className="form-group">
             <label className="form-label">Rodzaj systemu</label>
@@ -406,30 +430,7 @@ export default function CalculatorPage() {
           </div>
         </div>
 
-        {/* Kalkulator mocy PV (przeniesiony pod główny kalkulator) */}
-        <section className="card" style={{ marginTop: 16 }}>
-          <h3 style={{ marginTop: 0 }}>Kalkulator mocy PV</h3>
-          <div className="form-grid-2">
-            <div className="form-group">
-              <label className="form-label">Średnie miesięczne zużycie (kWh)</label>
-              <input className="form-input" inputMode="decimal" value={quickCalc.monthlyKwh} onChange={e => setQuickCalc({ ...quickCalc, monthlyKwh: e.target.value })} placeholder="np. 400" />
-            </div>
-            <div className="form-group">
-              <label className="form-label">Margines bezpieczeństwa</label>
-              <input className="form-input" type="number" step="0.01" value={quickCalc.margin} onChange={e => setQuickCalc({ ...quickCalc, margin: Number(e.target.value || 0) })} />
-            </div>
-            <div className="form-group">
-              <label className="form-label">Roczna produkcja z 1 kWp (kWh)</label>
-              <input className="form-input" type="number" step="1" value={quickCalc.yieldPerKwp} onChange={e => setQuickCalc({ ...quickCalc, yieldPerKwp: Number(e.target.value || 0) })} />
-            </div>
-          </div>
-          <div className="list" style={{ marginTop: 6 }}>
-            <div className="list-row" style={{ fontWeight: 600 }}>
-              <span>Szacowana moc instalacji</span>
-              <span>{quickKwp && quickKwp > 0 ? `${quickKwp.toFixed(2)} kWp` : '—'}</span>
-            </div>
-          </div>
-        </section>
+        
 
         <div className="modal-footer" style={{ justifyContent: 'flex-end' }}>
           <button className="secondary" onClick={openSave}>Zapisz do klienta</button>
