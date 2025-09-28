@@ -65,9 +65,17 @@ router.post('/generate', requireAuth, async (req, res) => {
       .text(toAscii(`Dotacja: ${safe(form.grant)}`))
 
     // Show quick PV calculator summary inline (if available)
-    if (quick && typeof quick.resultKwp === 'number') {
-      doc.moveDown(0.25)
-      doc.fontSize(11).text(toAscii(`Moc PV (kalkulator): ${Number(quick.resultKwp || 0).toFixed(2)} kWp`))
+    if (quick) {
+      const usage = typeof quick.resultKwpUsage === 'number' ? Number(quick.resultKwpUsage || 0) : null
+      const cost = typeof quick.resultKwpCost === 'number' ? Number(quick.resultKwpCost || 0) : null
+      const legacy = typeof quick.resultKwp === 'number' ? Number(quick.resultKwp || 0) : null
+      if (usage != null || cost != null || legacy != null) {
+        doc.moveDown(0.25)
+        doc.fontSize(11)
+        if (usage != null) doc.text(toAscii(`Moc PV (zużycie): ${usage.toFixed(2)} kWp`))
+        if (cost != null) doc.text(toAscii(`Moc PV (koszt): ${cost.toFixed(2)} kWp`))
+        if (usage == null && cost == null && legacy != null) doc.text(toAscii(`Moc PV (kalkulator): ${legacy.toFixed(2)} kWp`))
+      }
     }
 
     doc.moveDown(0.75)
@@ -217,9 +225,17 @@ router.post('/save', requireAuth, async (req, res) => {
         .text(`Dotacja: ${safe(form.grant)}`)
 
       // Show quick PV calculator summary inline (if available)
-      if (quick && typeof quick.resultKwp === 'number') {
-        doc.moveDown(0.25)
-        doc.fontSize(11).text(toAscii(`Moc PV (kalkulator): ${Number(quick.resultKwp || 0).toFixed(2)} kWp`))
+      if (quick) {
+        const usage = typeof (quick as any).resultKwpUsage === 'number' ? Number((quick as any).resultKwpUsage || 0) : null
+        const cost = typeof (quick as any).resultKwpCost === 'number' ? Number((quick as any).resultKwpCost || 0) : null
+        const legacy = typeof (quick as any).resultKwp === 'number' ? Number((quick as any).resultKwp || 0) : null
+        if (usage != null || cost != null || legacy != null) {
+          doc.moveDown(0.25)
+          doc.fontSize(11)
+          if (usage != null) doc.text(toAscii(`Moc PV (zużycie): ${usage.toFixed(2)} kWp`))
+          if (cost != null) doc.text(toAscii(`Moc PV (koszt): ${cost.toFixed(2)} kWp`))
+          if (usage == null && cost == null && legacy != null) doc.text(toAscii(`Moc PV (kalkulator): ${legacy.toFixed(2)} kWp`))
+        }
       }
 
       doc.moveDown(0.75)
