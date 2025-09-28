@@ -23,7 +23,13 @@ export default function CalculatorPage() {
     })()
   }, [])
 
-  const pvOptions = useMemo(() => Object.keys((data as any).pricing.pvPowerPriceD || {}), [data])
+  const pvOptions = useMemo(() => {
+    const keys = Object.keys((data as any).pricing.pvPowerPriceD || {})
+    const toNum = (s: string) => {
+      try { return parseFloat(String(s).replace(/[^0-9,\.]/g, '').replace(',', '.')) } catch { return Number.POSITIVE_INFINITY }
+    }
+    return keys.sort((a, b) => toNum(a) - toNum(b))
+  }, [data])
   const batteryOptions = useMemo(() => Object.keys((data as any).pricing.batteryMap || {}), [data])
   const inverterOptions = useMemo(() => Object.keys((data as any).pricing.inverterMap || {}), [data])
   const grantOptions = useMemo(() => {
