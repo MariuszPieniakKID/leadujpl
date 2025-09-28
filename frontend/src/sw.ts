@@ -52,15 +52,15 @@ self.addEventListener('push', function(event) {
     };
   }
 
-  const options: NotificationOptions = {
+  // Use any type for notification options due to limited TypeScript definitions
+  const options: any = {
     body: notificationData.body || 'Nowa wiadomość',
     icon: notificationData.icon || '/leady_logo.png',
     badge: notificationData.badge || '/leady_logo.png',
-    vibrate: [200, 100, 200],
     data: notificationData.data || {},
     tag: 'leaduj-notification',
-    renotify: true,
     requireInteraction: false,
+    renotify: true,
     actions: [
       {
         action: 'open',
@@ -72,6 +72,11 @@ self.addEventListener('push', function(event) {
       }
     ]
   };
+
+  // Add vibration if supported by the browser
+  if ('vibrate' in navigator) {
+    options.vibrate = [200, 100, 200];
+  }
 
   event.waitUntil(
     self.registration.showNotification(
