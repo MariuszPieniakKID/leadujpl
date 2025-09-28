@@ -39,7 +39,7 @@ router.post('/subscribe', requireAuth, async (req, res) => {
 router.post('/send', requireManagerOrAdmin, async (req, res) => {
   try {
     const senderId = req.user!.id;
-    const { message, userIds } = req.body;
+    const { message, userIds } = req.body as { message?: string; userIds?: string[] };
 
     if (!message || !userIds || !Array.isArray(userIds)) {
       return res.status(400).json({ error: 'Message and userIds are required' });
@@ -55,19 +55,30 @@ router.post('/send', requireManagerOrAdmin, async (req, res) => {
       return res.status(404).json({ error: 'Sender not found' });
     }
 
-    // For managers, verify they can only send to their own team
+    // Resolve recipients server-side to avoid client-side inconsistencies
+    let targetUserIds: string[] = Array.isArray(userIds) ? userIds : [];
+
     if (sender.role === 'MANAGER') {
       const managerUsers = await prisma.user.findMany({
         where: { managerId: senderId },
         select: { id: true }
       });
-      
       const managerUserIds = managerUsers.map(u => u.id);
-      const unauthorizedUsers = userIds.filter(id => !managerUserIds.includes(id));
-      
-      if (unauthorizedUsers.length > 0) {
-        return res.status(403).json({ error: 'You can only send notifications to your team members' });
+
+      // If client provided no ids, send to entire team
+      if (targetUserIds.length === 0) {
+        targetUserIds = managerUserIds;
+      } else {
+        // Restrict to intersection with manager's team
+        targetUserIds = targetUserIds.filter(id => managerUserIds.includes(id));
+        if (targetUserIds.length === 0) {
+          return res.status(403).json({ error: 'Brak uprawnień — żaden z odbiorców nie należy do Twojego zespołu' });
+        }
       }
+    }
+    // ADMIN can target any provided users (already in targetUserIds)
+    if (sender.role === 'ADMIN') {
+      // keep targetUserIds as provided
     }
 
     // Get recipient info
@@ -91,7 +102,7 @@ router.post('/send', requireManagerOrAdmin, async (req, res) => {
     let successCount = 0;
     let failureCount = 0;
 
-    for (const userId of userIds) {
+    for (const userId of targetUserIds) {
       const subscription = userSubscriptions.get(userId);
       
       if (subscription) {
