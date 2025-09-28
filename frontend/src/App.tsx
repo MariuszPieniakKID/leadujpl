@@ -1324,7 +1324,10 @@ function Dashboard() {
                   const startTs = new Date(editForm.startLocal).getTime()
                   const endTs = editForm.endLocal ? new Date(editForm.endLocal).getTime() : (startTs + 2 * 60 * 60 * 1000)
                   const ongoing = !!(startTs && now >= startTs && now <= endTs)
-                  return ongoing ? (
+                  const isFinished = !!(startTs && now > endTs)
+                  const u = getUser()
+                  const isAdminManager = !!u && (u.role === 'ADMIN' || u.role === 'MANAGER')
+                  if (ongoing) {
                     <div style={{ gridColumn: '1 / -1' }}>
                       <button className="secondary" onClick={async () => {
                         if (!navigator.geolocation || !editMeetingId) { alert('Brak wsparcia geolokalizacji'); return }
@@ -1345,7 +1348,17 @@ function Dashboard() {
                         }
                       }}>Pobierz lokalizację</button>
                     </div>
-                  ) : null
+                  }
+                  if (isFinished && isAdminManager) {
+                    return (
+                      <div style={{ gridColumn: '1 / -1' }} className="text-sm text-gray-600">
+                        <strong>Pokaż lokalizację:</strong>
+                        {/* Dla dashboardu nie mamy w stanie salesLocation; wyświetlimy skrót z odczytanego klienta/meetingu */}
+                        <span style={{ marginLeft: 8 }}>{editForm.clientStreet || editForm.clientCity ? `${editForm.clientStreet || ''}${(editForm.clientStreet && editForm.clientCity) ? ', ' : ''}${editForm.clientCity || ''}` : '—'}</span>
+                      </div>
+                    )
+                  }
+                  return null
                 } catch { return null }
               })()}
             </div>

@@ -1105,7 +1105,15 @@ export default function CalendarPage() {
               </div>
               {editMeetingId && (
                 <div style={{ gridColumn: '1 / -1', display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
-                  {editMeta.canCaptureLocation ? (
+                  {(() => {
+                    const now = Date.now()
+                    const startTs = new Date(editForm.startLocal || new Date().toISOString()).getTime()
+                    const endTs = editForm.endLocal ? new Date(editForm.endLocal).getTime() : (startTs + 2 * 60 * 60 * 1000)
+                    const isOngoing = !!(startTs && now >= startTs && now <= endTs)
+                    const isFinished = !!(startTs && now > endTs)
+                    const isAdminManager = currentUser.role === 'ADMIN' || currentUser.role === 'MANAGER'
+                    if (editMeta.canCaptureLocation && isOngoing) {
+                      return (
                     <button className="secondary" onClick={async () => {
                       if (!navigator.geolocation) { alert('Brak wsparcia geolokalizacji w przeglądarce'); return }
                       const id = editMeetingId
@@ -1127,14 +1135,20 @@ export default function CalendarPage() {
                       }
                     }}>
                       Pobierz lokalizację
-                    </button>
-                  ) : (
-                    <div className="text-sm text-gray-500">{(() => {
+                    </button>)
+                    }
+                    if (isFinished && isAdminManager) {
                       const s = editMeta.salesLocation
                       const display = [s.street && `${s.street}${s.houseNumber ? ' ' + s.houseNumber : ''}`, s.city, s.postalCode].filter(Boolean).join(', ')
-                      return display ? `Lokalizacja handlowca: ${display}` : ''
-                    })()}</div>
-                  )}
+                      return (
+                        <div className="text-sm text-gray-600" style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                          <strong>Pokaż lokalizację:</strong>
+                          <span>{display || '—'}</span>
+                        </div>
+                      )
+                    }
+                    return null
+                  })()}
                 </div>
               )}
             </div>
