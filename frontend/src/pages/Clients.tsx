@@ -50,7 +50,8 @@ export default function ClientsPage() {
   useEffect(() => {
     try {
       const mm = window.matchMedia && window.matchMedia('(display-mode: standalone)')
-      const standalone = (mm && mm.matches) || (navigator as any).standalone === true
+      const fromQuery = new URLSearchParams(window.location.search).get('source') === 'pwa'
+      const standalone = fromQuery || (mm && mm.matches) || (navigator as any).standalone === true
       setIsPWA(!!standalone)
       if (mm && typeof mm.addEventListener === 'function') {
         const handler = (e: any) => setIsPWA(!!(e?.matches))
@@ -262,7 +263,7 @@ export default function ClientsPage() {
                         <div className="list-row"><span>Status</span><span><ClientLatestStatusInline clientId={c.id} /></span></div>
                       </div>
                     ) : (
-                      <div style={{ width: '100%', minWidth: 0, display: 'grid', gridTemplateColumns: '1fr', rowGap: 12 }}>
+                      <div style={{ width: '100%', minWidth: 0, display: 'grid', gridTemplateColumns: '1fr', rowGap: 12, background: '#fff', border: '1px solid var(--gray-200)', borderRadius: 8, padding: 12 }}>
                         <div>
                           <div className="text-gray-600 text-xs" style={{ marginBottom: 4 }}>E-mail</div>
                           <div>{c.email || <span className="text-gray-400">—</span>}</div>
