@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { getUser } from '../lib/auth'
-import { fetchUsers, type AppUserSummary, listClientOffers, downloadOffer, viewOffer, fetchOffer } from '../lib/api'
+import api, { fetchUsers, type AppUserSummary, listClientOffers, downloadOffer, viewOffer, fetchOffer } from '../lib/api'
 import EmbeddedCalculator from '../components/EmbeddedCalculator'
 import { fetchClients, createClient, deleteClient, type Client, listClientAttachments, type AttachmentItem, viewAttachmentUrl, downloadAttachmentUrl, getClientLatestStatus, setClientLatestStatus } from '../lib/api'
 import { offlineStore, pendingQueue, newLocalId } from '../lib/offline'
@@ -576,15 +576,11 @@ function ClientUploadControls({ clientId }: { clientId: string }) {
         form.append('clientId', clientId)
         form.append('category', attCategory)
         for (const f of Array.from(files)) form.append('files', f)
-        await fetch((import.meta.env.VITE_API_BASE || '') + '/api/attachments/upload', {
-          method: 'POST',
-          headers: { },
-          body: form,
-        })
+        await api.post(`/api/attachments/upload`, form, { headers: { 'Content-Type': 'multipart/form-data' } })
       } else {
-        // enqueue offline (same key as elsewhere)
         for (const f of Array.from(files)) {
-          await pendingQueue.enqueue({ id: newLocalId('att'), method: 'POST', url: (import.meta.env.VITE_API_BASE || '') + '/api/attachments/upload', body: { meetingId, clientId, category: attCategory, files: [f] } as any, headers: {}, createdAt: Date.now(), entityStore: 'attachments' })
+          const id = newLocalId('att')
+          await offlineStore.put('attachments', { id, meetingId, clientId, fileName: f.name, data: f, uploaded: false, category: attCategory })
         }
       }
       setInfo('Dodano pliki')
@@ -602,7 +598,21 @@ function ClientUploadControls({ clientId }: { clientId: string }) {
     <div className="text-xs" style={{ display: 'grid', gridTemplateColumns: '1fr', rowGap: 8, width: '100%', minWidth: 0 }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
         <span className="text-gray-600" style={{ minWidth: 90 }}>Rodzaj pliku:</span>
-        <AttachmentCategoriesInline clientId={clientId} />
+        <div className="att-cat-row" style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
+          {(['umowa','aum','formatka kredytowa','zdjęcia','faktura za energię'] as const).map(opt => {
+            const selected = attCategory === opt
+            return (
+              <label key={opt} className="inline-flex items-center" style={{ gap: 6 }}>
+                <input type="radio" name={`att-cat-admin-${clientId}`} value={opt} checked={selected} onChange={() => setAttCategory(opt)} style={{ display: 'none' }} />
+                <span
+                  aria-pressed={selected}
+                  role="button"
+                  style={{ fontSize: 12, padding: '6px 10px', borderRadius: 9999, border: '1px solid', borderColor: selected ? 'var(--primary-500)' : 'var(--gray-300)', background: selected ? 'var(--primary-50)' : '#fff', color: selected ? 'var(--primary-700)' : 'var(--gray-700)', boxShadow: selected ? 'inset 0 0 0 1px var(--primary-100)' : 'none', display: 'inline-block' }}
+                >{opt === 'aum' ? 'AUM' : opt === 'zdjęcia' ? 'Zdjęcia' : opt === 'umowa' ? 'Umowa' : opt === 'faktura za energię' ? 'Faktura za energię' : 'Formatka kredytowa'}</span>
+              </label>
+            )
+          })}
+        </div>
       </div>
       <label className="btn btn-sm secondary" style={{ margin: 0, width: 'fit-content' }}>
         {uploading ? 'Wgrywanie…' : 'Dodaj pliki'}
