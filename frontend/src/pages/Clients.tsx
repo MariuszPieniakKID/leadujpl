@@ -10,6 +10,7 @@ export default function ClientsPage() {
   const [clients, setClients] = useState<Client[]>([])
   const [loading, setLoading] = useState(false)
   const [form, setForm] = useState<Partial<Client>>({ firstName: '', lastName: '', phone: '', email: '', street: '', city: '', postalCode: '', category: '' })
+  const [isPWA, setIsPWA] = useState(false)
 
   const [query, setQuery] = useState('')
   const [status, setStatus] = useState('')
@@ -45,6 +46,19 @@ export default function ClientsPage() {
   }
 
   useEffect(() => { load() }, [])
+
+  useEffect(() => {
+    try {
+      const mm = window.matchMedia && window.matchMedia('(display-mode: standalone)')
+      const standalone = (mm && mm.matches) || (navigator as any).standalone === true
+      setIsPWA(!!standalone)
+      if (mm && typeof mm.addEventListener === 'function') {
+        const handler = (e: any) => setIsPWA(!!(e?.matches))
+        mm.addEventListener('change', handler)
+        return () => mm.removeEventListener('change', handler)
+      }
+    } catch {}
+  }, [])
 
   // Load managers list for admin filter (PWA-safe)
   useEffect(() => {
@@ -240,12 +254,33 @@ export default function ClientsPage() {
                 </div>
                 {expanded[c.id] && (
                   <div style={{ marginTop: 8, display: 'grid', gridTemplateColumns: '1fr', gap: 8, minWidth: 0, overflow: 'hidden' }}>
-                    <div className="list" style={{ width: '100%', minWidth: 0 }}>
-                      <div className="list-row"><span>E-mail</span><span>{c.email || <span className="text-gray-400">—</span>}</span></div>
-                      <div className="list-row"><span>Adres</span><span style={{ whiteSpace: 'normal', overflowWrap: 'anywhere' }}>{[c.street, c.city].filter(Boolean).join(', ') || <span className="text-gray-400">—</span>}</span></div>
-                      <div className="list-row"><span>Kod pocztowy</span><span>{(c as any).postalCode || <span className="text-gray-400">—</span>}</span></div>
-                      <div className="list-row"><span>Status</span><span><ClientLatestStatusInline clientId={c.id} /></span></div>
-                    </div>
+                    {isPWA ? (
+                      <div className="list" style={{ width: '100%', minWidth: 0 }}>
+                        <div className="list-row"><span>E-mail</span><span>{c.email || <span className="text-gray-400">—</span>}</span></div>
+                        <div className="list-row"><span>Adres</span><span style={{ whiteSpace: 'normal', overflowWrap: 'anywhere' }}>{[c.street, c.city].filter(Boolean).join(', ') || <span className="text-gray-400">—</span>}</span></div>
+                        <div className="list-row"><span>Kod pocztowy</span><span>{(c as any).postalCode || <span className="text-gray-400">—</span>}</span></div>
+                        <div className="list-row"><span>Status</span><span><ClientLatestStatusInline clientId={c.id} /></span></div>
+                      </div>
+                    ) : (
+                      <div style={{ width: '100%', minWidth: 0, display: 'grid', gridTemplateColumns: '1fr', rowGap: 10 }}>
+                        <div>
+                          <div className="text-gray-600 text-xs" style={{ marginBottom: 4 }}>E-mail</div>
+                          <div>{c.email || <span className="text-gray-400">—</span>}</div>
+                        </div>
+                        <div>
+                          <div className="text-gray-600 text-xs" style={{ marginBottom: 4 }}>Adres</div>
+                          <div style={{ whiteSpace: 'normal', overflowWrap: 'anywhere' }}>{[c.street, c.city].filter(Boolean).join(', ') || <span className="text-gray-400">—</span>}</div>
+                        </div>
+                        <div>
+                          <div className="text-gray-600 text-xs" style={{ marginBottom: 4 }}>Kod pocztowy</div>
+                          <div>{(c as any).postalCode || <span className="text-gray-400">—</span>}</div>
+                        </div>
+                        <div>
+                          <div className="text-gray-600 text-xs" style={{ marginBottom: 4 }}>Status</div>
+                          <div><ClientLatestStatusInline clientId={c.id} /></div>
+                        </div>
+                      </div>
+                    )}
                     <div className="client-status-actions" style={{ display: 'grid', gridTemplateColumns: '1fr', rowGap: 8, width: '100%', minWidth: 0 }}>
                       <div style={{ width: '100%', minWidth: 0 }}>
                         <ClientStatusSelect clientId={c.id} />
