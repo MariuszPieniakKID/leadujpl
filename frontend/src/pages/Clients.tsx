@@ -352,7 +352,7 @@ function ClientStatusSelect({ clientId }: { clientId: string }) {
 }
 
 function AttachmentCategoriesInline({ clientId }: { clientId: string }) {
-  const cats = ['umowa','aum','formatka kredytowa','zdjęcia'] as const
+  const cats = ['umowa','aum','formatka kredytowa','zdjęcia','faktura za energię'] as const
   const [selected, setSelected] = useState<typeof cats[number]>('umowa')
   return (
     <div className="att-cat-row" style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center', paddingBottom: 4, minWidth: 0, maxWidth: '100%', overflow: 'hidden' }}>
@@ -363,7 +363,7 @@ function AttachmentCategoriesInline({ clientId }: { clientId: string }) {
             aria-pressed={selected === opt}
             role="button"
             style={{ fontSize: 12, padding: '6px 10px', borderRadius: 9999, border: '1px solid', borderColor: selected === opt ? 'var(--primary-500)' : 'var(--gray-300)', background: selected === opt ? 'var(--primary-50)' : '#fff', color: selected === opt ? 'var(--primary-700)' : 'var(--gray-700)', boxShadow: selected === opt ? 'inset 0 0 0 1px var(--primary-100)' : 'none', display: 'inline-block' }}
-          >{opt === 'aum' ? 'AUM' : opt === 'zdjęcia' ? 'Zdjęcia' : opt === 'umowa' ? 'Umowa' : 'Formatka kredytowa'}</span>
+          >{opt === 'aum' ? 'AUM' : opt === 'zdjęcia' ? 'Zdjęcia' : opt === 'umowa' ? 'Umowa' : opt === 'faktura za energię' ? 'Faktura za energię' : 'Formatka kredytowa'}</span>
         </label>
       ))}
     </div>
