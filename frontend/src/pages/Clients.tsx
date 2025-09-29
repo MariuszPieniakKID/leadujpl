@@ -279,10 +279,7 @@ export default function ClientsPage() {
                           <div className="text-gray-600 text-xs" style={{ marginBottom: 4 }}>Status</div>
                           <div><ClientStatusSelect clientId={c.id} /></div>
                         </div>
-                        <div className="text-xs" style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', width: '100%', minWidth: 0 }}>
-                          <span className="text-gray-600" style={{ minWidth: 90 }}>Rodzaj pliku:</span>
-                          <AttachmentCategoriesInline clientId={c.id} />
-                        </div>
+                        <ClientUploadControls clientId={c.id} />
                       </div>
                     )}
                     {isPWA && (
@@ -548,5 +545,71 @@ function ClientLatestStatusInline({ clientId }: { clientId: string }) {
   }, [clientId])
   if (loading) return <span className="text-gray-400">—</span>
   return status ? <span>{status}</span> : <span className="text-gray-400">—</span>
+}
+
+function ClientUploadControls({ clientId }: { clientId: string }) {
+  const [attCategory, setAttCategory] = useState<'umowa' | 'aum' | 'formatka kredytowa' | 'zdjęcia' | 'faktura za energię'>('umowa')
+  const [uploading, setUploading] = useState(false)
+  const user = getUser()
+  const [meetingId, setMeetingId] = useState<string | null>(null)
+  const [error, setError] = useState<string | null>(null)
+  const [info, setInfo] = useState<string | null>(null)
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const s = await getClientLatestStatus(clientId)
+        setMeetingId(s.meetingId || null)
+      } catch {}
+    })()
+  }, [clientId])
+
+  async function onUpload(files: FileList | null) {
+    if (!files || files.length === 0) return
+    if (!meetingId) { setError('Brak spotkania do przypisania plików'); return }
+    try {
+      setUploading(true)
+      if (navigator.onLine) {
+        const form = new FormData()
+        form.append('meetingId', meetingId)
+        form.append('clientId', clientId)
+        form.append('category', attCategory)
+        for (const f of Array.from(files)) form.append('files', f)
+        await fetch((import.meta.env.VITE_API_BASE || '') + '/api/attachments/upload', {
+          method: 'POST',
+          headers: { },
+          body: form,
+        })
+      } else {
+        // enqueue offline (same key as elsewhere)
+        for (const f of Array.from(files)) {
+          await pendingQueue.enqueue({ id: newLocalId('att'), method: 'POST', url: (import.meta.env.VITE_API_BASE || '') + '/api/attachments/upload', body: { meetingId, clientId, category: attCategory, files: [f] } as any, headers: {}, createdAt: Date.now(), entityStore: 'attachments' })
+        }
+      }
+      setInfo('Dodano pliki')
+      try { window.dispatchEvent(new CustomEvent('client-attachments-uploaded', { detail: { clientId } })) } catch {}
+      setTimeout(() => setInfo(null), 1500)
+    } catch (e: any) {
+      setError('Nie udało się wgrać plików')
+    } finally {
+      setUploading(false)
+    }
+  }
+
+  if (!(user && (user.role === 'ADMIN' || user.role === 'MANAGER'))) return null
+  return (
+    <div className="text-xs" style={{ display: 'grid', gridTemplateColumns: '1fr', rowGap: 8, width: '100%', minWidth: 0 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+        <span className="text-gray-600" style={{ minWidth: 90 }}>Rodzaj pliku:</span>
+        <AttachmentCategoriesInline clientId={clientId} />
+      </div>
+      <label className="btn btn-sm secondary" style={{ margin: 0, width: 'fit-content' }}>
+        {uploading ? 'Wgrywanie…' : 'Dodaj pliki'}
+        <input type="file" multiple onChange={e => onUpload(e.target.files)} style={{ display: 'none' }} />
+      </label>
+      {info && <span className="text-xs text-green-600">{info}</span>}
+      {error && <span className="text-xs text-error">{error}</span>}
+    </div>
+  )
 }
 
