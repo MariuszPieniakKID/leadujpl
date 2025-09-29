@@ -152,8 +152,14 @@ router.get('/:id/status', requireAuth, async (req, res) => {
   try {
     const current = req.user!
     const { id } = req.params
+    const where: any = { clientId: id }
+    if (current.role === 'SALES_REP') {
+      where.attendeeId = current.id
+    } else if (current.role === 'MANAGER') {
+      where.attendee = { managerId: current.id }
+    } // ADMIN: no extra filter, any attendee
     const meeting = await prisma.meeting.findFirst({
-      where: { clientId: id, attendeeId: current.id },
+      where,
       orderBy: { scheduledAt: 'desc' },
       select: { id: true, status: true },
     })
@@ -176,18 +182,24 @@ router.patch('/:id/status', requireAuth, async (req, res) => {
     if (!['Sukces', 'Porażka', 'Dogrywka', 'Przełożone', 'Umówione', 'Odbyte'].includes(status)) {
       return res.status(400).json({ error: 'invalid status' })
     }
-    const meeting = await prisma.meeting.findFirst({
-      where: { clientId: id, attendeeId: current.id },
+    const where: any = { clientId: id }
+    if (current.role === 'SALES_REP') {
+      where.attendeeId = current.id
+    } else if (current.role === 'MANAGER') {
+      where.attendee = { managerId: current.id }
+    } // ADMIN: any attendee
+    const meetingToUpdate = await prisma.meeting.findFirst({
+      where,
       orderBy: { scheduledAt: 'desc' },
-      select: { id: true },
+      select: { id: true, attendeeId: true },
     })
-    if (!meeting) return res.status(404).json({ error: 'No meeting for client' })
-    const updated = await prisma.meeting.update({ where: { id: meeting.id }, data: { status } })
-    // Award points for 'Sukces' / 'Umowa'
+    if (!meetingToUpdate) return res.status(404).json({ error: 'No meeting for client' })
+    const updated = await prisma.meeting.update({ where: { id: meetingToUpdate.id }, data: { status } })
+    // Award points for 'Sukces' / 'Umowa' to meeting attendee
     try {
       const finalStatus = (updated.status || '').trim()
       if (finalStatus === 'Sukces' || finalStatus === 'Umowa') {
-        await prisma.pointsEvent.create({ data: { userId: current.id, points: 90, reason: 'umowa', clientId: id, meetingId: updated.id } })
+        await prisma.pointsEvent.create({ data: { userId: meetingToUpdate.attendeeId, points: 90, reason: 'umowa', clientId: id, meetingId: updated.id } })
       }
     } catch {}
     return res.json({ meetingId: updated.id, status: updated.status || null })

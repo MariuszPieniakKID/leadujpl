@@ -327,9 +327,11 @@ function ClientStatusSelect({ clientId }: { clientId: string }) {
       if (navigator.onLine) {
         const res = await setClientLatestStatus(clientId, next as any)
         setStatus(res.status)
+        try { window.dispatchEvent(new CustomEvent('client-status-changed', { detail: { clientId, status: res.status } })) } catch {}
       } else {
         await pendingQueue.enqueue({ id: newLocalId('att'), method: 'PATCH', url: (import.meta.env.VITE_API_BASE || '') + `/api/clients/${clientId}/status`, body: { status: next }, headers: {}, createdAt: Date.now(), entityStore: 'meetings' })
         setStatus(next)
+        try { window.dispatchEvent(new CustomEvent('client-status-changed', { detail: { clientId, status: next } })) } catch {}
       }
     } catch (e: any) {
       // ignore
@@ -494,6 +496,14 @@ function ClientLatestStatusInline({ clientId }: { clientId: string }) {
         setLoading(false)
       }
     })()
+    function onChanged(e: any) {
+      const cid = e?.detail?.clientId
+      if (cid === clientId) {
+        setStatus(e?.detail?.status ?? null)
+      }
+    }
+    window.addEventListener('client-status-changed', onChanged as any)
+    return () => window.removeEventListener('client-status-changed', onChanged as any)
   }, [clientId])
   if (loading) return <span className="text-gray-400">—</span>
   return status ? <span>{status}</span> : <span className="text-gray-400">—</span>
