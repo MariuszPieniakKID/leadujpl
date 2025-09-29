@@ -479,15 +479,6 @@ function ClientOffers({ clientId }: { clientId: string }) {
   )
 }
 
-function renderCategory(category?: string | null) {
-  if (!category || category.trim() === '') return <span className="text-gray-400">—</span>
-  const c = category.toUpperCase()
-  if (c === 'PV') return 'PV'
-  if (c === 'ME') return 'ME'
-  return <span className="text-gray-400">—</span>
-}
-
-
 function ClientLatestStatusInline({ clientId }: { clientId: string }) {
   const [loading, setLoading] = useState(true)
   const [status, setStatus] = useState<string | null>(null)
