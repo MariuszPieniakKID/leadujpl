@@ -118,7 +118,7 @@ export default function ClientsPage() {
             <label className="form-label">Status</label>
             <select className="form-select" value={status} onChange={e => setStatus(e.target.value)}>
               <option value="">Wszystkie</option>
-              <option value="Sukces">Sukces</option>
+              <option value="Sukces">Umowa</option>
               <option value="Porażka">Porażka</option>
               <option value="Dogrywka">Dogrywka</option>
               <option value="Przełożone">Przełożone</option>
