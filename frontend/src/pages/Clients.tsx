@@ -262,7 +262,7 @@ export default function ClientsPage() {
                         <div className="list-row"><span>Status</span><span><ClientLatestStatusInline clientId={c.id} /></span></div>
                       </div>
                     ) : (
-                      <div style={{ width: '100%', minWidth: 0, display: 'grid', gridTemplateColumns: '1fr', rowGap: 10 }}>
+                      <div style={{ width: '100%', minWidth: 0, display: 'grid', gridTemplateColumns: '1fr', rowGap: 12 }}>
                         <div>
                           <div className="text-gray-600 text-xs" style={{ marginBottom: 4 }}>E-mail</div>
                           <div>{c.email || <span className="text-gray-400">—</span>}</div>
@@ -277,19 +277,25 @@ export default function ClientsPage() {
                         </div>
                         <div>
                           <div className="text-gray-600 text-xs" style={{ marginBottom: 4 }}>Status</div>
-                          <div><ClientLatestStatusInline clientId={c.id} /></div>
+                          <div><ClientStatusSelect clientId={c.id} /></div>
+                        </div>
+                        <div className="text-xs" style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', width: '100%', minWidth: 0 }}>
+                          <span className="text-gray-600" style={{ minWidth: 90 }}>Rodzaj pliku:</span>
+                          <AttachmentCategoriesInline clientId={c.id} />
                         </div>
                       </div>
                     )}
-                    <div className="client-status-actions" style={{ display: 'grid', gridTemplateColumns: '1fr', rowGap: 8, width: '100%', minWidth: 0 }}>
-                      <div style={{ width: '100%', minWidth: 0 }}>
-                        <ClientStatusSelect clientId={c.id} />
+                    {isPWA && (
+                      <div className="client-status-actions" style={{ display: 'grid', gridTemplateColumns: '1fr', rowGap: 8, width: '100%', minWidth: 0 }}>
+                        <div style={{ width: '100%', minWidth: 0 }}>
+                          <ClientStatusSelect clientId={c.id} />
+                        </div>
+                        <div className="text-xs" style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', width: '100%', minWidth: 0, overflow: 'hidden' }}>
+                          <span className="text-gray-600" style={{ minWidth: 90 }}>Rodzaj pliku:</span>
+                          <AttachmentCategoriesInline clientId={c.id} />
+                        </div>
                       </div>
-                      <div className="text-xs" style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', width: '100%', minWidth: 0, overflow: 'hidden' }}>
-                        <span className="text-gray-600" style={{ minWidth: 90 }}>Rodzaj pliku:</span>
-                        <AttachmentCategoriesInline clientId={c.id} />
-                      </div>
-                    </div>
+                    )}
                     <div>
                       <strong>Załączniki</strong>
                       <div style={{ marginTop: 6 }}>
