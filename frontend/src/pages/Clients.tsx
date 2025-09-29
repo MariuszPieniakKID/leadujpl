@@ -115,7 +115,7 @@ export default function ClientsPage() {
             <input className="form-input" placeholder="Nazwisko, telefon, e-mail, adres" value={query} onChange={e => setQuery(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') load() }} />
           </div>
           <div className="form-group" style={{ margin: 0, flex: '1 1 180px', minWidth: 0 }}>
-            <label className="form-label">Status spotkania</label>
+            <label className="form-label">Status</label>
             <select className="form-select" value={status} onChange={e => setStatus(e.target.value)}>
               <option value="">Wszystkie</option>
               <option value="Sukces">Sukces</option>
@@ -337,7 +337,7 @@ function ClientStatusSelect({ clientId }: { clientId: string }) {
   }
   if (loading) return <span className="text-xs text-gray-500">Ładowanie statusu…</span>
   return (
-    <select className="form-select" value={status || ''} onChange={e => onChangeStatus(e.target.value)} style={{ flex: '1 1 220px', minWidth: 0, maxWidth: '100%' }}>
+    <select className="form-select" value={status || ''} onChange={e => onChangeStatus(e.target.value)} style={{ width: 160, flex: '0 0 auto', maxWidth: '100%' }}>
       <option value="">—</option>
       <option value="Umówione">Umówione</option>
       <option value="Odbyte">Odbyte</option>
