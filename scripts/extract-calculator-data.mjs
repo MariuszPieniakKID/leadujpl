@@ -107,10 +107,18 @@ const out = {
   }
 }
 
-const outDir = path.join(ROOT, 'frontend', 'src', 'data')
-fs.mkdirSync(outDir, { recursive: true })
-const outPath = path.join(outDir, 'calculatorData.json')
-fs.writeFileSync(outPath, JSON.stringify(out, null, 2), 'utf8')
-console.log('Wrote', path.relative(ROOT, outPath))
+// Write to frontend data (fallback for offline/dev)
+const outDirFE = path.join(ROOT, 'frontend', 'src', 'data')
+fs.mkdirSync(outDirFE, { recursive: true })
+const outPathFE = path.join(outDirFE, 'calculatorData.json')
+fs.writeFileSync(outPathFE, JSON.stringify(out, null, 2), 'utf8')
+console.log('Wrote', path.relative(ROOT, outPathFE))
+
+// Write also to backend embedded data used to bootstrap/sync config
+const outDirBE = path.join(ROOT, 'backend', 'src', 'data')
+fs.mkdirSync(outDirBE, { recursive: true })
+const outPathBE = path.join(outDirBE, 'calculatorData.json')
+fs.writeFileSync(outPathBE, JSON.stringify(out, null, 2), 'utf8')
+console.log('Wrote', path.relative(ROOT, outPathBE))
 
 
