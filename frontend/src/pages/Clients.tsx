@@ -244,7 +244,7 @@ export default function ClientsPage() {
                       <div className="list-row"><span>E-mail</span><span>{c.email || <span className="text-gray-400">—</span>}</span></div>
                       <div className="list-row"><span>Adres</span><span style={{ whiteSpace: 'normal', overflowWrap: 'anywhere' }}>{[c.street, c.city].filter(Boolean).join(', ') || <span className="text-gray-400">—</span>}</span></div>
                       <div className="list-row"><span>Kod pocztowy</span><span>{(c as any).postalCode || <span className="text-gray-400">—</span>}</span></div>
-                      <div className="list-row"><span>Kategoria</span><span>{renderCategory(c.category)}</span></div>
+                      <div className="list-row"><span>Status</span><span><ClientLatestStatusInline clientId={c.id} /></span></div>
                     </div>
                     <div className="client-status-actions" style={{ display: 'grid', gridTemplateColumns: '1fr', rowGap: 8, width: '100%', minWidth: 0 }}>
                       <div style={{ width: '100%', minWidth: 0 }}>
@@ -487,4 +487,24 @@ function renderCategory(category?: string | null) {
   return <span className="text-gray-400">—</span>
 }
 
+
+function ClientLatestStatusInline({ clientId }: { clientId: string }) {
+  const [loading, setLoading] = useState(true)
+  const [status, setStatus] = useState<string | null>(null)
+  useEffect(() => {
+    (async () => {
+      try {
+        setLoading(true)
+        const s = await getClientLatestStatus(clientId)
+        setStatus(s.status)
+      } catch {
+        setStatus(null)
+      } finally {
+        setLoading(false)
+      }
+    })()
+  }, [clientId])
+  if (loading) return <span className="text-gray-400">—</span>
+  return status ? <span>{status}</span> : <span className="text-gray-400">—</span>
+}
 
