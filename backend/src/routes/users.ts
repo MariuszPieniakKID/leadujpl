@@ -153,6 +153,40 @@ router.post('/:id/unassign', requireAuth, requireManagerOrAdmin, async (req, res
   }
 })
 
+// Delete user (ADMIN only) with reassignment logic
+router.delete('/:id', requireAuth, requireAdmin, async (req, res) => {
+  try {
+    const current = req.user!
+    if (current.role !== 'ADMIN') return res.status(403).json({ error: 'Forbidden' })
+    const { id } = req.params
+    if (id === current.id) return res.status(400).json({ error: 'Nie można usunąć własnego konta' })
+
+    const target = await prisma.user.findUnique({ where: { id }, select: { id: true, role: true } })
+    if (!target) return res.status(404).json({ error: 'Użytkownik nie istnieje' })
+
+    await prisma.$transaction(async (tx) => {
+      // If deleting a MANAGER: reassign their sales reps to the current ADMIN
+      if (target.role === 'MANAGER') {
+        await tx.user.updateMany({ where: { managerId: id }, data: { managerId: current.id } })
+      }
+
+      // Reassign entities owned/attended by the user to the current ADMIN
+      await tx.meeting.updateMany({ where: { attendeeId: id }, data: { attendeeId: current.id } })
+      await tx.offer.updateMany({ where: { ownerId: id }, data: { ownerId: current.id } })
+      await tx.attachment.updateMany({ where: { ownerId: id }, data: { ownerId: current.id } })
+      // Also reassign leads ownership to current ADMIN
+      await tx.lead.updateMany({ where: { ownerId: id }, data: { ownerId: current.id } })
+
+      // Finally, delete the user
+      await tx.user.delete({ where: { id } })
+    })
+
+    res.json({ ok: true })
+  } catch (e) {
+    res.status(500).json({ error: (e as Error).message })
+  }
+})
+
 
 // Total points for current user
 router.get('/me/points', requireAuth, async (req, res) => {

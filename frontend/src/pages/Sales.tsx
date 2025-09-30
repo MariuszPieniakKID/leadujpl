@@ -66,6 +66,20 @@ export default function SalesPage() {
     await load()
   }
 
+  async function deleteUser(userId: string) {
+    const u = usersById.get(userId)
+    const name = u ? `${u.firstName} ${u.lastName} (${u.role === 'MANAGER' ? 'Manager' : u.role === 'ADMIN' ? 'Admin' : 'Handlowiec'})` : 'użytkownika'
+    const info = u?.role === 'MANAGER'
+      ? '\n\nUwaga: wszyscy jego handlowcy zostaną przypisani do Ciebie (ADMIN).'
+      : u?.role === 'SALES_REP'
+        ? '\n\nUwaga: wszyscy jego klienci/spotkania/oferty/załączniki zostaną przypisane do Ciebie (ADMIN).'
+        : ''
+    if (!confirm(`Czy na pewno chcesz usunąć ${name}?${info}`)) return
+    await api.delete(`/api/users/${userId}`)
+    if (selectedUserId === userId) setSelectedUserId(null)
+    await load()
+  }
+
   const mySales = useMemo(() => salesOnly.filter(s => s.managerId === currentUser.id), [salesOnly, currentUser.id])
   const allSales = useMemo(() => salesOnly.filter(s => s.managerId !== currentUser.id), [salesOnly, currentUser.id])
 
@@ -122,7 +136,7 @@ export default function SalesPage() {
             ))}
           </div>
         )}
-        {selectedUser && (
+          {selectedUser && (
           <div className="card" style={{ marginTop: 8 }}>
             {selectedRelations.type === 'MANAGER' && (
               <>
@@ -130,6 +144,11 @@ export default function SalesPage() {
                   <strong>Zespół managera: {selectedUser.firstName} {selectedUser.lastName}</strong>
                   <span className="text-sm text-gray-500">{selectedRelations.items.length} handlowców</span>
                 </div>
+              {isAdmin && (
+                <div style={{ display: 'flex', gap: 8, marginBottom: 8 }}>
+                  <button className="danger btn-sm" onClick={() => deleteUser(selectedUser.id)}>Usuń użytkownika</button>
+                </div>
+              )}
                 {selectedRelations.items.length === 0 ? (
                   <div className="text-sm text-gray-500">Brak przypisanych handlowców</div>
                 ) : (
@@ -151,6 +170,11 @@ export default function SalesPage() {
                 <div className="flex justify-between items-center mb-2">
                   <strong>Przypisanie handlowca: {selectedUser.firstName} {selectedUser.lastName}</strong>
                 </div>
+              {isAdmin && (
+                <div style={{ display: 'flex', gap: 8, marginBottom: 8 }}>
+                  <button className="danger btn-sm" onClick={() => deleteUser(selectedUser.id)}>Usuń użytkownika</button>
+                </div>
+              )}
                 {selectedRelations.manager ? (
                   <div className="list-item">
                     <div>
