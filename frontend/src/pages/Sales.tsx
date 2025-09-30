@@ -44,6 +44,7 @@ export default function SalesPage() {
   }, [users, searchQuery])
 
   const selectedUser = useMemo(() => selectedUserId ? usersById.get(selectedUserId) || null : null, [selectedUserId, usersById])
+  const [selectedUserStats, setSelectedUserStats] = useState<{ points: number; totalMeetings: number; contracts: number; efficiency: number; email?: string; phone?: string | null } | null>(null)
   const selectedRelations = useMemo(() => {
     if (!selectedUser) return { type: 'NONE' as const, items: [] as User[], manager: null as User | null }
     if (selectedUser.role === 'MANAGER') {
@@ -56,6 +57,24 @@ export default function SalesPage() {
     }
     return { type: 'NONE' as const, items: [], manager: null }
   }, [selectedUser, salesOnly, managersById])
+
+  useEffect(() => {
+    (async () => {
+      try {
+        if (!selectedUser) { setSelectedUserStats(null); return }
+        const res = await api.get(`/api/users/${selectedUser.id}/stats`)
+        const s = res.data as any
+        setSelectedUserStats({
+          points: s.points || 0,
+          totalMeetings: s.totalMeetings || 0,
+          contracts: s.contracts || 0,
+          efficiency: s.efficiency || 0,
+          email: s.user?.email,
+          phone: s.user?.phone || null,
+        })
+      } catch { setSelectedUserStats(null) }
+    })()
+  }, [selectedUser?.id])
 
   async function assignToMe(userId: string) {
     await api.post(`/api/users/${userId}/assign-to-me`)
@@ -145,6 +164,16 @@ export default function SalesPage() {
                   <strong>Zespół managera: {selectedUser.firstName} {selectedUser.lastName}</strong>
                   <span className="text-sm text-gray-500">{selectedRelations.items.length} handlowców</span>
                 </div>
+              {selectedUserStats && (
+                <div className="list" style={{ marginBottom: 8 }}>
+                  <div className="list-row"><span>E-mail</span><span>{selectedUserStats.email || <span className="text-gray-400">—</span>}</span></div>
+                  <div className="list-row"><span>Telefon</span><span>{selectedUserStats.phone || <span className="text-gray-400">—</span>}</span></div>
+                  <div className="list-row"><span>Punkty</span><span>{selectedUserStats.points}</span></div>
+                  <div className="list-row"><span>Umowy</span><span>{selectedUserStats.contracts}</span></div>
+                  <div className="list-row"><span>Spotkania</span><span>{selectedUserStats.totalMeetings}</span></div>
+                  <div className="list-row"><span>Skuteczność</span><span>{selectedUserStats.efficiency}%</span></div>
+                </div>
+              )}
               {isAdmin && (
                 <div style={{ display: 'flex', gap: 8, marginBottom: 8 }}>
                   <button className="danger btn-sm" onClick={() => deleteUser(selectedUser.id)}>Usuń użytkownika</button>
@@ -171,6 +200,16 @@ export default function SalesPage() {
                 <div className="flex justify-between items-center mb-2">
                   <strong>Przypisanie handlowca: {selectedUser.firstName} {selectedUser.lastName}</strong>
                 </div>
+              {selectedUserStats && (
+                <div className="list" style={{ marginBottom: 8 }}>
+                  <div className="list-row"><span>E-mail</span><span>{selectedUserStats.email || <span className="text-gray-400">—</span>}</span></div>
+                  <div className="list-row"><span>Telefon</span><span>{selectedUserStats.phone || <span className="text-gray-400">—</span>}</span></div>
+                  <div className="list-row"><span>Punkty</span><span>{selectedUserStats.points}</span></div>
+                  <div className="list-row"><span>Umowy</span><span>{selectedUserStats.contracts}</span></div>
+                  <div className="list-row"><span>Spotkania</span><span>{selectedUserStats.totalMeetings}</span></div>
+                  <div className="list-row"><span>Skuteczność</span><span>{selectedUserStats.efficiency}%</span></div>
+                </div>
+              )}
               {isAdmin && (
                 <div style={{ display: 'flex', gap: 8, marginBottom: 8 }}>
                   <button className="danger btn-sm" onClick={() => deleteUser(selectedUser.id)}>Usuń użytkownika</button>

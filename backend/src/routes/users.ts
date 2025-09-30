@@ -221,3 +221,49 @@ router.get('/leaderboard/points', requireAuth, async (req, res) => {
   }
 })
 
+// User stats (ADMIN or MANAGER viewing team members; ADMIN can view anyone)
+router.get('/:id/stats', requireAuth, async (req, res) => {
+  try {
+    const current = req.user!
+    const { id } = req.params
+    // Authorization: ADMIN can view any; MANAGER can view only their sales reps; users can view themselves
+    if (current.role !== 'ADMIN') {
+      if (current.id !== id) {
+        const target = await prisma.user.findUnique({ where: { id }, select: { managerId: true } })
+        if (!target) return res.status(404).json({ error: 'Not found' })
+        if (!(current.role === 'MANAGER' && target.managerId === current.id)) {
+          return res.status(403).json({ error: 'Forbidden' })
+        }
+      }
+    }
+
+    // Basic info
+    const user = await prisma.user.findUnique({ where: { id }, select: { id: true, email: true, phone: true, firstName: true, lastName: true, role: true } })
+    if (!user) return res.status(404).json({ error: 'Not found' })
+
+    // Points
+    const ptsAgg = await prisma.pointsEvent.aggregate({ _sum: { points: true }, where: { userId: id } })
+    const points = ptsAgg._sum.points || 0
+
+    // Meetings stats
+    const now = new Date()
+    const meetings = await prisma.meeting.findMany({ where: { attendeeId: id }, select: { id: true, status: true, scheduledAt: true } })
+    const totalMeetings = meetings.length
+    const contracts = meetings.filter(m => (m.status || '').trim() === 'Sukces' || (m.status || '').trim() === 'Umowa').length
+    const pastMeetings = meetings.filter(m => new Date(m.scheduledAt).getTime() <= now.getTime())
+    const pastCount = pastMeetings.length
+    const pastContracts = pastMeetings.filter(m => (m.status || '').trim() === 'Sukces' || (m.status || '').trim() === 'Umowa').length
+    const efficiency = pastCount > 0 ? Math.round((pastContracts / pastCount) * 100) : 0
+
+    res.json({
+      user: { id: user.id, email: user.email, phone: user.phone || null, firstName: user.firstName, lastName: user.lastName, role: user.role },
+      points,
+      totalMeetings,
+      contracts,
+      efficiency,
+    })
+  } catch (e) {
+    res.status(500).json({ error: (e as Error).message })
+  }
+})
+
