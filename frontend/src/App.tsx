@@ -1189,7 +1189,7 @@ function Dashboard() {
                   <input className="form-input" value={createForm.postalCode} onChange={e => setCreateForm({ ...createForm, postalCode: e.target.value })} />
                 </div>
                 <div className="form-group">
-                  <label className="form-label">E-mail</label>
+                  <label className="form-label">E-mail (opcjonalne)</label>
                   <input className="form-input" value={createForm.clientEmail} onChange={e => setCreateForm({ ...createForm, clientEmail: e.target.value })} />
                 </div>
                 <div className="form-group" style={{ gridColumn: '1 / -1' }}>

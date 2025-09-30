@@ -292,7 +292,15 @@ export default function CalendarPage() {
 
   async function onSelect(slot: SlotInfo) {
     setCreateError(null)
-    const start = roundToNextHalfHour(slot.start as Date)
+    const clicked = new Date(slot.start as Date)
+    const hit = meetings.find((m: any) => {
+      const s = new Date(m.scheduledAt)
+      const e = m.endsAt ? new Date(m.endsAt) : addHours(s, 1)
+      return clicked >= s && clicked < e
+    }) as any
+    if (hit) { await openEditModal(hit.id); return }
+
+    const start = roundToNextHalfHour(clicked)
     const end = addHours(start, 1)
     setCreateForm(f => ({
       ...f,
@@ -729,7 +737,7 @@ export default function CalendarPage() {
           max={setHours(setMinutes(new Date(), 0), 18)}
           scrollToTime={setHours(setMinutes(new Date(), 0), 8)}
           selectable
-          longPressThreshold={10}
+          longPressThreshold={400}
           popup
           style={{ height: '100%' }}
           onSelectSlot={onSelect}
@@ -775,7 +783,7 @@ export default function CalendarPage() {
           max={setHours(setMinutes(new Date(), 0), 18)}
           scrollToTime={setHours(setMinutes(new Date(), 0), 8)}
           selectable
-          longPressThreshold={10}
+          longPressThreshold={400}
           popup
           style={{ height: '100%' }}
           onSelectSlot={onSelect}
@@ -910,7 +918,7 @@ export default function CalendarPage() {
                 <input value={createForm.postalCode} onChange={e => setCreateForm({ ...createForm, postalCode: e.target.value })} />
               </div>
               <div>
-                <label>E-mail</label>
+                <label>E-mail (opcjonalne)</label>
                 <input value={createForm.clientEmail} onChange={e => setCreateForm({ ...createForm, clientEmail: e.target.value })} />
               </div>
               <div style={{ gridColumn: '1 / -1' }}>
