@@ -254,13 +254,14 @@ export default function SalesPage() {
             <div className="text-center py-8 text-gray-500">Ładowanie…</div>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}>
+              <div className="text-sm text-gray-500" style={{ marginTop: -8 }}>Kliknij użytkownika, aby wyświetlić szczegóły i statystyki</div>
               {users
                 .filter(u => roleFilter === 'ALL' ? true : u.role === roleFilter)
                 .map(u => {
                   const currentManager = u.managerId ? managersById.get(u.managerId) : null
                   return (
                     <div key={u.id} className="list-item">
-                      <div>
+                      <div onClick={() => setSelectedUserId(u.id)} style={{ cursor: 'pointer' }}>
                         <div className="font-medium text-gray-900">{u.firstName} {u.lastName} <span className="text-xs text-gray-400">({u.role === 'MANAGER' ? 'Manager' : u.role === 'ADMIN' ? 'Admin' : 'Handlowiec'})</span></div>
                         <div className="text-sm text-gray-500">{u.email}</div>
                         {currentManager && <div className="text-xs text-gray-400">Manager: {currentManager.firstName} {currentManager.lastName}</div>}
