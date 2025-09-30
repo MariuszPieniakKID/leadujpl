@@ -20,6 +20,7 @@ import StatsPage from './pages/Stats'
 import ManagerStatsPage from './pages/ManagerStats'
 import { clearAuth, getToken, getUser } from './lib/auth'
 import MobileNav from './components/MobileNav'
+import { polishPhoneHtmlPattern, polishPhoneTitle } from './lib/phone'
 import Logo from './components/Logo'
 import SyncStatus from './components/SyncStatus'
 // getUser already imported above
@@ -1174,7 +1175,7 @@ function Dashboard() {
                 </div>
                 <div className="form-group">
                   <label className="form-label">Telefon</label>
-                  <input className="form-input" value={createForm.clientPhone} onChange={e => setCreateForm({ ...createForm, clientPhone: e.target.value })} />
+                  <input className="form-input" value={createForm.clientPhone} onChange={e => setCreateForm({ ...createForm, clientPhone: e.target.value })} pattern={polishPhoneHtmlPattern} title={polishPhoneTitle} inputMode="tel" />
                 </div>
                 <div className="form-group">
                   <label className="form-label">Ulica</label>
@@ -1457,7 +1458,7 @@ function Dashboard() {
                 </div>
                 <div className="form-group">
                   <label className="form-label">Telefon</label>
-                  <input className="form-input" value={editForm.clientPhone} onChange={e => setEditForm({ ...editForm, clientPhone: e.target.value })} />
+                  <input className="form-input" value={editForm.clientPhone} onChange={e => setEditForm({ ...editForm, clientPhone: e.target.value })} pattern={polishPhoneHtmlPattern} title={polishPhoneTitle} inputMode="tel" />
                 </div>
                 <div className="form-group">
                   <label className="form-label">E-mail</label>

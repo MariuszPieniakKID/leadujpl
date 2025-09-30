@@ -16,6 +16,7 @@ import { offlineStore, pendingQueue, newLocalId } from '../lib/offline'
 import EmbeddedCalculator from '../components/EmbeddedCalculator'
 import { listClientOffers, downloadOffer, fetchOffer } from '../lib/api'
 import type { Client } from '../lib/api'
+import { isValidPolishPhone, polishPhoneHtmlPattern, polishPhoneTitle } from '../lib/phone'
 import { getUser } from '../lib/auth'
 
 type EditMeta = {
@@ -903,7 +904,7 @@ export default function CalendarPage() {
               </div>
               <div>
                 <label>Telefon</label>
-                <input value={createForm.clientPhone} onChange={e => setCreateForm({ ...createForm, clientPhone: e.target.value })} />
+                <input value={createForm.clientPhone} onChange={e => setCreateForm({ ...createForm, clientPhone: e.target.value })} pattern={polishPhoneHtmlPattern} title={polishPhoneTitle} inputMode="tel" />
               </div>
               <div>
                 <label>Ulica</label>
@@ -1197,7 +1198,7 @@ export default function CalendarPage() {
               </div>
               <div>
                 <label>Telefon</label>
-                <input value={editForm.clientPhone} onChange={e => setEditForm({ ...editForm, clientPhone: e.target.value })} />
+                <input value={editForm.clientPhone} onChange={e => setEditForm({ ...editForm, clientPhone: e.target.value })} pattern={polishPhoneHtmlPattern} title={polishPhoneTitle} inputMode="tel" />
               </div>
               <div>
                 <label>E-mail</label>

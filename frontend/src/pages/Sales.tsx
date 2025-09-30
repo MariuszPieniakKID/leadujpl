@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { createPortal } from 'react-dom'
 import api from '../lib/api'
+import { isValidPolishPhone, polishPhoneHtmlPattern, polishPhoneTitle } from '../lib/phone'
 import { getUser } from '../lib/auth'
 
 type User = { id: string; firstName: string; lastName: string; email: string; role: 'ADMIN' | 'MANAGER' | 'SALES_REP'; managerId?: string | null }
@@ -331,6 +332,7 @@ function AddSalesForm({ onCreated }: { onCreated: () => void }) {
       if (!form.firstName || !form.lastName || !form.email) {
         setError('Imię, nazwisko i e-mail są wymagane'); return
       }
+      if (form.phone && !isValidPolishPhone(form.phone)) { setError('Nieprawidłowy numer telefonu (PL)'); return }
       await api.post('/api/users/create-sales', {
         firstName: form.firstName,
         lastName: form.lastName,
@@ -386,7 +388,7 @@ function AddSalesForm({ onCreated }: { onCreated: () => void }) {
           </div>
           <div className="form-group">
             <label className="form-label">Telefon</label>
-            <input className="form-input" placeholder="Telefon" value={form.phone} onChange={e => setForm({ ...form, phone: e.target.value })} />
+            <input className="form-input" placeholder="Telefon" value={form.phone} onChange={e => setForm({ ...form, phone: e.target.value })} pattern={polishPhoneHtmlPattern} title={polishPhoneTitle} inputMode="tel" />
           </div>
           <div className="form-group" style={{ gridColumn: '1 / -1' }}>
             <label className="form-label">Hasło (opcjonalnie)</label>
@@ -430,6 +432,7 @@ function AddManagerForm({ onCreated }: { onCreated: () => void }) {
       if (!form.firstName || !form.lastName || !form.email) {
         setError('Imię, nazwisko i e-mail są wymagane'); return
       }
+      if (form.phone && !isValidPolishPhone(form.phone)) { setError('Nieprawidłowy numer telefonu (PL)'); return }
       await api.post('/api/users', {
         firstName: form.firstName,
         lastName: form.lastName,
@@ -486,7 +489,7 @@ function AddManagerForm({ onCreated }: { onCreated: () => void }) {
           </div>
           <div className="form-group">
             <label className="form-label">Telefon</label>
-            <input className="form-input" placeholder="Telefon" value={form.phone} onChange={e => setForm({ ...form, phone: e.target.value })} />
+            <input className="form-input" placeholder="Telefon" value={form.phone} onChange={e => setForm({ ...form, phone: e.target.value })} pattern={polishPhoneHtmlPattern} title={polishPhoneTitle} inputMode="tel" />
           </div>
           <div className="form-group" style={{ gridColumn: '1 / -1' }}>
             <label className="form-label">Hasło (opcjonalnie)</label>

@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { clearAuth } from '../lib/auth'
 import api from '../lib/api'
+import { isValidPolishPhone, polishPhoneHtmlPattern, polishPhoneTitle } from '../lib/phone'
 
 type Me = {
   id: string
@@ -44,6 +45,7 @@ export default function AccountPage() {
     setSaving(true)
     setError(null)
     try {
+      if (me.phone && !isValidPolishPhone(me.phone)) { setError('Nieprawidłowy numer telefonu (PL)'); setSaving(false); return }
       await api.patch('/api/users/me', {
         firstName: me.firstName,
         lastName: me.lastName,
@@ -87,7 +89,7 @@ export default function AccountPage() {
           </div>
           <div className="form-group">
             <label className="form-label">Telefon</label>
-            <input className="form-input" value={me.phone || ''} onChange={e => setMe({ ...me, phone: e.target.value })} />
+            <input className="form-input" value={me.phone || ''} onChange={e => setMe({ ...me, phone: e.target.value })} pattern={polishPhoneHtmlPattern} title={polishPhoneTitle} inputMode="tel" />
           </div>
           <div className="form-group">
             <label className="form-label">E-mail</label>

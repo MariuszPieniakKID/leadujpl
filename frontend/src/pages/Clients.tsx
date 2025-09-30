@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { isValidPolishPhone, polishPhoneHtmlPattern, polishPhoneTitle } from '../lib/phone'
 import { getUser } from '../lib/auth'
 import api, { fetchUsers, type AppUserSummary, listClientOffers, downloadOffer, viewOffer, fetchOffer } from '../lib/api'
 import EmbeddedCalculator from '../components/EmbeddedCalculator'
@@ -93,6 +94,7 @@ export default function ClientsPage() {
     e.preventDefault()
     setCreateError(null)
     if (!form.firstName || !form.lastName) { setCreateError('Imię i nazwisko są wymagane'); return }
+    if (form.phone && !isValidPolishPhone(form.phone)) { setCreateError('Nieprawidłowy numer telefonu (PL)'); return }
     const payload = {
       firstName: form.firstName!, lastName: form.lastName!, phone: form.phone || undefined, email: form.email || undefined,
       street: form.street || undefined, city: form.city || undefined, postalCode: form.postalCode || undefined, category: form.category || undefined,
@@ -189,7 +191,7 @@ export default function ClientsPage() {
                 </div>
                 <div className="form-group">
                   <label className="form-label">Telefon</label>
-                  <input className="form-input" placeholder="Telefon" value={form.phone || ''} onChange={e => setForm({ ...form, phone: e.target.value })} />
+                  <input className="form-input" placeholder="Telefon" value={form.phone || ''} onChange={e => setForm({ ...form, phone: e.target.value })} pattern={polishPhoneHtmlPattern} title={polishPhoneTitle} inputMode="tel" />
                 </div>
                 <div className="form-group">
                   <label className="form-label">E-mail</label>
