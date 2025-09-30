@@ -166,8 +166,8 @@ export default function SalesPage() {
                 </div>
               {selectedUserStats && (
                 <div className="list" style={{ marginBottom: 8 }}>
-                  <div className="list-row"><span>E-mail</span><span>{selectedUserStats.email || <span className="text-gray-400">—</span>}</span></div>
-                  <div className="list-row"><span>Telefon</span><span>{selectedUserStats.phone || <span className="text-gray-400">—</span>}</span></div>
+                  <div className="list-row"><span>E-mail</span><span>{selectedUserStats.email ? <a href={`mailto:${selectedUserStats.email}`}>{selectedUserStats.email}</a> : <span className="text-gray-400">—</span>}</span></div>
+                  <div className="list-row"><span>Telefon</span><span>{selectedUserStats.phone ? <a href={`tel:${String(selectedUserStats.phone).replace(/\s|-/g,'')}`}>{selectedUserStats.phone}</a> : <span className="text-gray-400">—</span>}</span></div>
                   <div className="list-row"><span>Punkty</span><span>{selectedUserStats.points}</span></div>
                   <div className="list-row"><span>Umowy</span><span>{selectedUserStats.contracts}</span></div>
                   <div className="list-row"><span>Spotkania</span><span>{selectedUserStats.totalMeetings}</span></div>
@@ -202,8 +202,8 @@ export default function SalesPage() {
                 </div>
               {selectedUserStats && (
                 <div className="list" style={{ marginBottom: 8 }}>
-                  <div className="list-row"><span>E-mail</span><span>{selectedUserStats.email || <span className="text-gray-400">—</span>}</span></div>
-                  <div className="list-row"><span>Telefon</span><span>{selectedUserStats.phone || <span className="text-gray-400">—</span>}</span></div>
+                  <div className="list-row"><span>E-mail</span><span>{selectedUserStats.email ? <a href={`mailto:${selectedUserStats.email}`}>{selectedUserStats.email}</a> : <span className="text-gray-400">—</span>}</span></div>
+                  <div className="list-row"><span>Telefon</span><span>{selectedUserStats.phone ? <a href={`tel:${String(selectedUserStats.phone).replace(/\s|-/g,'')}`}>{selectedUserStats.phone}</a> : <span className="text-gray-400">—</span>}</span></div>
                   <div className="list-row"><span>Punkty</span><span>{selectedUserStats.points}</span></div>
                   <div className="list-row"><span>Umowy</span><span>{selectedUserStats.contracts}</span></div>
                   <div className="list-row"><span>Spotkania</span><span>{selectedUserStats.totalMeetings}</span></div>

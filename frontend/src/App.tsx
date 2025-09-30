@@ -1158,7 +1158,26 @@ function Dashboard() {
                         {clientOptions.map(c => (
                           <div key={c.id} className="autocomplete-item" onClick={() => onPickClient(c)}>
                             <div className="font-medium">{c.firstName} {c.lastName}</div>
-                            <div className="text-xs text-gray-500">{[c.phone, c.email, c.city, c.street].filter(Boolean).join(' • ')}</div>
+                            <div className="text-xs text-gray-500">
+                              {[c.phone, c.email, c.city, c.street]
+                                .filter(Boolean)
+                                .map((v, idx) => {
+                                  if (v === c.phone) return <a key={`p-${idx}`} href={`tel:${String(c.phone).replace(/\s|-/g,'')}`}>{c.phone}</a>
+                                  if (v === c.email) return <a key={`e-${idx}`} href={`mailto:${c.email}`}>{c.email}</a>
+                                  return <span key={`t-${idx}`}>{v}</span>
+                                })
+                                .reduce((prev: any[], cur, idx) => prev.concat(idx > 0 ? [<span key={`sep-${idx}`}> • </span>, cur] : [cur]), [])}
+                            </div>
+                            <div className="text-xs text-gray-500">
+                              {[c.phone, c.email, c.city, c.street]
+                                .filter(Boolean)
+                                .map((v, idx) => {
+                                  if (v === c.phone) return <a key={`p-${idx}`} href={`tel:${String(c.phone).replace(/\s|-/g,'')}`}>{c.phone}</a>
+                                  if (v === c.email) return <a key={`e-${idx}`} href={`mailto:${c.email}`}>{c.email}</a>
+                                  return <span key={`t-${idx}`}>{v}</span>
+                                })
+                                .reduce((prev: any[], cur, idx) => prev.concat(idx > 0 ? [<span key={`sep-${idx}`}> • </span>, cur] : [cur]), [])}
+                            </div>
                           </div>
                         ))}
                       </div>

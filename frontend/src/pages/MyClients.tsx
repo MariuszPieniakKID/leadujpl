@@ -199,7 +199,7 @@ export default function MyClientsPage() {
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8, flexWrap: 'wrap', width: '100%', minWidth: 0 }}>
                   <div style={{ display: 'flex', flexDirection: 'column' }}>
                     <span className="font-medium">{c.firstName} {c.lastName}</span>
-                    <span style={{ color: 'var(--gray-600)', fontSize: 12 }}>{c.phone || '—'}</span>
+                    <span style={{ color: 'var(--gray-600)', fontSize: 12 }}>{c.phone ? <a href={`tel:${String(c.phone).replace(/\s|-/g,'')}`}>{c.phone}</a> : '—'}</span>
                   </div>
                   <div className="client-actions" style={{ display: 'flex', gap: 8, flexShrink: 0, minWidth: 0 }}>
                     {!expanded[c.id] && (
@@ -210,7 +210,7 @@ export default function MyClientsPage() {
                 {expanded[c.id] && (
                   <div style={{ marginTop: 8, display: 'grid', gridTemplateColumns: '1fr', gap: 8, minWidth: 0, overflow: 'hidden' }}>
                     <div className="list" style={{ width: '100%', minWidth: 0 }}>
-                      <div className="list-row"><span>E-mail</span><span>{c.email || <span className="text-gray-400">—</span>}</span></div>
+                      <div className="list-row"><span>E-mail</span><span>{c.email ? <a href={`mailto:${c.email}`}>{c.email}</a> : <span className="text-gray-400">—</span>}</span></div>
                       <div className="list-row"><span>Adres</span><span style={{ whiteSpace: 'normal', overflowWrap: 'anywhere' }}>{[c.street, c.city].filter(Boolean).join(', ') || <span className="text-gray-400">—</span>}</span></div>
                       <div className="list-row"><span>Kod pocztowy</span><span>{(c as any).postalCode || <span className="text-gray-400">—</span>}</span></div>
                       <div className="list-row"><span>Kategoria</span><span>{renderCategory(c.category)}</span></div>

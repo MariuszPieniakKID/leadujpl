@@ -887,7 +887,26 @@ export default function CalendarPage() {
                     {clientOptions.map(c => (
                       <div key={c.id} style={{ padding: 8, cursor: 'pointer' }} onClick={() => onPickClient(c)}>
                         <div style={{ fontWeight: 600 }}>{c.firstName} {c.lastName}</div>
-                        <div className="muted" style={{ fontSize: 12 }}>{[c.phone, c.email, c.city, c.street].filter(Boolean).join(' • ')}</div>
+                        <div className="muted" style={{ fontSize: 12 }}>
+                          {[c.phone, c.email, c.city, c.street]
+                            .filter(Boolean)
+                            .map((v, idx) => {
+                              if (v === c.phone) return <a key={`p-${idx}`} href={`tel:${String(c.phone).replace(/\s|-/g,'')}`}>{c.phone}</a>
+                              if (v === c.email) return <a key={`e-${idx}`} href={`mailto:${c.email}`}>{c.email}</a>
+                              return <span key={`t-${idx}`}>{v}</span>
+                            })
+                            .reduce((prev: any[], cur, idx) => prev.concat(idx > 0 ? [<span key={`sep-${idx}`}> • </span>, cur] : [cur]), [])}
+                        </div>
+                        <div className="muted" style={{ fontSize: 12 }}>
+                          {[c.phone, c.email, c.city, c.street]
+                            .filter(Boolean)
+                            .map((v, idx) => {
+                              if (v === c.phone) return <a key={`p-${idx}`} href={`tel:${String(c.phone).replace(/\s|-/g,'')}`}>{c.phone}</a>
+                              if (v === c.email) return <a key={`e-${idx}`} href={`mailto:${c.email}`}>{c.email}</a>
+                              return <span key={`t-${idx}`}>{v}</span>
+                            })
+                            .reduce((prev: any[], cur, idx) => prev.concat(idx > 0 ? [<span key={`sep-${idx}`}> • </span>, cur] : [cur]), [])}
+                        </div>
                       </div>
                     ))}
                   </div>
