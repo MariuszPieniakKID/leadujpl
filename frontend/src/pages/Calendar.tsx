@@ -16,7 +16,7 @@ import { offlineStore, pendingQueue, newLocalId } from '../lib/offline'
 import EmbeddedCalculator from '../components/EmbeddedCalculator'
 import { listClientOffers, downloadOffer, fetchOffer } from '../lib/api'
 import type { Client } from '../lib/api'
-import { isValidPolishPhone, polishPhoneHtmlPattern, polishPhoneTitle } from '../lib/phone'
+import { polishPhoneHtmlPattern, polishPhoneTitle } from '../lib/phone'
 import { getUser } from '../lib/auth'
 
 type EditMeta = {
