@@ -173,6 +173,12 @@ export default function StatsPage() {
     try {
       setReportLoading(true)
       setReportError(null)
+      const me = getUser()
+      if (!me || me.role !== 'ADMIN') {
+        setReportError('Tylko administrator może generować raporty')
+        setReportLoading(false)
+        return
+      }
       const payload = {
         ...reportConfig,
         managerId: managerId || undefined

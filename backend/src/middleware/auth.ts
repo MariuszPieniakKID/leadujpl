@@ -32,8 +32,13 @@ export function requireAuth(req: Request, res: Response, next: NextFunction) {
 }
 
 export function requireAdmin(req: Request, res: Response, next: NextFunction) {
-  if (!req.user || req.user.role !== 'ADMIN') {
-    return res.status(403).json({ error: 'Forbidden' });
+  if (!req.user) {
+    console.error('[requireAdmin] No user found in request');
+    return res.status(403).json({ error: 'Forbidden: No user authenticated' });
+  }
+  if (req.user.role !== 'ADMIN') {
+    console.error('[requireAdmin] User role is not ADMIN:', req.user.role);
+    return res.status(403).json({ error: 'Forbidden: Admin role required' });
   }
   next();
 }

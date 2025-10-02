@@ -1,12 +1,12 @@
 import { Router } from 'express';
 import { PrismaClient } from '@prisma/client';
-import { requireAdmin } from '../middleware/auth';
+import { requireAuth, requireAdmin } from '../middleware/auth';
 
 const prisma = new PrismaClient();
 const router = Router();
 
 // Admin-only endpoint: fetch data for custom reports
-router.post('/data', requireAdmin, async (req, res) => {
+router.post('/data', requireAuth, requireAdmin, async (req, res) => {
   try {
     const { 
       includeClients, 
