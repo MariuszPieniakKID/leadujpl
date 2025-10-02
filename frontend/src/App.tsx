@@ -112,25 +112,35 @@ function Dashboard() {
         const upcoming = future
           .sort((a, b) => new Date(a.scheduledAt).getTime() - new Date(b.scheduledAt).getTime())
           .slice(0, 5)
-          .map(m => ({
-            id: m.id as string,
-            date: new Date(m.scheduledAt).toLocaleDateString(),
-            time: new Date(m.scheduledAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-            place: (m as any).location || '—',
-            topic: (m as any).notes || 'Spotkanie',
-          }))
+          .map(m => {
+            const raw: any = m
+            const clientName = raw.client ? `${raw.client.firstName || ''} ${raw.client.lastName || ''}`.trim() : ''
+            const topic = clientName || raw.notes || 'Spotkanie'
+            return {
+              id: m.id as string,
+              date: new Date(m.scheduledAt).toLocaleDateString(),
+              time: new Date(m.scheduledAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+              place: raw.location || '—',
+              topic,
+            }
+          })
         setManagerUpcoming(upcoming)
 
         const recent = past
           .sort((a, b) => new Date(b.scheduledAt).getTime() - new Date(a.scheduledAt).getTime())
           .slice(0, 5)
-          .map(m => ({
-            id: m.id as string,
-            date: new Date(m.scheduledAt).toLocaleDateString(),
-            time: new Date(m.scheduledAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-            place: (m as any).location || '—',
-            topic: (m as any).notes || 'Spotkanie',
-          }))
+          .map(m => {
+            const raw: any = m
+            const clientName = raw.client ? `${raw.client.firstName || ''} ${raw.client.lastName || ''}`.trim() : ''
+            const topic = clientName || raw.notes || 'Spotkanie'
+            return {
+              id: m.id as string,
+              date: new Date(m.scheduledAt).toLocaleDateString(),
+              time: new Date(m.scheduledAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+              place: raw.location || '—',
+              topic,
+            }
+          })
         setManagerRecent(recent)
       } else {
         setManagerStats({ leads: 0, past: 0, future: 0, rescheduled: 0, contracts: 0, effectiveness: 0 })
@@ -204,13 +214,18 @@ function Dashboard() {
       .filter(m => new Date(m.scheduledAt).getTime() > now)
       .sort((a,b) => new Date(a.scheduledAt).getTime() - new Date(b.scheduledAt).getTime())
       .slice(0, 5)
-      .map(m => ({
-        id: m.id,
-        date: new Date(m.scheduledAt).toLocaleDateString(),
-        time: new Date(m.scheduledAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-        place: m.location || '—',
-        topic: m.notes || 'Spotkanie',
-      }))
+      .map(m => {
+        const raw: any = m
+        const clientName = raw.client ? `${raw.client.firstName || ''} ${raw.client.lastName || ''}`.trim() : ''
+        const topic = clientName || m.notes || 'Spotkanie'
+        return {
+          id: m.id,
+          date: new Date(m.scheduledAt).toLocaleDateString(),
+          time: new Date(m.scheduledAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+          place: m.location || '—',
+          topic,
+        }
+      })
   }, [meetings])
 
   const recent = useMemo(() => {
@@ -219,14 +234,19 @@ function Dashboard() {
       .filter(m => new Date(m.scheduledAt).getTime() <= now)
       .sort((a,b) => new Date(b.scheduledAt).getTime() - new Date(a.scheduledAt).getTime())
       .slice(0, 5)
-      .map(m => ({
-        id: m.id,
-        date: new Date(m.scheduledAt).toLocaleDateString(),
-        time: new Date(m.scheduledAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-        place: m.location || '—',
-        topic: m.notes || 'Spotkanie',
-        status: m.status as string | undefined,
-      }))
+      .map(m => {
+        const raw: any = m
+        const clientName = raw.client ? `${raw.client.firstName || ''} ${raw.client.lastName || ''}`.trim() : ''
+        const topic = clientName || m.notes || 'Spotkanie'
+        return {
+          id: m.id,
+          date: new Date(m.scheduledAt).toLocaleDateString(),
+          time: new Date(m.scheduledAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+          place: m.location || '—',
+          topic,
+          status: m.status as string | undefined,
+        }
+      })
   }, [meetings])
 
   async function navigateToMeeting(meetingId: string) {
