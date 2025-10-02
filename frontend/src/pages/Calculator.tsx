@@ -122,32 +122,56 @@ export default function CalculatorPage() {
     const trenchPrice = form.trench === 'Tak' ? Number(settings['Dodatki: Przekop (netto)'] || 0) : 0
     const extraSum = (form.extraItems || []).reduce((acc, it) => acc + (Number(it.amount || 0) || 0), 0)
     const subtotalPlain = pvBase + pvGroundExtra + inverterPrice + batteryPrice + backupPrice + trenchPrice + extraSum
-    // Manager margin on subtotal
     let subtotalNet = subtotalPlain
+    let marginAmount = 0
+    
+    // Apply margins in order for SALES_REP: Admin global → Manager → Sales Rep own
     try {
       const margins = (data as any).settings?.margins || {}
+      
+      // 1. Admin global margin (if set in settings)
+      if (user?.role === 'SALES_REP') {
+        const adminMargin = settings.adminMargin
+        if (adminMargin) {
+          const amount = Number(adminMargin.amount || 0)
+          const percent = Number(adminMargin.percent || 0)
+          const uplift = (percent > 0) ? (subtotalNet * (percent / 100)) : amount
+          if (uplift > 0) {
+            subtotalNet = Math.max(subtotalNet + uplift, 0)
+            marginAmount += uplift
+          }
+        }
+      }
+      
+      // 2. Manager margin (for user's direct manager)
       const managerId = user?.managerId || null
       const m = managerId ? margins[managerId] : null
       if (m) {
         const amount = Number(m.amount || 0)
         const percent = Number(m.percent || 0)
         const uplift = (percent > 0) ? (subtotalNet * (percent / 100)) : amount
-        subtotalNet = Math.max(subtotalNet + Math.max(uplift, 0), 0)
+        if (uplift > 0) {
+          subtotalNet = Math.max(subtotalNet + uplift, 0)
+          marginAmount += uplift
+        }
       }
     } catch {}
-    // Sales margin on subtotal
+    
+    // 3. Sales rep's personal margin
     if (user && user.role === 'SALES_REP') {
       const sm = getSalesMargin()
       if (sm) {
         const amount = Number(sm.amount || 0)
         const percent = Number(sm.percent || 0)
         const uplift = (percent > 0) ? (subtotalNet * (percent / 100)) : amount
-        subtotalNet = Math.max(subtotalNet + Math.max(uplift, 0), 0)
+        if (uplift > 0) {
+          subtotalNet = Math.max(subtotalNet + uplift, 0)
+          marginAmount += uplift
+        }
       }
     }
 
     const grant = (grantOptions.find(g => g.label === form.grant)?.value) || 0
-    const marginAmount = subtotalNet - subtotalPlain
     
     // Calculate VAT amounts
     const vatMultiplier = 1 + (form.vatRate / 100)

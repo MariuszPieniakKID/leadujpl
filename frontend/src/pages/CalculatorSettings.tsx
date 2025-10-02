@@ -58,9 +58,61 @@ export default function CalculatorSettingsPage() {
         </div>
       </div>
 
+      {/* Globalna marża administratora (tylko dla ADMIN) */}
+      {user?.role === 'ADMIN' && (
+        <section className="card" style={{ marginBottom: 16 }}>
+          <h3 style={{ marginTop: 0 }}>Marża Administratora (Globalna)</h3>
+          <p className="text-gray-600" style={{ marginBottom: 8 }}>
+            Ta marża będzie automatycznie dodawana do wszystkich kalkulacji handlowców (dodatkowo do marży managera i osobistej).
+          </p>
+          <div className="form-grid-2">
+            <div className="form-group">
+              <label className="form-label">Stawka (PLN)</label>
+              <input
+                className="form-input"
+                type="number"
+                step="0.01"
+                value={(settings.adminMargin?.amount || 0) || ''}
+                onChange={e => {
+                  const amount = e.target.value === '' ? 0 : Number(e.target.value)
+                  setSettings({ 
+                    ...settings, 
+                    adminMargin: { 
+                      amount, 
+                      percent: amount > 0 ? 0 : (settings.adminMargin?.percent || 0) 
+                    } 
+                  })
+                }}
+                placeholder="np. 500.00"
+              />
+            </div>
+            <div className="form-group">
+              <label className="form-label">Procent (%)</label>
+              <input
+                className="form-input"
+                type="number"
+                step="0.01"
+                value={(settings.adminMargin?.percent || 0) || ''}
+                onChange={e => {
+                  const percent = e.target.value === '' ? 0 : Number(e.target.value)
+                  setSettings({ 
+                    ...settings, 
+                    adminMargin: { 
+                      amount: percent > 0 ? 0 : (settings.adminMargin?.amount || 0), 
+                      percent 
+                    } 
+                  })
+                }}
+                placeholder="np. 5.00"
+              />
+            </div>
+          </div>
+        </section>
+      )}
+
       {/* Marża managera dla handlowców przypisanych do tego managera */}
       <section className="card" style={{ marginBottom: 16 }}>
-        <h3 style={{ marginTop: 0 }}>Marża</h3>
+        <h3 style={{ marginTop: 0 }}>Marża Managera</h3>
         <p className="text-gray-600" style={{ marginBottom: 8 }}>Dla Twoich handlowców (przypisanych do Ciebie).</p>
         <div className="form-grid-2">
           <div className="form-group">

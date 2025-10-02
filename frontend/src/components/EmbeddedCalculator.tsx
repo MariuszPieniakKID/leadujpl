@@ -108,21 +108,38 @@ export default function EmbeddedCalculator({ clientId, meetingId, offerId, onSav
     const trenchPrice = form.trench === 'Tak' ? Number(settings['Dodatki: Przekop (netto)'] || 0) : 0
     const subtotalPlain = pvBase + pvGroundExtra + inverterPrice + batteryPrice + backupPrice + trenchPrice
 
-    // Apply manager margin to subtotal (net price)
+    // Apply margins in order for SALES_REP: Admin global → Manager → Sales Rep own
     let subtotalNet = subtotalPlain
     try {
       const margins = (data as any).settings?.margins || {}
+      
+      // 1. Admin global margin (if set in settings)
+      if (user?.role === 'SALES_REP') {
+        const adminMargin = settings.adminMargin
+        if (adminMargin) {
+          const amount = Number(adminMargin.amount || 0)
+          const percent = Number(adminMargin.percent || 0)
+          const uplift = (percent > 0) ? (subtotalNet * (percent / 100)) : amount
+          if (uplift > 0) {
+            subtotalNet = Math.max(subtotalNet + uplift, 0)
+          }
+        }
+      }
+      
+      // 2. Manager margin (for user's direct manager)
       const managerId = user?.managerId || null
       const m = managerId ? margins[managerId] : null
       if (m) {
         const amount = Number(m.amount || 0)
         const percent = Number(m.percent || 0)
         const uplift = (percent > 0) ? (subtotalNet * (percent / 100)) : amount
-        subtotalNet = Math.max(subtotalNet + Math.max(uplift, 0), 0)
+        if (uplift > 0) {
+          subtotalNet = Math.max(subtotalNet + uplift, 0)
+        }
       }
     } catch {}
 
-    // Apply sales personal margin from localStorage (if present)
+    // 3. Sales rep's personal margin from localStorage
     try {
       if (user && user.role === 'SALES_REP') {
         const raw = localStorage.getItem('salesMargin')
@@ -131,7 +148,9 @@ export default function EmbeddedCalculator({ clientId, meetingId, offerId, onSav
           const amount = Number(sm.amount || 0)
           const percent = Number(sm.percent || 0)
           const uplift = (percent > 0) ? (subtotalNet * (percent / 100)) : amount
-          subtotalNet = Math.max(subtotalNet + Math.max(uplift, 0), 0)
+          if (uplift > 0) {
+            subtotalNet = Math.max(subtotalNet + uplift, 0)
+          }
         }
       }
     } catch {}
