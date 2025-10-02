@@ -22,7 +22,7 @@ router.get('/', requireAuth, async (req, res) => {
       } else {
         // all meetings
       }
-      const meetingsRaw = await prisma.meeting.findMany({ where, orderBy: { scheduledAt: 'asc' } });
+      const meetingsRaw = await prisma.meeting.findMany({ where, include: { client: true }, orderBy: { scheduledAt: 'asc' } });
       const now = Date.now()
       const mapped = meetingsRaw.map(m => {
         const hasStatus = (m.status || '').trim().length > 0
@@ -47,7 +47,7 @@ router.get('/', requireAuth, async (req, res) => {
       }
     }
 
-    const meetings = await prisma.meeting.findMany({ where: { attendeeId: targetUserId }, orderBy: { scheduledAt: 'asc' } });
+    const meetings = await prisma.meeting.findMany({ where: { attendeeId: targetUserId }, include: { client: true }, orderBy: { scheduledAt: 'asc' } });
     // Auto status for returned payload (derive visual status): Odbyte/Umówione based on time if no explicit status
     const now = Date.now()
     const mapped = meetings.map(m => {
