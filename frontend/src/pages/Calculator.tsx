@@ -147,6 +147,7 @@ export default function CalculatorPage() {
     }
 
     const grant = (grantOptions.find(g => g.label === form.grant)?.value) || 0
+    const marginAmount = subtotalNet - subtotalPlain
     
     // Calculate VAT amounts
     const vatMultiplier = 1 + (form.vatRate / 100)
@@ -181,6 +182,8 @@ export default function CalculatorPage() {
       batteryPrice,
       backupPrice,
       trenchPrice,
+      subtotalPlain,
+      marginAmount,
       subtotalNet,
       subtotalGross,
       grant,
