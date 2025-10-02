@@ -141,22 +141,8 @@ export default function EmbeddedCalculator({ clientId, meetingId, offerId, onSav
 
     const rrsoYear = Number(settings['RRSO (rocznie)'] || 0.1)
     const rateMonthly = rrsoYear / 12
-    let monthly = pmt(rateMonthly, form.termMonths, financed)
-
-    // Manager margin for assigned sales reps: apply on final numbers
-    try {
-      const margins = (data as any).settings?.margins || {}
-      const managerId = user?.managerId || null
-      const m = managerId ? margins[managerId] : null
-      if (m) {
-        const amount = Number(m.amount || 0)
-        const percent = Number(m.percent || 0)
-        const base = financed
-        const uplift = (percent > 0) ? (base * (percent / 100)) : amount
-        const newFinanced = Math.max(base + Math.max(uplift, 0), 0)
-        monthly = pmt(rateMonthly, form.termMonths, newFinanced)
-      }
-    } catch {}
+    // (margins already applied in subtotalNet)
+    const monthly = pmt(rateMonthly, form.termMonths, financed)
 
     // Prepare alternative terms (12..240 months)
     const terms: number[] = Array.from({ length: 10 }, (_, i) => (i + 1) * 12)
