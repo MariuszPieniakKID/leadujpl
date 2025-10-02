@@ -69,10 +69,10 @@ export default function CalculatorSettingsPage() {
               className="form-input"
               type="number"
               step="0.01"
-              value={Number(myMargin.amount || 0)}
+              value={myMargin.amount || ''}
               onChange={e => {
-                const amount = Number(e.target.value || 0)
-                const next = { ...marginMap, [managerId!]: { amount, percent: 0 } }
+                const amount = e.target.value === '' ? 0 : Number(e.target.value)
+                const next = { ...marginMap, [managerId!]: { amount, percent: amount > 0 ? 0 : myMargin.percent } }
                 setSettings({ ...settings, margins: next })
               }}
               placeholder="np. 500.00"
@@ -84,10 +84,10 @@ export default function CalculatorSettingsPage() {
               className="form-input"
               type="number"
               step="0.01"
-              value={Number(myMargin.percent || 0)}
+              value={myMargin.percent || ''}
               onChange={e => {
-                const percent = Number(e.target.value || 0)
-                const next = { ...marginMap, [managerId!]: { amount: 0, percent } }
+                const percent = e.target.value === '' ? 0 : Number(e.target.value)
+                const next = { ...marginMap, [managerId!]: { amount: percent > 0 ? 0 : myMargin.amount, percent } }
                 setSettings({ ...settings, margins: next })
               }}
               placeholder="np. 5"

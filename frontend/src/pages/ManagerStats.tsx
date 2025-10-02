@@ -13,26 +13,28 @@ export default function ManagerStatsPage() {
   const [pointsMin, setPointsMin] = useState<number | ''>('')
   const [pointsRanking, setPointsRanking] = useState<Array<{ id: string; firstName: string; lastName: string; total: number }>>([])
 
-  useEffect(() => {
-    const load = async () => {
-      setLoading(true)
-      try {
-        const me = getUser()
-        const usersRes = await api.get<Array<{ id: string; role: string; managerId?: string | null }>>('/api/users')
-        const team = usersRes.data.filter(u => u.role === 'SALES_REP' && u.managerId === me?.id)
-        let data: Meeting[] = []
-        if (team.length > 0) {
-          const arrays = await Promise.all(team.map(u => api.get<Meeting[]>('/api/meetings', { params: { userId: u.id } }).then(r => r.data).catch(() => [])))
-          data = ([] as Meeting[]).concat(...arrays)
-        }
-        setMeetings(data)
-      } catch (e: any) {
-        setError(e?.response?.data?.error || 'Nie udało się pobrać danych zespołu')
-      } finally {
-        setLoading(false)
+  const loadData = async () => {
+    setLoading(true)
+    try {
+      const me = getUser()
+      const usersRes = await api.get<Array<{ id: string; role: string; managerId?: string | null }>>('/api/users')
+      const team = usersRes.data.filter(u => u.role === 'SALES_REP' && u.managerId === me?.id)
+      let data: Meeting[] = []
+      if (team.length > 0) {
+        const arrays = await Promise.all(team.map(u => api.get<Meeting[]>('/api/meetings', { params: { userId: u.id } }).then(r => r.data).catch(() => [])))
+        data = ([] as Meeting[]).concat(...arrays)
       }
+      setMeetings(data)
+      setError(null)
+    } catch (e: any) {
+      setError(e?.response?.data?.error || 'Nie udało się pobrać danych zespołu')
+    } finally {
+      setLoading(false)
     }
-    load()
+  }
+
+  useEffect(() => {
+    loadData()
   }, [])
 
   useEffect(() => {
@@ -71,6 +73,9 @@ export default function ManagerStatsPage() {
           <h1 className="page-title">Statystyki zespołu</h1>
           <p className="text-gray-600">Zbiorcze dane handlowców przypisanych do Ciebie</p>
         </div>
+        <button className="primary" onClick={loadData} disabled={loading}>
+          {loading ? 'Odświeżanie...' : 'Odśwież'}
+        </button>
       </div>
 
       <section className="card" style={{ marginBottom: 'var(--space-6)' }}>

@@ -48,6 +48,7 @@ export default function EmbeddedCalculator({ clientId, meetingId, offerId, onSav
     grant: 'Brak dotacji',
     downPayment: 0,
     termMonths: 120,
+    vatRate: 23 as 8 | 23,
   })
 
   // Quick PV power calculator (embedded)
@@ -136,19 +137,32 @@ export default function EmbeddedCalculator({ clientId, meetingId, offerId, onSav
     } catch {}
 
     const grant = (grantOptions.find(g => g.label === form.grant)?.value) || 0
+    
+    // Calculate VAT amounts
+    const vatMultiplier = 1 + (form.vatRate / 100)
+    const subtotalGross = subtotalNet * vatMultiplier
+    const grantGross = grant * vatMultiplier
+    
     const totalAfterGrant = Math.max(subtotalNet - grant, 0)
+    const totalAfterGrantGross = Math.max(subtotalGross - grantGross, 0)
     const financed = Math.max(totalAfterGrant - (form.downPayment || 0), 0)
+    const financedGross = Math.max(totalAfterGrantGross - (form.downPayment || 0), 0)
 
     const rrsoYear = Number(settings['RRSO (rocznie)'] || 0.1)
     const rateMonthly = rrsoYear / 12
     // (margins already applied in subtotalNet)
     const monthly = pmt(rateMonthly, form.termMonths, financed)
+    const monthlyGross = pmt(rateMonthly, form.termMonths, financedGross)
 
     // Prepare alternative terms (12..240 months)
     const terms: number[] = Array.from({ length: 10 }, (_, i) => (i + 1) * 12)
     const otherTerms = terms
       .filter(t => t !== form.termMonths)
-      .map(t => ({ term: t, monthly: pmt(rateMonthly, t, financed) }))
+      .map(t => ({ 
+        term: t, 
+        monthly: pmt(rateMonthly, t, financed),
+        monthlyGross: pmt(rateMonthly, t, financedGross)
+      }))
 
     return {
       pvBase,
@@ -158,12 +172,18 @@ export default function EmbeddedCalculator({ clientId, meetingId, offerId, onSav
       backupPrice,
       trenchPrice,
       subtotalNet,
+      subtotalGross,
       grant,
+      grantGross,
       totalAfterGrant,
+      totalAfterGrantGross,
       financed,
+      financedGross,
       rrsoYear,
       monthly,
+      monthlyGross,
       otherTerms,
+      vatRate: form.vatRate,
     }
   }, [form, prices, settings, grantOptions, data, user])
 
@@ -181,6 +201,7 @@ export default function EmbeddedCalculator({ clientId, meetingId, offerId, onSav
         grant: f.grant || prev.grant,
         downPayment: f.downPayment != null ? Number(f.downPayment) : prev.downPayment,
         termMonths: f.termMonths != null ? Number(f.termMonths) : prev.termMonths,
+        vatRate: f.vatRate != null ? (Number(f.vatRate) as 8 | 23) : prev.vatRate,
       }))
     }
   }, [initialSnapshot])
@@ -387,38 +408,50 @@ export default function EmbeddedCalculator({ clientId, meetingId, offerId, onSav
           <label className="form-label">Okres kredytu (miesiące)</label>
           <input className="form-input" type="number" min={1} value={form.termMonths} onChange={e => setForm({ ...form, termMonths: Math.max(1, Number(e.target.value || 1)) })} />
         </div>
+        <div className="form-group">
+          <label className="form-label">Stawka VAT</label>
+          <select className="form-select" value={form.vatRate} onChange={e => setForm({ ...form, vatRate: Number(e.target.value) as 8 | 23 })}>
+            <option value="8">8%</option>
+            <option value="23">23%</option>
+          </select>
+        </div>
       </div>
 
       <div style={{ marginTop: 16, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
         <div className="card" style={{ border: '1px solid var(--gray-200)' }}>
-          <h3 style={{ marginTop: 0 }}>Podsumowanie (netto)</h3>
+          <h3 style={{ marginTop: 0 }}>Podsumowanie</h3>
           <div className="list">
-            <div className="list-row"><span>Zestaw PV</span><span>{calc.pvBase.toLocaleString('pl-PL', { style: 'currency', currency: 'PLN' })}</span></div>
+            <div className="list-row"><span>Zestaw PV (netto)</span><span>{calc.pvBase.toLocaleString('pl-PL', { style: 'currency', currency: 'PLN' })}</span></div>
             {form.systemType === 'PV – Grunt' && (
-              <div className="list-row"><span>Dopłata za grunt</span><span>{calc.pvGroundExtra.toLocaleString('pl-PL', { style: 'currency', currency: 'PLN' })}</span></div>
+              <div className="list-row"><span>Dopłata za grunt (netto)</span><span>{calc.pvGroundExtra.toLocaleString('pl-PL', { style: 'currency', currency: 'PLN' })}</span></div>
             )}
             {form.systemType === 'Falownik + Magazyn' && (
-              <div className="list-row"><span>Falownik</span><span>{calc.inverterPrice.toLocaleString('pl-PL', { style: 'currency', currency: 'PLN' })}</span></div>
+              <div className="list-row"><span>Falownik (netto)</span><span>{calc.inverterPrice.toLocaleString('pl-PL', { style: 'currency', currency: 'PLN' })}</span></div>
             )}
             {form.battery && (
-              <div className="list-row"><span>Magazyn energii</span><span>{calc.batteryPrice.toLocaleString('pl-PL', { style: 'currency', currency: 'PLN' })}</span></div>
+              <div className="list-row"><span>Magazyn energii (netto)</span><span>{calc.batteryPrice.toLocaleString('pl-PL', { style: 'currency', currency: 'PLN' })}</span></div>
             )}
             {form.backup === 'Tak' && (
-              <div className="list-row"><span>Backup</span><span>{calc.backupPrice.toLocaleString('pl-PL', { style: 'currency', currency: 'PLN' })}</span></div>
+              <div className="list-row"><span>Backup (netto)</span><span>{calc.backupPrice.toLocaleString('pl-PL', { style: 'currency', currency: 'PLN' })}</span></div>
             )}
             {form.trench === 'Tak' && (
-              <div className="list-row"><span>Przekop</span><span>{calc.trenchPrice.toLocaleString('pl-PL', { style: 'currency', currency: 'PLN' })}</span></div>
+              <div className="list-row"><span>Przekop (netto)</span><span>{calc.trenchPrice.toLocaleString('pl-PL', { style: 'currency', currency: 'PLN' })}</span></div>
             )}
             <div className="list-row" style={{ fontWeight: 600 }}><span>Suma netto</span><span>{calc.subtotalNet.toLocaleString('pl-PL', { style: 'currency', currency: 'PLN' })}</span></div>
-            <div className="list-row"><span>Dotacja</span><span>- {calc.grant.toLocaleString('pl-PL', { style: 'currency', currency: 'PLN' })}</span></div>
+            <div className="list-row" style={{ fontWeight: 600 }}><span>VAT ({calc.vatRate}%)</span><span>{(calc.subtotalGross - calc.subtotalNet).toLocaleString('pl-PL', { style: 'currency', currency: 'PLN' })}</span></div>
+            <div className="list-row" style={{ fontWeight: 600 }}><span>Suma brutto</span><span>{calc.subtotalGross.toLocaleString('pl-PL', { style: 'currency', currency: 'PLN' })}</span></div>
+            <div className="list-row"><span>Dotacja (netto)</span><span>- {calc.grant.toLocaleString('pl-PL', { style: 'currency', currency: 'PLN' })}</span></div>
+            <div className="list-row"><span>Dotacja (brutto)</span><span>- {calc.grantGross.toLocaleString('pl-PL', { style: 'currency', currency: 'PLN' })}</span></div>
             <div className="list-row"><span>Wkład własny</span><span>- {form.downPayment.toLocaleString('pl-PL', { style: 'currency', currency: 'PLN' })}</span></div>
-            <div className="list-row" style={{ fontWeight: 600 }}><span>Kwota finansowana</span><span>{calc.financed.toLocaleString('pl-PL', { style: 'currency', currency: 'PLN' })}</span></div>
+            <div className="list-row" style={{ fontWeight: 600 }}><span>Kwota finansowana (netto)</span><span>{calc.financed.toLocaleString('pl-PL', { style: 'currency', currency: 'PLN' })}</span></div>
+            <div className="list-row" style={{ fontWeight: 600 }}><span>Kwota finansowana (brutto)</span><span>{calc.financedGross.toLocaleString('pl-PL', { style: 'currency', currency: 'PLN' })}</span></div>
           </div>
         </div>
         <div className="card" style={{ border: '1px solid var(--gray-200)' }}>
           <h3 style={{ marginTop: 0 }}>Finansowanie</h3>
           <div className="list">
-            <div className="list-row" style={{ fontWeight: 600 }}><span>Rata miesięczna</span><span>{Math.abs(calc.monthly).toLocaleString('pl-PL', { style: 'currency', currency: 'PLN' })}</span></div>
+            <div className="list-row" style={{ fontWeight: 600 }}><span>Rata miesięczna (netto)</span><span>{Math.abs(calc.monthly).toLocaleString('pl-PL', { style: 'currency', currency: 'PLN' })}</span></div>
+            <div className="list-row" style={{ fontWeight: 600 }}><span>Rata miesięczna (brutto)</span><span>{Math.abs(calc.monthlyGross).toLocaleString('pl-PL', { style: 'currency', currency: 'PLN' })}</span></div>
             <div className="list-row"><span>Okres (mies.)</span><span>{form.termMonths}</span></div>
           </div>
           <div style={{ marginTop: 12 }}>
@@ -426,8 +459,11 @@ export default function EmbeddedCalculator({ clientId, meetingId, offerId, onSav
             <div className="list">
               {calc.otherTerms.map((it: any) => (
                 <div className="list-row" key={it.term}>
-                  <span>{it.term} mies. ({it.term / 12} lat)</span>
-                  <span>{Math.abs(it.monthly).toLocaleString('pl-PL', { style: 'currency', currency: 'PLN' })}</span>
+                  <span>{it.term / 12} {it.term / 12 === 1 ? 'rok' : it.term / 12 < 5 ? 'lata' : 'lat'}</span>
+                  <span style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 2 }}>
+                    <span>{Math.abs(it.monthly).toLocaleString('pl-PL', { style: 'currency', currency: 'PLN' })} (netto)</span>
+                    <span style={{ fontSize: '0.9em', color: 'var(--gray-600)' }}>{Math.abs(it.monthlyGross).toLocaleString('pl-PL', { style: 'currency', currency: 'PLN' })} (brutto)</span>
+                  </span>
                 </div>
               ))}
             </div>

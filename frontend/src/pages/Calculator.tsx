@@ -51,6 +51,7 @@ export default function CalculatorPage() {
     grant: 'Brak dotacji',
     downPayment: 0,
     termMonths: 120,
+    vatRate: 23 as 8 | 23,
     extraItems: [] as Array<{ label: string; amount: number }>,
   })
 
@@ -146,19 +147,32 @@ export default function CalculatorPage() {
     }
 
     const grant = (grantOptions.find(g => g.label === form.grant)?.value) || 0
+    
+    // Calculate VAT amounts
+    const vatMultiplier = 1 + (form.vatRate / 100)
+    const subtotalGross = subtotalNet * vatMultiplier
+    const grantGross = grant * vatMultiplier
+    
     const totalAfterGrant = Math.max(subtotalNet - grant, 0)
+    const totalAfterGrantGross = Math.max(subtotalGross - grantGross, 0)
     let financed = Math.max(totalAfterGrant - (form.downPayment || 0), 0)
+    let financedGross = Math.max(totalAfterGrantGross - (form.downPayment || 0), 0)
 
     const rrsoYear = Number(settings['RRSO (rocznie)'] || 0.1)
     const rateMonthly = rrsoYear / 12
     // (margins already applied in subtotalNet)
     const monthly = pmt(rateMonthly, form.termMonths, financed)
+    const monthlyGross = pmt(rateMonthly, form.termMonths, financedGross)
 
     // Prepare alternative terms (12..240 months)
     const terms: number[] = Array.from({ length: 10 }, (_, i) => (i + 1) * 12)
     const otherTerms = terms
       .filter(t => t !== form.termMonths)
-      .map(t => ({ term: t, monthly: pmt(rateMonthly, t, financed) }))
+      .map(t => ({ 
+        term: t, 
+        monthly: pmt(rateMonthly, t, financed),
+        monthlyGross: pmt(rateMonthly, t, financedGross)
+      }))
 
     return {
       pvBase,
@@ -168,12 +182,18 @@ export default function CalculatorPage() {
       backupPrice,
       trenchPrice,
       subtotalNet,
+      subtotalGross,
       grant,
+      grantGross,
       totalAfterGrant,
+      totalAfterGrantGross,
       financed,
+      financedGross,
       rrsoYear,
       monthly,
+      monthlyGross,
       otherTerms,
+      vatRate: form.vatRate,
     }
   }, [form, prices, settings, grantOptions, data, user])
 
@@ -450,32 +470,39 @@ export default function CalculatorPage() {
             <label className="form-label">Okres kredytu (miesiące)</label>
             <input className="form-input" type="number" min={1} value={form.termMonths} onChange={e => setForm({ ...form, termMonths: Math.max(1, Number(e.target.value || 1)) })} />
           </div>
+          <div className="form-group">
+            <label className="form-label">Stawka VAT</label>
+            <select className="form-select" value={form.vatRate} onChange={e => setForm({ ...form, vatRate: Number(e.target.value) as 8 | 23 })}>
+              <option value="8">8%</option>
+              <option value="23">23%</option>
+            </select>
+          </div>
         </div>
 
         <div style={{ marginTop: 16, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
           <div className="card" style={{ border: '1px solid var(--gray-200)' }}>
-            <h3 style={{ marginTop: 0 }}>Ceny (netto) – kalkulacja</h3>
+            <h3 style={{ marginTop: 0 }}>Podsumowanie</h3>
             <div className="list">
-              <div className="list-row"><span>Zestaw PV</span><span>{calc.pvBase.toLocaleString('pl-PL', { style: 'currency', currency: 'PLN' })}</span></div>
+              <div className="list-row"><span>Zestaw PV (netto)</span><span>{calc.pvBase.toLocaleString('pl-PL', { style: 'currency', currency: 'PLN' })}</span></div>
               {form.systemType === 'PV – Grunt' && (
-                <div className="list-row"><span>Dopłata za grunt</span><span>{calc.pvGroundExtra.toLocaleString('pl-PL', { style: 'currency', currency: 'PLN' })}</span></div>
+                <div className="list-row"><span>Dopłata za grunt (netto)</span><span>{calc.pvGroundExtra.toLocaleString('pl-PL', { style: 'currency', currency: 'PLN' })}</span></div>
               )}
               {form.systemType === 'Falownik + Magazyn' && (
-                <div className="list-row"><span>Falownik</span><span>{calc.inverterPrice.toLocaleString('pl-PL', { style: 'currency', currency: 'PLN' })}</span></div>
+                <div className="list-row"><span>Falownik (netto)</span><span>{calc.inverterPrice.toLocaleString('pl-PL', { style: 'currency', currency: 'PLN' })}</span></div>
               )}
               {form.battery && (
-                <div className="list-row"><span>Magazyn energii</span><span>{calc.batteryPrice.toLocaleString('pl-PL', { style: 'currency', currency: 'PLN' })}</span></div>
+                <div className="list-row"><span>Magazyn energii (netto)</span><span>{calc.batteryPrice.toLocaleString('pl-PL', { style: 'currency', currency: 'PLN' })}</span></div>
               )}
               {form.backup === 'Tak' && (
-                <div className="list-row"><span>Backup</span><span>{calc.backupPrice.toLocaleString('pl-PL', { style: 'currency', currency: 'PLN' })}</span></div>
+                <div className="list-row"><span>Backup (netto)</span><span>{calc.backupPrice.toLocaleString('pl-PL', { style: 'currency', currency: 'PLN' })}</span></div>
               )}
               {form.trench === 'Tak' && (
-                <div className="list-row"><span>Przekop</span><span>{calc.trenchPrice.toLocaleString('pl-PL', { style: 'currency', currency: 'PLN' })}</span></div>
+                <div className="list-row"><span>Przekop (netto)</span><span>{calc.trenchPrice.toLocaleString('pl-PL', { style: 'currency', currency: 'PLN' })}</span></div>
               )}
               {(form.extraItems || []).map((it, idx) => (
                 <div className="list-row" key={idx}>
                   <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                    {it.label || 'Pozycja dodatkowa'}
+                    {it.label || 'Pozycja dodatkowa'} (netto)
                     <button
                       className="secondary"
                       type="button"
@@ -491,9 +518,13 @@ export default function CalculatorPage() {
                 </div>
               ))}
               <div className="list-row" style={{ fontWeight: 600 }}><span>Suma netto</span><span>{calc.subtotalNet.toLocaleString('pl-PL', { style: 'currency', currency: 'PLN' })}</span></div>
-              <div className="list-row"><span>Dotacja</span><span>- {calc.grant.toLocaleString('pl-PL', { style: 'currency', currency: 'PLN' })}</span></div>
+              <div className="list-row" style={{ fontWeight: 600 }}><span>VAT ({calc.vatRate}%)</span><span>{(calc.subtotalGross - calc.subtotalNet).toLocaleString('pl-PL', { style: 'currency', currency: 'PLN' })}</span></div>
+              <div className="list-row" style={{ fontWeight: 600 }}><span>Suma brutto</span><span>{calc.subtotalGross.toLocaleString('pl-PL', { style: 'currency', currency: 'PLN' })}</span></div>
+              <div className="list-row"><span>Dotacja (netto)</span><span>- {calc.grant.toLocaleString('pl-PL', { style: 'currency', currency: 'PLN' })}</span></div>
+              <div className="list-row"><span>Dotacja (brutto)</span><span>- {calc.grantGross.toLocaleString('pl-PL', { style: 'currency', currency: 'PLN' })}</span></div>
               <div className="list-row"><span>Wkład własny</span><span>- {form.downPayment.toLocaleString('pl-PL', { style: 'currency', currency: 'PLN' })}</span></div>
-              <div className="list-row" style={{ fontWeight: 600 }}><span>Kwota finansowana</span><span>{calc.financed.toLocaleString('pl-PL', { style: 'currency', currency: 'PLN' })}</span></div>
+              <div className="list-row" style={{ fontWeight: 600 }}><span>Kwota finansowana (netto)</span><span>{calc.financed.toLocaleString('pl-PL', { style: 'currency', currency: 'PLN' })}</span></div>
+              <div className="list-row" style={{ fontWeight: 600 }}><span>Kwota finansowana (brutto)</span><span>{calc.financedGross.toLocaleString('pl-PL', { style: 'currency', currency: 'PLN' })}</span></div>
             </div>
             <div style={{ marginTop: 10 }}>
               <div className="form-grid-2">
@@ -520,7 +551,8 @@ export default function CalculatorPage() {
             <h3 style={{ marginTop: 0 }}>Finansowanie</h3>
             <p className="muted" style={{ marginBottom: 8 }}>RRSO rocznie: {(calc.rrsoYear * 100).toFixed(2)}%</p>
             <div className="list">
-              <div className="list-row" style={{ fontWeight: 600 }}><span>Rata miesięczna</span><span>{Math.abs(calc.monthly).toLocaleString('pl-PL', { style: 'currency', currency: 'PLN' })}</span></div>
+              <div className="list-row" style={{ fontWeight: 600 }}><span>Rata miesięczna (netto)</span><span>{Math.abs(calc.monthly).toLocaleString('pl-PL', { style: 'currency', currency: 'PLN' })}</span></div>
+              <div className="list-row" style={{ fontWeight: 600 }}><span>Rata miesięczna (brutto)</span><span>{Math.abs(calc.monthlyGross).toLocaleString('pl-PL', { style: 'currency', currency: 'PLN' })}</span></div>
               <div className="list-row"><span>Okres (mies.)</span><span>{form.termMonths}</span></div>
             </div>
             <div style={{ marginTop: 12 }}>
@@ -528,8 +560,11 @@ export default function CalculatorPage() {
               <div className="list">
                 {calc.otherTerms.map((it: any) => (
                   <div className="list-row" key={it.term}>
-                    <span>{it.term} mies. ({it.term / 12} lat)</span>
-                    <span>{Math.abs(it.monthly).toLocaleString('pl-PL', { style: 'currency', currency: 'PLN' })}</span>
+                    <span>{it.term / 12} {it.term / 12 === 1 ? 'rok' : it.term / 12 < 5 ? 'lata' : 'lat'}</span>
+                    <span style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 2 }}>
+                      <span>{Math.abs(it.monthly).toLocaleString('pl-PL', { style: 'currency', currency: 'PLN' })} (netto)</span>
+                      <span style={{ fontSize: '0.9em', color: 'var(--gray-600)' }}>{Math.abs(it.monthlyGross).toLocaleString('pl-PL', { style: 'currency', currency: 'PLN' })} (brutto)</span>
+                    </span>
                   </div>
                 ))}
               </div>
@@ -584,11 +619,11 @@ export default function CalculatorPage() {
 
 function SalesMarginButton() {
   const [open, setOpen] = useState(false)
-  const [amount, setAmount] = useState<number>(() => {
-    try { const raw = localStorage.getItem('salesMargin'); return raw ? Number(JSON.parse(raw).amount || 0) : 0 } catch { return 0 }
+  const [amount, setAmount] = useState<string | number>(() => {
+    try { const raw = localStorage.getItem('salesMargin'); const val = raw ? Number(JSON.parse(raw).amount || 0) : 0; return val || '' } catch { return '' }
   })
-  const [percent, setPercent] = useState<number>(() => {
-    try { const raw = localStorage.getItem('salesMargin'); return raw ? Number(JSON.parse(raw).percent || 0) : 0 } catch { return 0 }
+  const [percent, setPercent] = useState<string | number>(() => {
+    try { const raw = localStorage.getItem('salesMargin'); const val = raw ? Number(JSON.parse(raw).percent || 0) : 0; return val || '' } catch { return '' }
   })
   const btnRef = useRef<HTMLButtonElement | null>(null)
   const panelRef = useRef<HTMLDivElement | null>(null)
@@ -600,7 +635,7 @@ function SalesMarginButton() {
   }
   function clear() {
     localStorage.removeItem('salesMargin')
-    setAmount(0); setPercent(0)
+    setAmount(''); setPercent('')
     setOpen(false)
   }
   function toggle() {
@@ -636,11 +671,11 @@ function SalesMarginButton() {
         <div className="card" ref={panelRef} style={{ position: 'fixed', top: pos.top, left: pos.left, width: 280, zIndex: 2147483647 }}>
           <div className="form-group">
             <label className="form-label">Stawka (PLN)</label>
-            <input className="form-input" type="number" step="0.01" value={amount} onChange={e => { setAmount(Number(e.target.value || 0)); if (Number(e.target.value||0) > 0) setPercent(0) }} />
+            <input className="form-input" type="number" step="0.01" value={amount} onChange={e => { const val = e.target.value; setAmount(val === '' ? '' : Number(val)); if (Number(val||0) > 0) setPercent('') }} />
           </div>
           <div className="form-group">
             <label className="form-label">Procent (%)</label>
-            <input className="form-input" type="number" step="0.01" value={percent} onChange={e => { setPercent(Number(e.target.value || 0)); if (Number(e.target.value||0) > 0) setAmount(0) }} />
+            <input className="form-input" type="number" step="0.01" value={percent} onChange={e => { const val = e.target.value; setPercent(val === '' ? '' : Number(val)); if (Number(val||0) > 0) setAmount('') }} />
           </div>
           <div className="flex items-center gap-2" style={{ justifyContent: 'flex-end' }}>
             <button className="secondary" onClick={clear}>Wyczyść</button>
