@@ -185,54 +185,6 @@ export default function Login() {
             Zaloguj się
           </button>
         </form>
-        
-        {/* Demo accounts info */}
-        <div style={{
-          textAlign: 'center',
-          padding: 'var(--space-6)',
-          background: 'rgba(59, 130, 246, 0.05)',
-          borderRadius: 'var(--radius-2xl)',
-          border: '1px solid rgba(59, 130, 246, 0.1)'
-        }}>
-          <h3 style={{ 
-            fontSize: 'var(--text-sm)', 
-            fontWeight: 700, 
-            color: 'var(--gray-800)',
-            marginBottom: 'var(--space-3)',
-            textTransform: 'uppercase',
-            letterSpacing: '0.05em'
-          }}>
-            Konta demonstracyjne
-          </h3>
-          <div style={{ 
-            fontSize: 'var(--text-sm)', 
-            color: 'var(--gray-600)',
-            lineHeight: 1.6,
-            fontWeight: 500
-          }}>
-            <p style={{ marginBottom: 'var(--space-2)' }}>
-              <strong>Admin:</strong> admin@admin.pl
-            </p>
-            <p style={{ marginBottom: 'var(--space-2)' }}>
-              <strong>Manager:</strong> menago@example.com
-            </p>
-            <p style={{ marginBottom: 'var(--space-2)' }}>
-              <strong>Handlowiec:</strong> user@user.pl
-            </p>
-            <p style={{ 
-              color: 'var(--primary-600)', 
-              fontWeight: 700,
-              marginTop: 'var(--space-3)'
-            }}>
-              Hasło: <code style={{ 
-                background: 'rgba(59, 130, 246, 0.1)', 
-                padding: '2px 6px', 
-                borderRadius: '4px',
-                fontSize: 'var(--text-xs)'
-              }}>test123</code>
-            </p>
-          </div>
-        </div>
       </div>
     </div>
   )
