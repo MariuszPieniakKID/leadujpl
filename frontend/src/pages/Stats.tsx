@@ -192,10 +192,10 @@ export default function StatsPage() {
       // Clients
       if (reportConfig.includeClients && data.clients?.length > 0) {
         csvParts.push('=== KLIENCI ===')
-        const headers = ['ID', 'Imię', 'Nazwisko', 'Telefon', 'Email', 'Ulica', 'Miasto', 'Kod pocztowy', 'Kategoria', 'PV zainstalowane', 'Moc PV', 'Zakres rachunku', 'Uwagi', 'Nowe zasady', 'Typ budynku', 'Przypisani handlowcy', 'Data utworzenia', 'Data aktualizacji']
+        const headers = ['Imię', 'Nazwisko', 'Telefon', 'Email', 'Ulica', 'Miasto', 'Kod pocztowy', 'Kategoria', 'PV zainstalowane', 'Moc PV (kW)', 'Zakres rachunku', 'Nowe zasady', 'Typ budynku', 'Uwagi', 'Przypisani handlowcy', 'Data dodania']
         csvParts.push(headers.join(';'))
         data.clients.forEach((c: any) => {
-          const row = [c.id, c.firstName, c.lastName, c.phone, c.email, c.street, c.city, c.postalCode, c.category, c.pvInstalled, c.pvPower, c.billRange, c.extraComments, c.newRules, c.buildingType, c.assignedSalesReps, c.createdAt, c.updatedAt]
+          const row = [c.firstName, c.lastName, c.phone, c.email, c.street, c.city, c.postalCode, c.category, c.pvInstalled, c.pvPower, c.billRange, c.newRules, c.buildingType, c.extraComments, c.assignedSalesReps, formatDateOnly(c.createdAt)]
           csvParts.push(row.map(escapeCell).join(';'))
         })
         csvParts.push('')
@@ -204,10 +204,10 @@ export default function StatsPage() {
       // Meetings
       if (reportConfig.includeMeetings && data.meetings?.length > 0) {
         csvParts.push('=== SPOTKANIA ===')
-        const headers = ['ID', 'Data spotkania', 'Data zakończenia', 'Lokalizacja', 'Notatki', 'Status', 'PV zainstalowane', 'Zakres rachunku', 'Uwagi', 'Zgoda kontakt', 'Handlowiec', 'Email handlowca', 'Manager', 'Klient', 'Telefon klienta', 'Email klienta', 'Lead', 'Adres handlowca', 'Miasto handlowca', 'Kod pocztowy handlowca', 'Data utworzenia', 'Data aktualizacji']
+        const headers = ['Data i godzina', 'Status', 'Handlowiec', 'Manager', 'Klient', 'Telefon klienta', 'Lokalizacja', 'Adres spotkania', 'Miasto', 'Kod pocztowy', 'PV zainstalowane', 'Zakres rachunku', 'Notatki', 'Uwagi']
         csvParts.push(headers.join(';'))
         data.meetings.forEach((m: any) => {
-          const row = [m.id, m.scheduledAt, m.endsAt, m.location, m.notes, m.status, m.pvInstalled, m.billRange, m.extraComments, m.contactConsent, m.salesRep, m.salesRepEmail, m.manager, m.clientName, m.clientPhone, m.clientEmail, m.leadName, m.salesLocationAddress, m.salesLocationCity, m.salesLocationPostalCode, m.createdAt, m.updatedAt]
+          const row = [formatDate(m.scheduledAt), m.status, m.salesRep, m.manager, m.clientName, m.clientPhone, m.location, m.salesLocationAddress, m.salesLocationCity, m.salesLocationPostalCode, m.pvInstalled, m.billRange, m.notes, m.extraComments]
           csvParts.push(row.map(escapeCell).join(';'))
         })
         csvParts.push('')
@@ -216,10 +216,10 @@ export default function StatsPage() {
       // Offers
       if (reportConfig.includeOffers && data.offers?.length > 0) {
         csvParts.push('=== OFERTY ===')
-        const headers = ['ID', 'Nazwa pliku', 'Handlowiec', 'Email handlowca', 'Manager', 'Klient', 'Telefon klienta', 'Email klienta', 'Data spotkania', 'Status spotkania', 'Data utworzenia', 'Data aktualizacji']
+        const headers = ['Nazwa pliku', 'Handlowiec', 'Manager', 'Klient', 'Telefon klienta', 'Email klienta', 'Data spotkania', 'Status spotkania', 'Data utworzenia']
         csvParts.push(headers.join(';'))
         data.offers.forEach((o: any) => {
-          const row = [o.id, o.fileName, o.salesRep, o.salesRepEmail, o.manager, o.clientName, o.clientPhone, o.clientEmail, o.meetingDate, o.meetingStatus, o.createdAt, o.updatedAt]
+          const row = [o.fileName, o.salesRep, o.manager, o.clientName, o.clientPhone, o.clientEmail, formatDate(o.meetingDate), o.meetingStatus, formatDateOnly(o.createdAt)]
           csvParts.push(row.map(escapeCell).join(';'))
         })
         csvParts.push('')
@@ -228,10 +228,10 @@ export default function StatsPage() {
       // Attachments
       if (reportConfig.includeAttachments && data.attachments?.length > 0) {
         csvParts.push('=== ZAŁĄCZNIKI ===')
-        const headers = ['ID', 'Nazwa pliku', 'Kategoria', 'Typ MIME', 'Handlowiec', 'Email handlowca', 'Manager', 'Klient', 'Telefon klienta', 'Email klienta', 'Data spotkania', 'Status spotkania', 'Data utworzenia', 'Data aktualizacji']
+        const headers = ['Nazwa pliku', 'Kategoria', 'Handlowiec', 'Manager', 'Klient', 'Telefon klienta', 'Data spotkania', 'Status spotkania', 'Data dodania']
         csvParts.push(headers.join(';'))
         data.attachments.forEach((a: any) => {
-          const row = [a.id, a.fileName, a.category, a.mimeType, a.salesRep, a.salesRepEmail, a.manager, a.clientName, a.clientPhone, a.clientEmail, a.meetingDate, a.meetingStatus, a.createdAt, a.updatedAt]
+          const row = [a.fileName, a.category, a.salesRep, a.manager, a.clientName, a.clientPhone, formatDate(a.meetingDate), a.meetingStatus, formatDateOnly(a.createdAt)]
           csvParts.push(row.map(escapeCell).join(';'))
         })
         csvParts.push('')
@@ -240,10 +240,10 @@ export default function StatsPage() {
       // Users
       if (reportConfig.includeUsers && data.users?.length > 0) {
         csvParts.push('=== UŻYTKOWNICY ===')
-        const headers = ['ID', 'Imię', 'Nazwisko', 'Email', 'Telefon', 'Ulica', 'Miasto', 'Kod pocztowy', 'Rola', 'Manager', 'Email managera', 'Liczba spotkań', 'Liczba ofert', 'Liczba załączników', 'Data utworzenia']
+        const headers = ['Imię', 'Nazwisko', 'Email', 'Telefon', 'Miasto', 'Rola', 'Manager', 'Liczba spotkań', 'Liczba ofert', 'Liczba załączników', 'Data dodania']
         csvParts.push(headers.join(';'))
         data.users.forEach((u: any) => {
-          const row = [u.id, u.firstName, u.lastName, u.email, u.phone, u.street, u.city, u.postalCode, u.role, u.manager, u.managerEmail, u.meetingsCount, u.offersCount, u.attachmentsCount, u.createdAt]
+          const row = [u.firstName, u.lastName, u.email, u.phone, u.city, u.role, u.manager, u.meetingsCount, u.offersCount, u.attachmentsCount, formatDateOnly(u.createdAt)]
           csvParts.push(row.map(escapeCell).join(';'))
         })
         csvParts.push('')
@@ -252,10 +252,10 @@ export default function StatsPage() {
       // Points
       if (reportConfig.includePoints && data.points?.length > 0) {
         csvParts.push('=== PUNKTY ===')
-        const headers = ['ID', 'Punkty', 'Powód', 'Handlowiec', 'Email handlowca', 'Manager', 'ID klienta', 'ID spotkania', 'Data']
+        const headers = ['Punkty', 'Powód', 'Handlowiec', 'Manager', 'Data']
         csvParts.push(headers.join(';'))
         data.points.forEach((p: any) => {
-          const row = [p.id, p.points, p.reason, p.salesRep, p.salesRepEmail, p.manager, p.clientId, p.meetingId, p.createdAt]
+          const row = [p.points, p.reason, p.salesRep, p.manager, formatDate(p.createdAt)]
           csvParts.push(row.map(escapeCell).join(';'))
         })
         csvParts.push('')
@@ -280,6 +280,27 @@ export default function StatsPage() {
 
   function escapeCell(v: any): string {
     return '"' + String(v || '').replace(/"/g, '""') + '"'
+  }
+
+  function formatDate(isoString: string): string {
+    if (!isoString) return ''
+    try {
+      const d = new Date(isoString)
+      const date = d.toLocaleDateString('pl-PL')
+      const time = d.toLocaleTimeString('pl-PL', { hour: '2-digit', minute: '2-digit' })
+      return `${date} ${time}`
+    } catch {
+      return isoString
+    }
+  }
+
+  function formatDateOnly(isoString: string): string {
+    if (!isoString) return ''
+    try {
+      return new Date(isoString).toLocaleDateString('pl-PL')
+    } catch {
+      return isoString
+    }
   }
 
   if (loading) return <div className="container"><section className="card"><div>Ładowanie…</div></section></div>
