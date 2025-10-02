@@ -36,6 +36,21 @@ export default function StatsPage() {
   const [startDate, setStartDate] = useState<string>('')
   const [endDate, setEndDate] = useState<string>('')
 
+  // Report modal state
+  const [reportOpen, setReportOpen] = useState(false)
+  const [reportLoading, setReportLoading] = useState(false)
+  const [reportError, setReportError] = useState<string | null>(null)
+  const [reportConfig, setReportConfig] = useState({
+    includeClients: true,
+    includeMeetings: true,
+    includeOffers: false,
+    includeAttachments: false,
+    includeUsers: false,
+    includePoints: false,
+    startDate: '',
+    endDate: '',
+  })
+
   useEffect(() => {
     const load = async () => {
       setLoading(true)
@@ -154,6 +169,113 @@ export default function StatsPage() {
   const countSeries = useMemo(() => buildCountSeries(meetings, range), [meetings, range])
   const comparison = useMemo(() => buildComparison(meetings, range), [meetings, range])
 
+  async function generateReport() {
+    try {
+      setReportLoading(true)
+      setReportError(null)
+      const payload = {
+        ...reportConfig,
+        managerId: managerId || undefined
+      }
+      const res = await api.post('/api/reports/data', payload)
+      const data = res.data
+
+      // Convert to CSV
+      const csvParts: string[] = []
+      
+      // Clients
+      if (reportConfig.includeClients && data.clients?.length > 0) {
+        csvParts.push('=== KLIENCI ===')
+        const headers = ['ID', 'Imię', 'Nazwisko', 'Telefon', 'Email', 'Ulica', 'Miasto', 'Kod pocztowy', 'Kategoria', 'PV zainstalowane', 'Moc PV', 'Zakres rachunku', 'Uwagi', 'Nowe zasady', 'Typ budynku', 'Przypisani handlowcy', 'Data utworzenia', 'Data aktualizacji']
+        csvParts.push(headers.join(';'))
+        data.clients.forEach((c: any) => {
+          const row = [c.id, c.firstName, c.lastName, c.phone, c.email, c.street, c.city, c.postalCode, c.category, c.pvInstalled, c.pvPower, c.billRange, c.extraComments, c.newRules, c.buildingType, c.assignedSalesReps, c.createdAt, c.updatedAt]
+          csvParts.push(row.map(escapeCell).join(';'))
+        })
+        csvParts.push('')
+      }
+
+      // Meetings
+      if (reportConfig.includeMeetings && data.meetings?.length > 0) {
+        csvParts.push('=== SPOTKANIA ===')
+        const headers = ['ID', 'Data spotkania', 'Data zakończenia', 'Lokalizacja', 'Notatki', 'Status', 'PV zainstalowane', 'Zakres rachunku', 'Uwagi', 'Zgoda kontakt', 'Handlowiec', 'Email handlowca', 'Manager', 'Klient', 'Telefon klienta', 'Email klienta', 'Lead', 'Adres handlowca', 'Miasto handlowca', 'Kod pocztowy handlowca', 'Data utworzenia', 'Data aktualizacji']
+        csvParts.push(headers.join(';'))
+        data.meetings.forEach((m: any) => {
+          const row = [m.id, m.scheduledAt, m.endsAt, m.location, m.notes, m.status, m.pvInstalled, m.billRange, m.extraComments, m.contactConsent, m.salesRep, m.salesRepEmail, m.manager, m.clientName, m.clientPhone, m.clientEmail, m.leadName, m.salesLocationAddress, m.salesLocationCity, m.salesLocationPostalCode, m.createdAt, m.updatedAt]
+          csvParts.push(row.map(escapeCell).join(';'))
+        })
+        csvParts.push('')
+      }
+
+      // Offers
+      if (reportConfig.includeOffers && data.offers?.length > 0) {
+        csvParts.push('=== OFERTY ===')
+        const headers = ['ID', 'Nazwa pliku', 'Handlowiec', 'Email handlowca', 'Manager', 'Klient', 'Telefon klienta', 'Email klienta', 'Data spotkania', 'Status spotkania', 'Data utworzenia', 'Data aktualizacji']
+        csvParts.push(headers.join(';'))
+        data.offers.forEach((o: any) => {
+          const row = [o.id, o.fileName, o.salesRep, o.salesRepEmail, o.manager, o.clientName, o.clientPhone, o.clientEmail, o.meetingDate, o.meetingStatus, o.createdAt, o.updatedAt]
+          csvParts.push(row.map(escapeCell).join(';'))
+        })
+        csvParts.push('')
+      }
+
+      // Attachments
+      if (reportConfig.includeAttachments && data.attachments?.length > 0) {
+        csvParts.push('=== ZAŁĄCZNIKI ===')
+        const headers = ['ID', 'Nazwa pliku', 'Kategoria', 'Typ MIME', 'Handlowiec', 'Email handlowca', 'Manager', 'Klient', 'Telefon klienta', 'Email klienta', 'Data spotkania', 'Status spotkania', 'Data utworzenia', 'Data aktualizacji']
+        csvParts.push(headers.join(';'))
+        data.attachments.forEach((a: any) => {
+          const row = [a.id, a.fileName, a.category, a.mimeType, a.salesRep, a.salesRepEmail, a.manager, a.clientName, a.clientPhone, a.clientEmail, a.meetingDate, a.meetingStatus, a.createdAt, a.updatedAt]
+          csvParts.push(row.map(escapeCell).join(';'))
+        })
+        csvParts.push('')
+      }
+
+      // Users
+      if (reportConfig.includeUsers && data.users?.length > 0) {
+        csvParts.push('=== UŻYTKOWNICY ===')
+        const headers = ['ID', 'Imię', 'Nazwisko', 'Email', 'Telefon', 'Ulica', 'Miasto', 'Kod pocztowy', 'Rola', 'Manager', 'Email managera', 'Liczba spotkań', 'Liczba ofert', 'Liczba załączników', 'Data utworzenia']
+        csvParts.push(headers.join(';'))
+        data.users.forEach((u: any) => {
+          const row = [u.id, u.firstName, u.lastName, u.email, u.phone, u.street, u.city, u.postalCode, u.role, u.manager, u.managerEmail, u.meetingsCount, u.offersCount, u.attachmentsCount, u.createdAt]
+          csvParts.push(row.map(escapeCell).join(';'))
+        })
+        csvParts.push('')
+      }
+
+      // Points
+      if (reportConfig.includePoints && data.points?.length > 0) {
+        csvParts.push('=== PUNKTY ===')
+        const headers = ['ID', 'Punkty', 'Powód', 'Handlowiec', 'Email handlowca', 'Manager', 'ID klienta', 'ID spotkania', 'Data']
+        csvParts.push(headers.join(';'))
+        data.points.forEach((p: any) => {
+          const row = [p.id, p.points, p.reason, p.salesRep, p.salesRepEmail, p.manager, p.clientId, p.meetingId, p.createdAt]
+          csvParts.push(row.map(escapeCell).join(';'))
+        })
+        csvParts.push('')
+      }
+
+      const csv = '\ufeff' + csvParts.join('\n')
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
+      const a = document.createElement('a')
+      const url = URL.createObjectURL(blob)
+      a.href = url
+      const datePart = (reportConfig.startDate || reportConfig.endDate) ? `${reportConfig.startDate || 'poczatek'}_${reportConfig.endDate || 'koniec'}` : 'wszystko'
+      a.download = `raport_${datePart}.csv`
+      a.click()
+      URL.revokeObjectURL(url)
+      setReportOpen(false)
+    } catch (e: any) {
+      setReportError(e?.response?.data?.error || 'Nie udało się wygenerować raportu')
+    } finally {
+      setReportLoading(false)
+    }
+  }
+
+  function escapeCell(v: any): string {
+    return '"' + String(v || '').replace(/"/g, '""') + '"'
+  }
+
   if (loading) return <div className="container"><section className="card"><div>Ładowanie…</div></section></div>
   if (error) return <div className="container"><section className="card"><div className="text-error">{error}</div></section></div>
 
@@ -183,6 +305,9 @@ export default function StatsPage() {
                 <option value="ranking">Ranking handlowców</option>
               </select>
             </div>
+            <button className="primary" type="button" onClick={() => setReportOpen(true)} style={{ marginTop: '24px' }}>
+              Raport
+            </button>
           </div>
         )}
       </div>
@@ -383,6 +508,110 @@ export default function StatsPage() {
             )
           )}
         </section>
+      )}
+
+      {/* Report modal */}
+      {reportOpen && (
+        <div className="modal-overlay">
+          <div className="modal-content" style={{ maxWidth: 600 }}>
+            <div className="modal-header">
+              <h3 className="modal-title">Generuj raport do CSV</h3>
+              <button className="secondary" onClick={() => setReportOpen(false)} style={{ padding: 'var(--space-2)' }}>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M18 6L6 18M6 6l12 12"/>
+                </svg>
+              </button>
+            </div>
+            <div className="modal-body">
+              <div style={{ marginBottom: 16 }}>
+                <h4 style={{ marginBottom: 8, fontSize: '0.95rem', fontWeight: 600 }}>Wybierz dane do eksportu</h4>
+                <div style={{ display: 'grid', gap: 8 }}>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
+                    <input 
+                      type="checkbox" 
+                      checked={reportConfig.includeClients} 
+                      onChange={e => setReportConfig({ ...reportConfig, includeClients: e.target.checked })}
+                    />
+                    <span>Klienci (z przypisanymi handlowcami)</span>
+                  </label>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
+                    <input 
+                      type="checkbox" 
+                      checked={reportConfig.includeMeetings} 
+                      onChange={e => setReportConfig({ ...reportConfig, includeMeetings: e.target.checked })}
+                    />
+                    <span>Spotkania (z klientem i handlowcem)</span>
+                  </label>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
+                    <input 
+                      type="checkbox" 
+                      checked={reportConfig.includeOffers} 
+                      onChange={e => setReportConfig({ ...reportConfig, includeOffers: e.target.checked })}
+                    />
+                    <span>Oferty</span>
+                  </label>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
+                    <input 
+                      type="checkbox" 
+                      checked={reportConfig.includeAttachments} 
+                      onChange={e => setReportConfig({ ...reportConfig, includeAttachments: e.target.checked })}
+                    />
+                    <span>Załączniki</span>
+                  </label>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
+                    <input 
+                      type="checkbox" 
+                      checked={reportConfig.includeUsers} 
+                      onChange={e => setReportConfig({ ...reportConfig, includeUsers: e.target.checked })}
+                    />
+                    <span>Użytkownicy (handlowcy i managerowie)</span>
+                  </label>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
+                    <input 
+                      type="checkbox" 
+                      checked={reportConfig.includePoints} 
+                      onChange={e => setReportConfig({ ...reportConfig, includePoints: e.target.checked })}
+                    />
+                    <span>Punkty</span>
+                  </label>
+                </div>
+              </div>
+              <div className="form-grid-2" style={{ marginTop: 16 }}>
+                <div className="form-group">
+                  <label className="form-label">Data od</label>
+                  <input 
+                    className="form-input" 
+                    type="date" 
+                    value={reportConfig.startDate} 
+                    onChange={e => setReportConfig({ ...reportConfig, startDate: e.target.value })}
+                  />
+                </div>
+                <div className="form-group">
+                  <label className="form-label">Data do</label>
+                  <input 
+                    className="form-input" 
+                    type="date" 
+                    value={reportConfig.endDate} 
+                    onChange={e => setReportConfig({ ...reportConfig, endDate: e.target.value })}
+                  />
+                </div>
+              </div>
+              {reportError && (
+                <div className="text-error text-sm mt-4 p-3 bg-error-50 rounded border border-error-200">
+                  {reportError}
+                </div>
+              )}
+            </div>
+            <div className="modal-footer">
+              <button className="secondary" onClick={() => setReportOpen(false)} disabled={reportLoading}>
+                Anuluj
+              </button>
+              <button className="primary" onClick={generateReport} disabled={reportLoading}>
+                {reportLoading ? 'Generowanie…' : 'Pobierz CSV'}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   )
