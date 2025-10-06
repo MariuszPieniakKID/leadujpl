@@ -157,23 +157,40 @@ function Dashboard() {
     const run = async () => {
       setLoading(true)
       try {
-        // removed leads fetch
-        // load meetings for current user
-        const res = await api.get<any[]>('/api/meetings')
-        setMeetings(res.data)
-        try { for (const m of res.data) { await offlineStore.put('meetings', m) } } catch {}
-        // If manager, also load team-wide stats and upcoming
-        if (user && user.role === 'MANAGER') await refreshManagerAggregates()
-        try { const pts = await fetchMyPoints(); setMyPoints(pts.total || 0) } catch {}
+        if (navigator.onLine) {
+          // Online: fetch from API and cache
+          const res = await api.get<any[]>('/api/meetings')
+          setMeetings(res.data)
+          try { for (const m of res.data) { await offlineStore.put('meetings', m) } } catch {}
+          // If manager, also load team-wide stats and upcoming
+          if (user && user.role === 'MANAGER') await refreshManagerAggregates()
+          try { const pts = await fetchMyPoints(); setMyPoints(pts.total || 0) } catch {}
+        } else {
+          // Offline: load from IndexedDB
+          const localMeetings = await offlineStore.getAll<any>('meetings')
+          setMeetings(localMeetings || [])
+        }
       } catch (e) {
-        console.error(e)
-        // offline fallback
-        try { const localMeetings = await offlineStore.getAll<any>('meetings'); setMeetings(localMeetings || []) } catch {}
+        console.error('Error loading meetings:', e)
+        // Fallback to offline storage on error
+        try { 
+          const localMeetings = await offlineStore.getAll<any>('meetings')
+          setMeetings(localMeetings || []) 
+        } catch (offlineErr) {
+          console.error('Failed to load offline meetings:', offlineErr)
+        }
       } finally {
         setLoading(false)
       }
     }
     run()
+    
+    // Listen for offline sync completion to refresh data
+    const handleSyncComplete = () => {
+      run()
+    }
+    window.addEventListener('offline-sync-complete', handleSyncComplete)
+    return () => window.removeEventListener('offline-sync-complete', handleSyncComplete)
   }, [])
 
   // Terms modal state

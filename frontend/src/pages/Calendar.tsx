@@ -478,7 +478,21 @@ export default function CalendarPage() {
         }
         await offlineStore.put('meetings', optimistic)
         setMeetings(prev => [...prev, optimistic])
-        await pendingQueue.enqueue({ id: newLocalId('att'), method: 'POST', url: (import.meta.env.VITE_API_BASE || '') + '/api/meetings', body: payload, headers: {}, createdAt: Date.now(), entityStore: 'meetings', localId })
+        
+        // Enqueue for sync when back online
+        const apiBase = import.meta.env.VITE_API_BASE || ''
+        await pendingQueue.enqueue({ 
+          id: newLocalId('meeting'), 
+          method: 'POST', 
+          url: `${apiBase}/api/meetings`, 
+          body: payload, 
+          headers: {}, 
+          createdAt: Date.now(), 
+          entityStore: 'meetings', 
+          localId 
+        })
+        
+        console.log('[Offline] Meeting queued for sync:', { localId, payload })
       }
       setIsCreateOpen(false)
       if (navigator.onLine) await refreshMeetings()

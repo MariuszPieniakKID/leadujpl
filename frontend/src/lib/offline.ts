@@ -98,32 +98,43 @@ export async function processQueue() {
         // Check if item is too old (more than 24 hours)
         const ageHours = (Date.now() - pr.createdAt) / (1000 * 60 * 60)
         if (ageHours > 24) {
-          console.warn('Removing expired pending request:', pr.id, 'age:', ageHours, 'hours')
+          console.warn('[Sync] Removing expired request:', pr.id, 'age:', ageHours.toFixed(1), 'hours')
           await pendingQueue.remove(pr.id)
           continue
         }
         
+        console.log('[Sync] Processing request:', { id: pr.id, method: pr.method, url: pr.url, localId: pr.localId })
+        
         const res = await sendRequest(pr)
+        console.log('[Sync] Response:', { id: pr.id, status: res.status, ok: res.ok })
+        
         if (res.ok) {
-          // If entity created, drop local placeholder
+          // Success - remove from queue and delete local placeholder
+          console.log('[Sync] Success! Removing local data:', pr.localId)
           if (pr.entityStore && pr.localId) {
-            try { await offlineStore.delete(pr.entityStore, pr.localId) } catch {}
+            try { await offlineStore.delete(pr.entityStore, pr.localId) } catch (e) {
+              console.error('[Sync] Failed to delete local entity:', e)
+            }
           }
           await pendingQueue.remove(pr.id)
           successCount++
         } else if (res.status === 409 || res.status === 400) {
           // Conflict or bad request - likely duplicate, remove from queue
-          console.warn('Removing conflicting/invalid request:', pr.id, 'status:', res.status)
+          const errorText = await res.text().catch(() => '')
+          console.warn('[Sync] Removing conflicting/invalid request:', pr.id, 'status:', res.status, 'error:', errorText)
           if (pr.entityStore && pr.localId) {
             try { await offlineStore.delete(pr.entityStore, pr.localId) } catch {}
           }
           await pendingQueue.remove(pr.id)
         } else {
           // Server error, keep in queue for retry
+          const errorText = await res.text().catch(() => '')
+          console.error('[Sync] Server error, will retry:', pr.id, 'status:', res.status, 'error:', errorText)
           failCount++
         }
       } catch (err) {
         // Network error, keep in queue for retry
+        console.error('[Sync] Network error, will retry:', pr.id, 'error:', err)
         failCount++
       }
     }
