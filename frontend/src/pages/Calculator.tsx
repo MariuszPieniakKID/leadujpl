@@ -125,16 +125,42 @@ export default function CalculatorPage() {
     let subtotalNet = subtotalPlain
     let marginAmount = 0
     
-    // Apply margins in order for SALES_REP: Admin global → Manager → Sales Rep own
+    // Apply margins in order: Admin global → Manager → Sales Rep own
     try {
       const margins = (data as any).settings?.margins || {}
       
-      // 1. Admin global margin (if set in settings)
+      // 1. Admin global margin (applies to everyone)
+      const adminMargin = settings.adminMargin
+      if (adminMargin) {
+        const amount = Number(adminMargin.amount || 0)
+        const percent = Number(adminMargin.percent || 0)
+        const uplift = (percent > 0) ? (subtotalNet * (percent / 100)) : amount
+        if (uplift > 0) {
+          subtotalNet = Math.max(subtotalNet + uplift, 0)
+          marginAmount += uplift
+        }
+      }
+      
+      // 2. Manager margin (for SALES_REP assigned to manager, or for MANAGER themselves)
       if (user?.role === 'SALES_REP') {
-        const adminMargin = settings.adminMargin
-        if (adminMargin) {
-          const amount = Number(adminMargin.amount || 0)
-          const percent = Number(adminMargin.percent || 0)
+        // For sales rep: use their manager's margin
+        const managerId = user?.managerId || null
+        const m = managerId ? margins[managerId] : null
+        if (m) {
+          const amount = Number(m.amount || 0)
+          const percent = Number(m.percent || 0)
+          const uplift = (percent > 0) ? (subtotalNet * (percent / 100)) : amount
+          if (uplift > 0) {
+            subtotalNet = Math.max(subtotalNet + uplift, 0)
+            marginAmount += uplift
+          }
+        }
+      } else if (user?.role === 'MANAGER') {
+        // For manager: use their own margin
+        const m = margins[user.id] || null
+        if (m) {
+          const amount = Number(m.amount || 0)
+          const percent = Number(m.percent || 0)
           const uplift = (percent > 0) ? (subtotalNet * (percent / 100)) : amount
           if (uplift > 0) {
             subtotalNet = Math.max(subtotalNet + uplift, 0)
@@ -142,22 +168,9 @@ export default function CalculatorPage() {
           }
         }
       }
-      
-      // 2. Manager margin (for user's direct manager)
-      const managerId = user?.managerId || null
-      const m = managerId ? margins[managerId] : null
-      if (m) {
-        const amount = Number(m.amount || 0)
-        const percent = Number(m.percent || 0)
-        const uplift = (percent > 0) ? (subtotalNet * (percent / 100)) : amount
-        if (uplift > 0) {
-          subtotalNet = Math.max(subtotalNet + uplift, 0)
-          marginAmount += uplift
-        }
-      }
     } catch {}
     
-    // 3. Sales rep's personal margin
+    // 3. Sales rep's personal margin (only for SALES_REP)
     if (user && user.role === 'SALES_REP') {
       const sm = getSalesMargin()
       if (sm) {
