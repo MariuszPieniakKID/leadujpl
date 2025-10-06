@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { PrismaClient } from '@prisma/client';
 import { requireAuth, requireManagerOrAdmin } from '../middleware/auth';
+import { sendMeetingConfirmationSMS } from '../lib/sms';
 
 const prisma = new PrismaClient();
 const router = Router();
@@ -143,6 +144,26 @@ router.post('/', requireAuth, async (req, res) => {
     }
 
     const meeting = await prisma.meeting.create({ data: createData });
+
+    // Send SMS confirmation to client if phone number is available
+    if (meeting.clientId) {
+      try {
+        const clientData = await prisma.client.findUnique({ 
+          where: { id: meeting.clientId },
+          select: { phone: true }
+        });
+        
+        if (clientData?.phone) {
+          const smsResult = await sendMeetingConfirmationSMS(clientData.phone, meeting.scheduledAt);
+          if (!smsResult.success) {
+            console.error('Failed to send SMS confirmation:', smsResult.error);
+          }
+        }
+      } catch (smsError) {
+        console.error('Error in SMS sending process:', smsError);
+        // Don't fail the whole request if SMS fails
+      }
+    }
 
     // Award points:
     // - +2 for adding a new client (inline creation here)
