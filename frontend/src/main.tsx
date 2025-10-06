@@ -10,35 +10,25 @@ createRoot(document.getElementById('root')!).render(
   </StrictMode>,
 )
 
-// Register/force-update service worker for PWA
+// Register service worker for PWA
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', async () => {
     try {
-      const reg = await navigator.serviceWorker.register('/sw.js')
-      // Actively check for a new SW right after registration
-      try { await reg.update() } catch {}
-      try {
-        const regs = await navigator.serviceWorker.getRegistrations()
-        regs.forEach(r => { try { r.update() } catch {} })
-      } catch {}
-      setTimeout(() => { try { reg.update() } catch {} }, 2000)
-      if (reg.waiting) {
-        reg.waiting.postMessage({ type: 'SKIP_WAITING' })
-      }
-      if (reg.installing) {
-        reg.installing.addEventListener('statechange', () => {
-          if (reg.installing?.state === 'installed') {
-            reg.waiting?.postMessage({ type: 'SKIP_WAITING' })
-          }
-        })
-      }
-      navigator.serviceWorker.addEventListener('controllerchange', () => {
-        window.location.reload()
+      const reg = await navigator.serviceWorker.register('/sw.js', {
+        // Update service worker immediately when a new version is found
+        updateViaCache: 'none'
       })
-
+      
+      // Check for updates immediately after registration
+      await reg.update()
+      
       // Setup push notifications after service worker is ready
       setupPushNotifications(reg)
-    } catch {}
+      
+      console.log('[Main] Service Worker registered successfully')
+    } catch (err) {
+      console.error('[Main] Service Worker registration failed:', err)
+    }
   })
 }
 

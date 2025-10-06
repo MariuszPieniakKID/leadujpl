@@ -7,14 +7,48 @@ import { BackgroundSyncPlugin } from 'workbox-background-sync';
 
 declare let self: ServiceWorkerGlobalScope;
 
+// Cache version - increment this to force cache refresh
+const CACHE_VERSION = 'v1.0.0';
+const CACHE_NAME = `leaduj-${CACHE_VERSION}`;
+
 // Workbox precaching
 self.skipWaiting();
+
 self.addEventListener('install', () => {
+  console.log('[SW] Installing new service worker');
+  // Force the waiting service worker to become the active service worker
   self.skipWaiting();
 });
 
-self.addEventListener('activate', () => {
-  self.clients.claim();
+self.addEventListener('activate', (event) => {
+  console.log('[SW] Activating new service worker');
+  
+  event.waitUntil(
+    (async () => {
+      // Delete all old caches
+      const cacheNames = await caches.keys();
+      await Promise.all(
+        cacheNames.map(cacheName => {
+          if (cacheName !== CACHE_NAME && !cacheName.includes('workbox-precache')) {
+            console.log('[SW] Deleting old cache:', cacheName);
+            return caches.delete(cacheName);
+          }
+        })
+      );
+      
+      // Take control of all clients immediately
+      await self.clients.claim();
+      
+      // Notify all clients that a new version is active
+      const clients = await self.clients.matchAll({ type: 'window' });
+      clients.forEach(client => {
+        client.postMessage({
+          type: 'SW_ACTIVATED',
+          version: CACHE_VERSION
+        });
+      });
+    })()
+  );
 });
 
 precacheAndRoute(self.__WB_MANIFEST);
