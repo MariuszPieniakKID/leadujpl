@@ -185,10 +185,13 @@ export default function SalesPage() {
                   <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'grid', gap: 6 }}>
                     {selectedRelations.items.map(s => (
                       <li key={s.id} className="list-item">
-                        <div>
+                        <div style={{ flex: 1 }}>
                           <div className="font-medium">{s.firstName} {s.lastName} <span className="text-xs text-gray-400">— Handlowiec</span></div>
                           <div className="text-sm text-gray-500">{s.email}</div>
                         </div>
+                        {isAdmin && (
+                          <button className="danger btn-sm" onClick={(e) => { e.stopPropagation(); deleteUser(s.id) }}>Usuń</button>
+                        )}
                       </li>
                     ))}
                   </ul>
@@ -261,20 +264,25 @@ export default function SalesPage() {
                   const currentManager = u.managerId ? managersById.get(u.managerId) : null
                   return (
                     <div key={u.id} className="list-item">
-                      <div onClick={() => setSelectedUserId(u.id)} style={{ cursor: 'pointer' }}>
+                      <div onClick={() => setSelectedUserId(u.id)} style={{ cursor: 'pointer', flex: 1 }}>
                         <div className="font-medium text-gray-900">{u.firstName} {u.lastName} <span className="text-xs text-gray-400">({u.role === 'MANAGER' ? 'Manager' : u.role === 'ADMIN' ? 'Admin' : 'Handlowiec'})</span></div>
                         <div className="text-sm text-gray-500">{u.email}</div>
                         {currentManager && <div className="text-xs text-gray-400">Manager: {currentManager.firstName} {currentManager.lastName}</div>}
                       </div>
-                      {u.role === 'SALES_REP' && (
-                        <div style={{ display: 'flex', gap: 8 }}>
-                          {u.managerId ? (
-                            <button className="secondary btn-sm" onClick={() => unassign(u.id)}>Usuń przypisanie</button>
-                          ) : (
-                            <button className="primary btn-sm" onClick={() => assignToMe(u.id)}>Przypisz do mnie</button>
-                          )}
-                        </div>
-                      )}
+                      <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                        {u.role === 'SALES_REP' && (
+                          <>
+                            {u.managerId ? (
+                              <button className="secondary btn-sm" onClick={() => unassign(u.id)}>Usuń przypisanie</button>
+                            ) : (
+                              <button className="primary btn-sm" onClick={() => assignToMe(u.id)}>Przypisz do mnie</button>
+                            )}
+                          </>
+                        )}
+                        {u.id !== currentUser.id && (u.role === 'MANAGER' || u.role === 'SALES_REP') && (
+                          <button className="danger btn-sm" onClick={(e) => { e.stopPropagation(); deleteUser(u.id) }}>Usuń</button>
+                        )}
+                      </div>
                     </div>
                   )
                 })}
