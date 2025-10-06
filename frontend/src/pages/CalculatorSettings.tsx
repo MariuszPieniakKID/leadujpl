@@ -150,9 +150,40 @@ export default function CalculatorSettingsPage() {
       </section>
 
       <section className="card" style={{ marginBottom: 16 }}>
+        <h3 style={{ marginTop: 0 }}>Kalkulator mocy PV - Parametry domyślne</h3>
+        <p className="text-gray-600" style={{ marginBottom: 12 }}>Domyślne wartości używane w kalkulatorze mocy fotowoltaicznej</p>
+        <div className="form-grid-2">
+          <div className="form-group">
+            <label className="form-label">Margines bezpieczeństwa</label>
+            <input 
+              className="form-input" 
+              type="number" 
+              step="0.01" 
+              value={settings.pvMarginDefault || 1.2} 
+              onChange={e => setSettings({ ...settings, pvMarginDefault: Number(e.target.value || 1.2) })} 
+              placeholder="np. 1.2"
+            />
+            <div className="text-gray-600 text-sm">Domyślnie: 1.2 (oznacza +20% zapasu mocy)</div>
+          </div>
+          <div className="form-group">
+            <label className="form-label">Roczna produkcja z 1 kWp (kWh)</label>
+            <input 
+              className="form-input" 
+              type="number" 
+              step="1" 
+              value={settings.pvYieldPerKwpDefault || 1000} 
+              onChange={e => setSettings({ ...settings, pvYieldPerKwpDefault: Number(e.target.value || 1000) })} 
+              placeholder="np. 1000"
+            />
+            <div className="text-gray-600 text-sm">Domyślnie: 1000 kWh/rok z 1 kWp</div>
+          </div>
+        </div>
+      </section>
+
+      <section className="card" style={{ marginBottom: 16 }}>
         <h3 style={{ marginTop: 0 }}>Parametry (USTAWIENIA)</h3>
         <div className="form-grid-2">
-          {Object.keys(settings).map((key) => (
+          {Object.keys(settings).filter(k => k !== 'pvMarginDefault' && k !== 'pvYieldPerKwpDefault').map((key) => (
             <div className="form-group" key={key}>
               <label className="form-label">{key}</label>
               <input className="form-input" value={String(settings[key] ?? '')} onChange={e => setSettings({ ...settings, [key]: e.target.value })} />

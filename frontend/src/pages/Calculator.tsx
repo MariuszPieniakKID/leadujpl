@@ -56,7 +56,24 @@ export default function CalculatorPage() {
   })
 
   // Quick PV power calculator (two methods)
-  const [quickCalc, setQuickCalc] = useState<{ monthlyKwh: string; margin: number; yieldPerKwp: number; monthlyCost: string; pricePerKwh: string }>({ monthlyKwh: '', margin: 1.2, yieldPerKwp: 1000, monthlyCost: '', pricePerKwh: '1.00' })
+  const [quickCalc, setQuickCalc] = useState<{ monthlyKwh: string; margin: number; yieldPerKwp: number; monthlyCost: string; pricePerKwh: string }>({ 
+    monthlyKwh: '', 
+    margin: Number((data as any).settings?.pvMarginDefault || 1.2), 
+    yieldPerKwp: Number((data as any).settings?.pvYieldPerKwpDefault || 1000), 
+    monthlyCost: '', 
+    pricePerKwh: '1.00' 
+  })
+  
+  // Update quickCalc when settings change
+  useEffect(() => {
+    const defaultMargin = Number((data as any).settings?.pvMarginDefault || 1.2)
+    const defaultYield = Number((data as any).settings?.pvYieldPerKwpDefault || 1000)
+    setQuickCalc(prev => ({
+      ...prev,
+      margin: defaultMargin,
+      yieldPerKwp: defaultYield
+    }))
+  }, [(data as any).settings?.pvMarginDefault, (data as any).settings?.pvYieldPerKwpDefault])
   const quickKwpUsage = useMemo(() => {
     const mkwh = Number(String(quickCalc.monthlyKwh).replace(',', '.'))
     const margin = Number(quickCalc.margin || 0)
@@ -371,17 +388,9 @@ export default function CalculatorPage() {
             <div className="form-group" style={{ gridColumn: '1 / -1' }}>
               <strong>Metoda A: na podstawie zużycia (kWh)</strong>
             </div>
-            <div className="form-group">
+            <div className="form-group" style={{ gridColumn: '1 / -1' }}>
               <label className="form-label">Średnie miesięczne zużycie (kWh)</label>
               <input className="form-input" inputMode="decimal" value={quickCalc.monthlyKwh} onChange={e => setQuickCalc({ ...quickCalc, monthlyKwh: e.target.value })} placeholder="np. 400" />
-            </div>
-            <div className="form-group">
-              <label className="form-label">Margines bezpieczeństwa</label>
-              <input className="form-input" type="number" step="0.01" value={quickCalc.margin} onChange={e => setQuickCalc({ ...quickCalc, margin: Number(e.target.value || 0) })} />
-            </div>
-            <div className="form-group">
-              <label className="form-label">Roczna produkcja z 1 kWp (kWh)</label>
-              <input className="form-input" type="number" step="1" value={quickCalc.yieldPerKwp} onChange={e => setQuickCalc({ ...quickCalc, yieldPerKwp: Number(e.target.value || 0) })} />
             </div>
             <div className="form-group" style={{ gridColumn: '1 / -1', marginTop: 8 }}>
               <strong>Metoda B: na podstawie kosztu (zł)</strong>
@@ -394,6 +403,10 @@ export default function CalculatorPage() {
               <label className="form-label">Cena 1 kWh (zł)</label>
               <input className="form-input" inputMode="decimal" value={quickCalc.pricePerKwh} onChange={e => setQuickCalc({ ...quickCalc, pricePerKwh: e.target.value })} placeholder="np. 1,00" />
             </div>
+          </div>
+          <div className="text-gray-600 text-sm" style={{ marginTop: 8 }}>
+            Margines bezpieczeństwa: {quickCalc.margin} | Roczna produkcja z 1 kWp: {quickCalc.yieldPerKwp} kWh 
+            <span style={{ opacity: 0.7 }}> (można zmienić w ustawieniach)</span>
           </div>
           <div className="list" style={{ marginTop: 6 }}>
             <div className="list-row" style={{ fontWeight: 600 }}>
