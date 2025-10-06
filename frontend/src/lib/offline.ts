@@ -86,8 +86,23 @@ async function sendRequest(pr: PendingRequest): Promise<Response> {
 export async function processQueue() {
   try {
     const items = await pendingQueue.list()
+    
+    // Sort by creation time (oldest first)
+    items.sort((a, b) => a.createdAt - b.createdAt)
+    
+    let successCount = 0
+    let failCount = 0
+    
     for (const pr of items) {
       try {
+        // Check if item is too old (more than 24 hours)
+        const ageHours = (Date.now() - pr.createdAt) / (1000 * 60 * 60)
+        if (ageHours > 24) {
+          console.warn('Removing expired pending request:', pr.id, 'age:', ageHours, 'hours')
+          await pendingQueue.remove(pr.id)
+          continue
+        }
+        
         const res = await sendRequest(pr)
         if (res.ok) {
           // If entity created, drop local placeholder
@@ -95,15 +110,37 @@ export async function processQueue() {
             try { await offlineStore.delete(pr.entityStore, pr.localId) } catch {}
           }
           await pendingQueue.remove(pr.id)
+          successCount++
+        } else if (res.status === 409 || res.status === 400) {
+          // Conflict or bad request - likely duplicate, remove from queue
+          console.warn('Removing conflicting/invalid request:', pr.id, 'status:', res.status)
+          if (pr.entityStore && pr.localId) {
+            try { await offlineStore.delete(pr.entityStore, pr.localId) } catch {}
+          }
+          await pendingQueue.remove(pr.id)
+        } else {
+          // Server error, keep in queue for retry
+          failCount++
         }
-      } catch {
-        // keep in queue
+      } catch (err) {
+        // Network error, keep in queue for retry
+        failCount++
       }
     }
+    
     await processUploads()
+    
     try { localStorage.setItem('offline_last_sync', String(Date.now())) } catch {}
-    try { window.dispatchEvent(new CustomEvent('offline-sync-complete')) } catch {}
-  } catch {}
+    try { 
+      window.dispatchEvent(new CustomEvent('offline-sync-complete', { 
+        detail: { successCount, failCount, totalProcessed: items.length } 
+      })) 
+    } catch {}
+    
+    console.log('Sync complete:', { successCount, failCount, total: items.length })
+  } catch (err) {
+    console.error('Error processing queue:', err)
+  }
 }
 
 let syncListenerAttached = false
@@ -111,9 +148,52 @@ export function startOfflineSync() {
   if (syncListenerAttached) return
   syncListenerAttached = true
   if (typeof window !== 'undefined') {
-    window.addEventListener('online', () => { processQueue().catch(() => {}) })
+    // Listen for online event
+    window.addEventListener('online', () => { 
+      console.log('Network online, processing queue...')
+      processQueue().catch(() => {}) 
+    })
+    
     // Try once on startup
     setTimeout(() => { processQueue().catch(() => {}) }, 1000)
+    
+    // Periodic sync every 5 minutes when online
+    setInterval(() => {
+      if (navigator.onLine) {
+        processQueue().catch(() => {})
+      }
+    }, 5 * 60 * 1000)
+    
+    // Register Background Sync if available (works even when tab is closed)
+    if ('serviceWorker' in navigator && 'sync' in ServiceWorkerRegistration.prototype) {
+      navigator.serviceWorker.ready.then(registration => {
+        // Trigger background sync when network becomes available
+        window.addEventListener('online', () => {
+          registration.sync.register('sync-pending-requests').catch(err => {
+            console.warn('Background sync registration failed:', err)
+          })
+        })
+        
+        // Also trigger on visibility change (when user returns to tab)
+        document.addEventListener('visibilitychange', () => {
+          if (!document.hidden && navigator.onLine) {
+            processQueue().catch(() => {})
+          }
+        })
+      }).catch(err => {
+        console.warn('Service Worker not ready for background sync:', err)
+      })
+    }
+    
+    // Listen for sync messages from service worker
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.addEventListener('message', (event) => {
+        if (event.data && event.data.type === 'SYNC_PENDING_REQUESTS') {
+          console.log('Received sync trigger from service worker')
+          processQueue().catch(() => {})
+        }
+      })
+    }
   }
 }
 

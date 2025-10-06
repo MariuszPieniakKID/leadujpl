@@ -2,7 +2,8 @@
 
 import { cleanupOutdatedCaches, createHandlerBoundToURL, precacheAndRoute } from 'workbox-precaching';
 import { NavigationRoute, registerRoute } from 'workbox-routing';
-import { NetworkFirst } from 'workbox-strategies';
+import { NetworkFirst, NetworkOnly } from 'workbox-strategies';
+import { BackgroundSyncPlugin } from 'workbox-background-sync';
 
 declare let self: ServiceWorkerGlobalScope;
 
@@ -24,14 +25,40 @@ const handler = createHandlerBoundToURL('/index.html');
 const navigationRoute = new NavigationRoute(handler);
 registerRoute(navigationRoute);
 
-// API caching
+// Background Sync Plugin for API writes
+const bgSyncPlugin = new BackgroundSyncPlugin('api-write-queue', {
+  maxRetentionTime: 24 * 60, // Retry for max of 24 hours (in minutes)
+  onSync: async ({ queue }) => {
+    let entry;
+    while ((entry = await queue.shiftRequest())) {
+      try {
+        await fetch(entry.request.clone());
+        console.log('Replay successful for request', entry.request.url);
+      } catch (error) {
+        console.error('Replay failed for request', entry.request.url, error);
+        // Put the request back in the queue to retry later
+        await queue.unshiftRequest(entry);
+        throw error;
+      }
+    }
+  },
+});
+
+// API caching for GET requests
 registerRoute(
-  /\/api\//,
+  ({ url, request }) => url.pathname.startsWith('/api/') && request.method === 'GET',
   new NetworkFirst({
     cacheName: 'api-cache',
     networkTimeoutSeconds: 5,
-  }),
-  'GET'
+  })
+);
+
+// API writes (POST, PUT, PATCH, DELETE) with Background Sync
+registerRoute(
+  ({ url, request }) => url.pathname.startsWith('/api/') && ['POST', 'PUT', 'PATCH', 'DELETE'].includes(request.method),
+  new NetworkOnly({
+    plugins: [bgSyncPlugin],
+  })
 );
 
 // Push notification handling
@@ -116,6 +143,27 @@ self.addEventListener('notificationclick', function(event) {
       }
     })
   );
+});
+
+// Background Sync event handler
+self.addEventListener('sync', function(event: any) {
+  console.log('Background sync event:', event.tag);
+  
+  if (event.tag === 'sync-pending-requests') {
+    event.waitUntil(
+      // Notify all clients to process their queues
+      self.clients.matchAll().then(function(clients) {
+        return Promise.all(
+          clients.map(client => 
+            client.postMessage({
+              type: 'SYNC_PENDING_REQUESTS',
+              timestamp: Date.now()
+            })
+          )
+        );
+      })
+    );
+  }
 });
 
 // Message handling from main thread
