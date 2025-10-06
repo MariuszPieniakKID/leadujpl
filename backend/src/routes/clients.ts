@@ -13,7 +13,19 @@ router.get('/', requireAuth, requireManagerOrAdmin, async (req, res) => {
     const status = (req.query.status as string | undefined)?.trim()
     const scope = (req.query.scope as string | undefined)?.trim()
     const managerId = (req.query.managerId as string | undefined)?.trim()
+    const addedToday = (req.query.addedToday as string | undefined)?.trim() === 'true'
+    const sortBy = (req.query.sortBy as string | undefined)?.trim() || 'name'
+    
     const where: any = {}
+    
+    // Filter by "added today"
+    if (addedToday) {
+      const now = new Date()
+      const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0)
+      const endOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999)
+      where.createdAt = { gte: startOfDay, lte: endOfDay }
+    }
+    
     // For managers, scope=team shows clients from meetings of their sales reps
     if (scope === 'team' && current.role === 'MANAGER') {
       where.meetings = { some: { attendee: { managerId: current.id } } }
@@ -47,7 +59,16 @@ router.get('/', requireAuth, requireManagerOrAdmin, async (req, res) => {
         where.meetings = meetingsFilter
       }
     }
-    const clients = await prisma.client.findMany({ where, orderBy: [{ lastName: 'asc' }, { firstName: 'asc' }] });
+    
+    // Determine sort order
+    let orderBy: any = [{ lastName: 'asc' }, { firstName: 'asc' }]
+    if (sortBy === 'dateAsc') {
+      orderBy = [{ createdAt: 'asc' }]
+    } else if (sortBy === 'dateDesc') {
+      orderBy = [{ createdAt: 'desc' }]
+    }
+    
+    const clients = await prisma.client.findMany({ where, orderBy });
     res.json(clients);
   } catch (e) {
     res.status(500).json({ error: (e as Error).message });

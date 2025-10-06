@@ -21,7 +21,7 @@ import StatsPage from './pages/Stats'
 import ManagerStatsPage from './pages/ManagerStats'
 import { clearAuth, getToken, getUser } from './lib/auth'
 import MobileNav from './components/MobileNav'
-import { polishPhoneHtmlPattern, polishPhoneTitle } from './lib/phone'
+import { polishPhoneHtmlPattern, polishPhoneTitle, isValidPolishPhone } from './lib/phone'
 import Logo from './components/Logo'
 import SyncStatus from './components/SyncStatus'
 // getUser already imported above
@@ -86,8 +86,9 @@ function Dashboard() {
   const [managerUpcoming, setManagerUpcoming] = useState<Array<{ id: string; date: string; time: string; place: string; topic: string }>>([])
   const [myPoints, setMyPoints] = useState<number>(0)
   const [managerRecent, setManagerRecent] = useState<Array<{ id: string; date: string; time: string; place: string; topic: string }>>([])
+  const [statsFilter, setStatsFilter] = useState<'today' | 'yesterday' | 'tomorrow'>('today')
 
-  async function refreshManagerAggregates() {
+async function refreshManagerAggregates() {
     if (!user || user.role !== 'MANAGER') return
     setManagerLoading(true)
     try {
@@ -310,13 +311,43 @@ function Dashboard() {
   }
 
   const stats = useMemo(() => {
-    const now = Date.now()
+    // Calculate start and end of the selected day based on filter
+    const now = new Date()
+    let startOfDay: Date
+    let endOfDay: Date
+    
+    if (statsFilter === 'today') {
+      startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0)
+      endOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999)
+    } else if (statsFilter === 'yesterday') {
+      const yesterday = new Date(now)
+      yesterday.setDate(yesterday.getDate() - 1)
+      startOfDay = new Date(yesterday.getFullYear(), yesterday.getMonth(), yesterday.getDate(), 0, 0, 0, 0)
+      endOfDay = new Date(yesterday.getFullYear(), yesterday.getMonth(), yesterday.getDate(), 23, 59, 59, 999)
+    } else { // tomorrow
+      const tomorrow = new Date(now)
+      tomorrow.setDate(tomorrow.getDate() + 1)
+      startOfDay = new Date(tomorrow.getFullYear(), tomorrow.getMonth(), tomorrow.getDate(), 0, 0, 0, 0)
+      endOfDay = new Date(tomorrow.getFullYear(), tomorrow.getMonth(), tomorrow.getDate(), 23, 59, 59, 999)
+    }
+    
+    const startTs = startOfDay.getTime()
+    const endTs = endOfDay.getTime()
+    const nowTs = Date.now()
+    
+    // Filter meetings for the selected day
+    const dayMeetings = meetings.filter(m => {
+      const meetingTs = new Date(m.scheduledAt).getTime()
+      return meetingTs >= startTs && meetingTs <= endTs
+    })
+    
     let pastCount = 0
     let futureCount = 0
     let successPast = 0
     let unfinishedPast = 0
-    for (const m of meetings) {
-      const isPast = new Date(m.scheduledAt).getTime() <= now
+    
+    for (const m of dayMeetings) {
+      const isPast = new Date(m.scheduledAt).getTime() <= nowTs
       if (isPast) {
         pastCount += 1
         const status = (m as any).status as string | undefined
@@ -329,7 +360,7 @@ function Dashboard() {
     }
     const skutecznosc = pastCount > 0 ? Math.round((successPast / pastCount) * 100) : 0
     return { pastCount, futureCount, successPast, skutecznosc, unfinishedPast }
-  }, [meetings])
+  }, [meetings, statsFilter])
 
   function toLocalDateValue(date: Date) {
     const pad = (n: number) => n.toString().padStart(2, '0')
@@ -475,6 +506,13 @@ function Dashboard() {
       if (!createForm.contactConsent) {
         setCreateError('Aby zapisać wydarzenie, zaznacz wymagany checkbox zgody.')
         return
+      }
+      // Validate phone number
+      if (createForm.clientPhone && createForm.clientPhone.trim() !== '') {
+        if (!isValidPolishPhone(createForm.clientPhone)) {
+          setCreateError('Nieprawidłowy numer telefonu (wymagany format polski)')
+          return
+        }
       }
       // Required extra info (except comments)
       if (!createForm.pvInstalled) { setCreateError('Wybierz, czy klient posiada instalację PV'); return }
@@ -689,6 +727,15 @@ function Dashboard() {
     if (!editMeetingId) return
     try {
       setEditError(null)
+      
+      // Validate phone number
+      if (editForm.clientPhone && editForm.clientPhone.trim() !== '') {
+        if (!isValidPolishPhone(editForm.clientPhone)) {
+          setEditError('Nieprawidłowy numer telefonu (wymagany format polski)')
+          return
+        }
+      }
+      
       const payload: any = {
         scheduledAt: new Date(editForm.startLocal).toISOString(),
         endsAt: editForm.endLocal ? new Date(editForm.endLocal).toISOString() : undefined,
@@ -1034,6 +1081,47 @@ function Dashboard() {
           <section className="card">
             <div className="flex justify-between items-center mb-4">
               <h3 className="card-title">Twoje statystyki</h3>
+              <div style={{ display: 'flex', gap: 'var(--space-2)' }}>
+                <button 
+                  className={statsFilter === 'yesterday' ? 'primary' : 'secondary'} 
+                  onClick={() => setStatsFilter('yesterday')}
+                  style={{ 
+                    padding: 'var(--space-2) var(--space-3)',
+                    fontSize: 'var(--text-sm)',
+                    fontWeight: 600,
+                    borderRadius: 'var(--radius-lg)',
+                    transition: 'all 0.2s ease'
+                  }}
+                >
+                  Wczoraj
+                </button>
+                <button 
+                  className={statsFilter === 'today' ? 'primary' : 'secondary'} 
+                  onClick={() => setStatsFilter('today')}
+                  style={{ 
+                    padding: 'var(--space-2) var(--space-3)',
+                    fontSize: 'var(--text-sm)',
+                    fontWeight: 600,
+                    borderRadius: 'var(--radius-lg)',
+                    transition: 'all 0.2s ease'
+                  }}
+                >
+                  Dzisiaj
+                </button>
+                <button 
+                  className={statsFilter === 'tomorrow' ? 'primary' : 'secondary'} 
+                  onClick={() => setStatsFilter('tomorrow')}
+                  style={{ 
+                    padding: 'var(--space-2) var(--space-3)',
+                    fontSize: 'var(--text-sm)',
+                    fontWeight: 600,
+                    borderRadius: 'var(--radius-lg)',
+                    transition: 'all 0.2s ease'
+                  }}
+                >
+                  Jutro
+                </button>
+              </div>
             </div>
             <div className="stats-grid">
               <div className="stat-card">

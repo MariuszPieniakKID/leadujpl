@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import api from '../lib/api'
-import { saveAuth, type User } from '../lib/auth'
+import { saveAuth, saveOfflineCredentials, verifyOfflineCredentials, generateOfflineToken, type User } from '../lib/auth'
 import Logo from '../components/Logo'
 import { useNavigate } from 'react-router-dom'
 
@@ -8,16 +8,27 @@ export default function Login() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
+  const [offlineMode, setOfflineMode] = useState(false)
   const navigate = useNavigate()
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError('')
+    setOfflineMode(false)
+    
+    // First, try online login
     try {
       const res = await api.post('/api/auth/login', { email, password })
       const u = res.data.user as User
-      // Save while preserving locally-known acceptance status
+      
+      // Save auth token and user
       saveAuth(res.data.token, u)
+      
+      // Save credentials for offline use (async, doesn't block)
+      saveOfflineCredentials(email, password, u).catch(err => {
+        console.error('[Login] Failed to save offline credentials:', err)
+      })
+      
       // Decide flag based on MERGED user (post-save)
       try {
         const mergedRaw = localStorage.getItem('auth_user')
@@ -31,9 +42,48 @@ export default function Login() {
           localStorage.removeItem('needs_terms_accept')
         }
       } catch {}
+      
       navigate('/')
     } catch (e: any) {
-      setError(e?.response?.data?.error || 'Błąd logowania')
+      // Online login failed - try offline login if we have saved credentials
+      console.log('[Login] Online login failed, attempting offline login...')
+      
+      try {
+        const offlineUser = await verifyOfflineCredentials(email, password)
+        
+        if (offlineUser) {
+          // Offline login successful
+          const offlineToken = generateOfflineToken(offlineUser)
+          saveAuth(offlineToken, offlineUser)
+          
+          setOfflineMode(true)
+          
+          // Set terms acceptance flag
+          try {
+            const acceptedLocal = (() => {
+              try { return localStorage.getItem(`terms_accept_${offlineUser.id}`) === '1' } catch { return false }
+            })()
+            if ((offlineUser.role === 'MANAGER' || offlineUser.role === 'SALES_REP') && !offlineUser.termsAcceptedAt && !acceptedLocal) {
+              localStorage.setItem('needs_terms_accept', '1')
+            } else {
+              localStorage.removeItem('needs_terms_accept')
+            }
+          } catch {}
+          
+          // Show offline mode message briefly, then navigate
+          setTimeout(() => navigate('/'), 1500)
+        } else {
+          // No offline credentials found or credentials don't match
+          if (!navigator.onLine) {
+            setError('Jesteś offline i nie masz zapisanych poświadczeń dla tego konta. Zaloguj się online najpierw.')
+          } else {
+            setError(e?.response?.data?.error || 'Błąd logowania')
+          }
+        }
+      } catch (offlineErr) {
+        console.error('[Login] Offline login error:', offlineErr)
+        setError(e?.response?.data?.error || 'Błąd logowania')
+      }
     }
   }
 
@@ -144,6 +194,28 @@ export default function Login() {
               }}
             />
           </div>
+          
+          {offlineMode && (
+            <div style={{
+              color: 'var(--warning-700)',
+              fontSize: 'var(--text-sm)',
+              padding: 'var(--space-4)',
+              background: 'rgba(251, 191, 36, 0.1)',
+              borderRadius: 'var(--radius-xl)',
+              border: '1px solid rgba(251, 191, 36, 0.3)',
+              marginBottom: 'var(--space-6)',
+              fontWeight: 500,
+              display: 'flex',
+              alignItems: 'center',
+              gap: 'var(--space-2)'
+            }}>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M1 1h15M1 7h15M1 13h15"/>
+                <path strokeDasharray="2 3" d="M17 8l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2"/>
+              </svg>
+              Zalogowano w trybie offline
+            </div>
+          )}
           
           {error && (
             <div style={{

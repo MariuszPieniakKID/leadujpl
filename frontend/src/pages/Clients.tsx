@@ -15,6 +15,8 @@ export default function ClientsPage() {
 
   const [query, setQuery] = useState('')
   const [status, setStatus] = useState('')
+  const [addedToday, setAddedToday] = useState(false)
+  const [sortBy, setSortBy] = useState('name')
   // Admin-only controls ported from MyClients
   const [managers, setManagers] = useState<AppUserSummary[]>([])
   const [managerId, setManagerId] = useState('')
@@ -23,7 +25,12 @@ export default function ClientsPage() {
   async function load() {
     setLoading(true)
     try {
-      let params: any = { q: query || undefined, status: status || undefined }
+      let params: any = { 
+        q: query || undefined, 
+        status: status || undefined,
+        addedToday: addedToday ? 'true' : undefined,
+        sortBy: sortBy || undefined
+      }
       // For MANAGER we default to team scope to keep parity with previous view
       if (user && user.role === 'MANAGER') params.scope = 'team'
       if (user && user.role === 'ADMIN' && managerId) params.managerId = managerId
@@ -142,6 +149,25 @@ export default function ClientsPage() {
               <option value="Umówione">Umówione</option>
               <option value="Odbyte">Odbyte</option>
             </select>
+          </div>
+          <div className="form-group" style={{ margin: 0, flex: '1 1 160px', minWidth: 0 }}>
+            <label className="form-label">Sortowanie</label>
+            <select className="form-select" value={sortBy} onChange={e => setSortBy(e.target.value)}>
+              <option value="name">Nazwisko A-Z</option>
+              <option value="dateDesc">Najnowsze</option>
+              <option value="dateAsc">Najstarsze</option>
+            </select>
+          </div>
+          <div className="form-group" style={{ margin: 0, flex: '0 0 auto', display: 'flex', alignItems: 'center', gap: '8px', paddingTop: '24px' }}>
+            <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '14px', whiteSpace: 'nowrap' }}>
+              <input 
+                type="checkbox" 
+                checked={addedToday} 
+                onChange={e => setAddedToday(e.target.checked)}
+                style={{ cursor: 'pointer' }}
+              />
+              Dzisiaj dodane
+            </label>
           </div>
           {(user && user.role === 'ADMIN') && (
             <div className="form-group" style={{ margin: 0 }}>
