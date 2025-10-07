@@ -24,6 +24,7 @@ COPY --from=build /app/dist ./dist
 COPY --from=build /app/prisma ./prisma
 COPY package*.json ./
 EXPOSE 4000
-CMD ["sh", "-c", "npx prisma migrate deploy --schema prisma/schema.prisma && node dist/server.js"]
+# Run migrations before starting the server
+CMD ["sh", "-c", "echo '🔄 Running Prisma migrations...' && npx prisma migrate deploy --schema prisma/schema.prisma && echo '✅ Migrations completed!' && echo '🚀 Starting server...' && node dist/server.js"]
 
 
