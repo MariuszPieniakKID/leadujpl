@@ -1,4 +1,5 @@
-import { useMemo, useState, useEffect } from 'react'
+import { useMemo, useState, useEffect, useRef } from 'react'
+import { createPortal } from 'react-dom'
 import { generateOfferPDF, saveOfferForClient, type Client } from '../lib/api'
 import api from '../lib/api'
 import { getUser } from '../lib/auth'
@@ -109,9 +110,14 @@ export default function CalculatorNewPage() {
     }
   }
   
-  // Client info
-  const [clientName, setClientName] = useState('')
-  const [clientDate, setClientDate] = useState('')
+  // Auto-fill date with today (YYYY-MM-DD format)
+  const todayDate = useMemo(() => {
+    const now = new Date()
+    const year = now.getFullYear()
+    const month = String(now.getMonth() + 1).padStart(2, '0')
+    const day = String(now.getDate()).padStart(2, '0')
+    return `${year}-${month}-${day}`
+  }, [])
   
   // Client selection for saving offer
   const [selectedClient, setSelectedClient] = useState<Client | null>(null)
@@ -392,8 +398,6 @@ export default function CalculatorNewPage() {
     setVatRate(8)
     setOwnContribution(0)
     setExtraItems([])
-    setClientName('')
-    setClientDate('')
     setSelectedClient(null)
     setClientQuery('')
     setSaveMessage(null)
@@ -455,6 +459,9 @@ export default function CalculatorNewPage() {
       otherTerms: financing.map(f => ({ term: f.months, monthly: f.after })),
     }
     
+    const clientName = selectedClient ? `${selectedClient.firstName} ${selectedClient.lastName}` : (newClientForm.firstName && newClientForm.lastName ? `${newClientForm.firstName} ${newClientForm.lastName}` : '')
+    const clientDate = todayDate
+    
     return { form, calc, clientName, clientDate, turbineEnabled, excavationMeters }
   }
   
@@ -462,11 +469,12 @@ export default function CalculatorNewPage() {
   const handleDownloadPDF = async () => {
     try {
       const snapshot = generateSnapshot()
+      const clientName = selectedClient ? `${selectedClient.firstName}-${selectedClient.lastName}` : (newClientForm.firstName && newClientForm.lastName ? `${newClientForm.firstName}-${newClientForm.lastName}` : 'kalkulator')
       const blob = await generateOfferPDF(snapshot)
       const url = URL.createObjectURL(blob)
       const a = document.createElement('a')
       a.href = url
-      a.download = `oferta-${clientName || 'kalkulator'}-${new Date().getTime()}.pdf`
+      a.download = `oferta-${clientName}-${new Date().getTime()}.pdf`
       document.body.appendChild(a)
       a.click()
       document.body.removeChild(a)
@@ -546,31 +554,10 @@ export default function CalculatorNewPage() {
           <h1 className="page-title">⚡ ATOMIC Kalkulator</h1>
           <p className="page-subtitle">Instalacje Fotowoltaiczne i Wiatrowe</p>
         </div>
+        {user && user.role === 'SALES_REP' && (
+          <SalesMarginButton />
+        )}
       </div>
-      
-      {/* Client Info */}
-      <section className="card" style={{ marginBottom: 'var(--space-6)' }}>
-        <h2 className="card-title">👤 Dane Klienta</h2>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-4)' }}>
-          <div className="form-group">
-            <label className="form-label">Imię i nazwisko klienta</label>
-            <input 
-              type="text" 
-              value={clientName} 
-              onChange={e => setClientName(e.target.value)} 
-              placeholder="Imię i nazwisko" 
-            />
-          </div>
-          <div className="form-group">
-            <label className="form-label">Data</label>
-            <input 
-              type="date" 
-              value={clientDate} 
-              onChange={e => setClientDate(e.target.value)} 
-            />
-          </div>
-        </div>
-      </section>
       
       {/* Product Selection */}
       <section className="card" style={{ marginBottom: 'var(--space-6)' }}>
@@ -1191,6 +1178,78 @@ export default function CalculatorNewPage() {
         </section>
       )}
     </div>
+  )
+}
+
+function SalesMarginButton() {
+  const [open, setOpen] = useState(false)
+  const [amount, setAmount] = useState<string | number>(() => {
+    try { const raw = localStorage.getItem('salesMargin'); const val = raw ? Number(JSON.parse(raw).amount || 0) : 0; return val || '' } catch { return '' }
+  })
+  const [percent, setPercent] = useState<string | number>(() => {
+    try { const raw = localStorage.getItem('salesMargin'); const val = raw ? Number(JSON.parse(raw).percent || 0) : 0; return val || '' } catch { return '' }
+  })
+  const btnRef = useRef<HTMLButtonElement | null>(null)
+  const panelRef = useRef<HTMLDivElement | null>(null)
+  const [pos, setPos] = useState<{ top: number; left: number } | null>(null)
+  function save() {
+    const payload = { amount: Number(amount || 0), percent: Number(percent || 0) }
+    localStorage.setItem('salesMargin', JSON.stringify(payload))
+    setOpen(false)
+  }
+  function clear() {
+    localStorage.removeItem('salesMargin')
+    setAmount(''); setPercent('')
+    setOpen(false)
+  }
+  function toggle() {
+    if (!open) {
+      const r = btnRef.current?.getBoundingClientRect()
+      if (r) {
+        const width = 280
+        const left = Math.max(8, Math.min(window.innerWidth - width - 8, r.right - width))
+        const top = r.bottom + 8
+        setPos({ top, left })
+      }
+    }
+    setOpen(o => !o)
+  }
+  // Close on outside click or ESC
+  useEffect(() => {
+    if (!open) return
+    function onDown(e: MouseEvent) {
+      const t = e.target as Node
+      if (!panelRef.current || panelRef.current.contains(t)) return
+      if (btnRef.current && btnRef.current.contains(t)) return
+      setOpen(false)
+    }
+    function onEsc(e: KeyboardEvent) { if (e.key === 'Escape') setOpen(false) }
+    window.addEventListener('mousedown', onDown)
+    window.addEventListener('keydown', onEsc)
+    return () => { window.removeEventListener('mousedown', onDown); window.removeEventListener('keydown', onEsc) }
+  }, [open])
+  return (
+    <>
+      <button ref={btnRef} className="secondary" onClick={toggle}>💰 Moja marża</button>
+      {open && pos && createPortal(
+        <div className="card" ref={panelRef} style={{ position: 'fixed', top: pos.top, left: pos.left, width: 280, zIndex: 2147483647 }}>
+          <div className="form-group">
+            <label className="form-label">Stawka (PLN)</label>
+            <input className="form-input" type="number" step="0.01" value={amount} onChange={e => { const val = e.target.value; setAmount(val === '' ? '' : Number(val)); if (Number(val||0) > 0) setPercent('') }} />
+          </div>
+          <div className="form-group">
+            <label className="form-label">Procent (%)</label>
+            <input className="form-input" type="number" step="0.01" value={percent} onChange={e => { const val = e.target.value; setPercent(val === '' ? '' : Number(val)); if (Number(val||0) > 0) setAmount('') }} />
+          </div>
+          <div className="flex items-center gap-2" style={{ justifyContent: 'flex-end' }}>
+            <button className="secondary" onClick={clear}>Wyczyść</button>
+            <button className="primary" onClick={save}>Zapisz</button>
+          </div>
+          <div className="text-gray-600 text-xs" style={{ marginTop: 8 }}>Ustaw jedną wartość. Obowiązuje tylko dla Twoich obliczeń.</div>
+        </div>,
+        document.body
+      )}
+    </>
   )
 }
 
