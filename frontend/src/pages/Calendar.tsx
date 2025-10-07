@@ -879,7 +879,7 @@ export default function CalendarPage() {
             )}
 
             <div className="section-header" onClick={() => setCreateSectionsOpen(s => ({ ...s, client: !s.client }))}>
-              <span className="section-title">Dane klienta (opcjonalnie)</span>
+              <span className="section-title">Dane nowego klienta</span>
               <button className="section-toggle" onClick={(e) => { e.stopPropagation(); setCreateSectionsOpen(s => ({ ...s, client: !s.client })) }} aria-label="toggle">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ transform: createSectionsOpen.client ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s' }}>
                   <path d="m6 9 6 6 6-6"/>
@@ -888,44 +888,6 @@ export default function CalendarPage() {
             </div>
             {createSectionsOpen.client && (
             <div className="form-grid-2">
-              <div style={{ gridColumn: '1 / -1' }}>
-                <label>Wybierz klienta z bazy</label>
-                <input
-                  placeholder="Szukaj po imieniu, nazwisku, telefonie, e-mailu, adresie..."
-                  value={clientQuery}
-                  onChange={e => { setClientQuery(e.target.value); setSelectedClientId(null) }}
-                />
-                {isSearchingClients && <div className="muted" style={{ fontSize: 12 }}>Szukam…</div>}
-                {!isSearchingClients && clientOptions.length > 0 && (
-                  <div className="card" style={{ marginTop: 6, maxHeight: 180, overflowY: 'auto' }}>
-                    {clientOptions.map(c => (
-                      <div key={c.id} style={{ padding: 8, cursor: 'pointer' }} onClick={() => onPickClient(c)}>
-                        <div style={{ fontWeight: 600 }}>{c.firstName} {c.lastName}</div>
-                        <div className="muted" style={{ fontSize: 12 }}>
-                          {[c.phone, c.email, c.city, c.street]
-                            .filter(Boolean)
-                            .map((v, idx) => {
-                              if (v === c.phone) return <a key={`p-${idx}`} href={`tel:${String(c.phone).replace(/\s|-/g,'')}`}>{c.phone}</a>
-                              if (v === c.email) return <a key={`e-${idx}`} href={`mailto:${c.email}`}>{c.email}</a>
-                              return <span key={`t-${idx}`}>{v}</span>
-                            })
-                            .reduce((prev: any[], cur, idx) => prev.concat(idx > 0 ? [<span key={`sep-${idx}`}> • </span>, cur] : [cur]), [])}
-                        </div>
-                        <div className="muted" style={{ fontSize: 12 }}>
-                          {[c.phone, c.email, c.city, c.street]
-                            .filter(Boolean)
-                            .map((v, idx) => {
-                              if (v === c.phone) return <a key={`p-${idx}`} href={`tel:${String(c.phone).replace(/\s|-/g,'')}`}>{c.phone}</a>
-                              if (v === c.email) return <a key={`e-${idx}`} href={`mailto:${c.email}`}>{c.email}</a>
-                              return <span key={`t-${idx}`}>{v}</span>
-                            })
-                            .reduce((prev: any[], cur, idx) => prev.concat(idx > 0 ? [<span key={`sep-${idx}`}> • </span>, cur] : [cur]), [])}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
               {/* Pola klienta */}
               <div>
                 <label>Imię</label>
@@ -968,10 +930,9 @@ export default function CalendarPage() {
               {/* Sekcja Oferta przeniesiona pod wszystkie pola klienta */}
               <div style={{ gridColumn: '1 / -1' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <strong>Oferta</strong>
-                  <button className="secondary" disabled={!selectedClientId} onClick={() => setShowCalc(s => !s)}>{showCalc ? 'Ukryj kalkulator' : 'Dodaj ofertę'}</button>
+                  <strong>Oferta (opcjonalnie)</strong>
+                  <button className="secondary" onClick={() => setShowCalc(s => !s)}>{showCalc ? 'Ukryj kalkulator' : 'Dodaj ofertę dla nowego klienta'}</button>
                 </div>
-                {!selectedClientId && <div className="muted" style={{ fontSize: 12, marginTop: 4 }}>Aby dodać ofertę, wybierz najpierw klienta.</div>}
                 {showCalc && (
                   <div style={{ marginTop: 8 }}>
                     <EmbeddedCalculator

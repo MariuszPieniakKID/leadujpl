@@ -1269,49 +1269,8 @@ async function refreshManagerAggregates() {
             
 
             <div style={{ marginTop: 'var(--space-6)', paddingTop: 'var(--space-4)', borderTop: '1px solid var(--gray-200)' }}>
-              <h4 className="text-lg font-semibold text-gray-800 mb-4">Dane klienta (opcjonalnie)</h4>
+              <h4 className="text-lg font-semibold text-gray-800 mb-4">Dane nowego klienta</h4>
               <div className="form-grid-2">
-                <div className="form-group" style={{ gridColumn: '1 / -1' }}>
-                  <label className="form-label">Wybierz klienta z bazy</label>
-                  <div style={{ position: 'relative' }}>
-                    <input
-                      className="form-input"
-                      placeholder="Szukaj po imieniu, nazwisku, telefonie, e-mailu, adresie..."
-                      value={clientQuery}
-                      onChange={e => { setClientQuery(e.target.value); setSelectedClientId(null); setOffers([]) }}
-                    />
-                    {isSearchingClients && <div className="text-xs text-gray-500 mt-1">Szukam…</div>}
-                    {!isSearchingClients && clientOptions.length > 0 && (
-                      <div className="autocomplete-dropdown">
-                        {clientOptions.map(c => (
-                          <div key={c.id} className="autocomplete-item" onClick={() => onPickClient(c)}>
-                            <div className="font-medium">{c.firstName} {c.lastName}</div>
-                            <div className="text-xs text-gray-500">
-                              {[c.phone, c.email, c.city, c.street]
-                                .filter(Boolean)
-                                .map((v, idx) => {
-                                  if (v === c.phone) return <a key={`p-${idx}`} href={`tel:${String(c.phone).replace(/\s|-/g,'')}`}>{c.phone}</a>
-                                  if (v === c.email) return <a key={`e-${idx}`} href={`mailto:${c.email}`}>{c.email}</a>
-                                  return <span key={`t-${idx}`}>{v}</span>
-                                })
-                                .reduce((prev: any[], cur, idx) => prev.concat(idx > 0 ? [<span key={`sep-${idx}`}> • </span>, cur] : [cur]), [])}
-                            </div>
-                            <div className="text-xs text-gray-500">
-                              {[c.phone, c.email, c.city, c.street]
-                                .filter(Boolean)
-                                .map((v, idx) => {
-                                  if (v === c.phone) return <a key={`p-${idx}`} href={`tel:${String(c.phone).replace(/\s|-/g,'')}`}>{c.phone}</a>
-                                  if (v === c.email) return <a key={`e-${idx}`} href={`mailto:${c.email}`}>{c.email}</a>
-                                  return <span key={`t-${idx}`}>{v}</span>
-                                })
-                                .reduce((prev: any[], cur, idx) => prev.concat(idx > 0 ? [<span key={`sep-${idx}`}> • </span>, cur] : [cur]), [])}
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                </div>
                 <div className="form-group">
                   <label className="form-label">Imię</label>
                   <input className="form-input" value={createForm.clientFirstName} onChange={e => setCreateForm({ ...createForm, clientFirstName: e.target.value })} />
@@ -1353,10 +1312,9 @@ async function refreshManagerAggregates() {
               {/* Sekcja Oferta przeniesiona pod wszystkie pola klienta */}
               <div className="form-group" style={{ gridColumn: '1 / -1', marginTop: 'var(--space-2)' }}>
                 <div className="flex items-center justify-between">
-                  <label className="form-label" style={{ marginBottom: 0 }}>Oferta</label>
-                  <button className="secondary" disabled={!selectedClientId} onClick={() => setShowCalc(s => !s)}>{showCalc ? 'Ukryj kalkulator' : 'Dodaj ofertę'}</button>
+                  <label className="form-label" style={{ marginBottom: 0 }}>Oferta (opcjonalnie)</label>
+                  <button className="secondary" onClick={() => setShowCalc(s => !s)}>{showCalc ? 'Ukryj kalkulator' : 'Dodaj ofertę dla nowego klienta'}</button>
                 </div>
-                {!selectedClientId && <div className="text-xs text-gray-500 mt-2">Aby dodać ofertę, wybierz najpierw klienta.</div>}
                 {showCalc && (
                   <div style={{ marginTop: 8 }}>
                     <EmbeddedCalculator
