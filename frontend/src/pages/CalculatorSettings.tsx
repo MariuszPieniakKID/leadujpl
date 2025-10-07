@@ -46,7 +46,9 @@ export default function CalculatorSettingsPage() {
   const batteryKeys = useMemo(() => Object.keys(pricing.batteryMap || {}), [pricing])
 
   return (
-    <div className="container">
+    <div className="app-wrapper">
+      <div className="app-content">
+        <div className="container">
       <div className="page-header">
         <div>
           <h1 className="page-title">Ustawienia kalkulatora</h1>
@@ -230,6 +232,8 @@ export default function CalculatorSettingsPage() {
           ))}
         </div>
       </section>
+        </div>
+      </div>
     </div>
   )
 }

@@ -65,12 +65,14 @@ export default function AccountPage() {
     }
   }
 
-  if (loading) return <div className="container"><section className="card"><div>Ładowanie…</div></section></div>
-  if (error) return <div className="container"><section className="card"><div className="text-error">{error}</div></section></div>
+  if (loading) return <div className="app-wrapper"><div className="app-content"><div className="container"><section className="card"><div>Ładowanie…</div></section></div></div></div>
+  if (error) return <div className="app-wrapper"><div className="app-content"><div className="container"><section className="card"><div className="text-error">{error}</div></section></div></div></div>
   if (!me) return null
 
   return (
-    <div className="container">
+    <div className="app-wrapper">
+      <div className="app-content">
+        <div className="container">
       <div className="page-header">
         <div>
           <h1 className="page-title">Moje konto</h1>
@@ -130,6 +132,8 @@ export default function AccountPage() {
           <button className="danger" onClick={() => { clearAuth(); window.location.href = '/login' }}>Wyloguj</button>
         </div>
       </section>
+        </div>
+      </div>
     </div>
   )
 }
