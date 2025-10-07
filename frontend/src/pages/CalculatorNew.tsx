@@ -64,7 +64,14 @@ const storagePrices: Record<string, number> = {
   '40 kWh': 49173.33
 }
 
-export default function CalculatorNewPage() {
+type CalculatorNewPageProps = {
+  embedded?: boolean
+  clientId?: string
+  onSaved?: () => void
+  initialSnapshot?: any
+}
+
+export default function CalculatorNewPage({ embedded = false, clientId: embeddedClientId, onSaved, initialSnapshot }: CalculatorNewPageProps = {}) {
   const user = getUser()
   
   // Load config from backend (marże)
@@ -525,7 +532,9 @@ export default function CalculatorNewPage() {
   
   // Save offer for existing client
   const handleSaveOffer = async () => {
-    if (!selectedClient) {
+    const targetClientId = embedded ? embeddedClientId : selectedClient?.id
+    
+    if (!targetClientId) {
       setSaveMessage({ type: 'error', text: '❌ Wybierz klienta z listy' })
       setTimeout(() => setSaveMessage(null), 3000)
       return
@@ -534,10 +543,13 @@ export default function CalculatorNewPage() {
     setSaving(true)
     try {
       const snapshot = generateSnapshot()
-      const fileName = `oferta-${selectedClient.firstName}-${selectedClient.lastName}-${new Date().getTime()}.pdf`
-      await saveOfferForClient(selectedClient.id, fileName, snapshot)
-      setSaveMessage({ type: 'success', text: `✅ Oferta zapisana dla ${selectedClient.firstName} ${selectedClient.lastName}` })
-      setTimeout(() => setSaveMessage(null), 5000)
+      const fileName = selectedClient 
+        ? `oferta-${selectedClient.firstName}-${selectedClient.lastName}-${new Date().getTime()}.pdf`
+        : `oferta-${new Date().getTime()}.pdf`
+      await saveOfferForClient(targetClientId, fileName, snapshot)
+      setSaveMessage({ type: 'success', text: `✅ Oferta zapisana` })
+      setTimeout(() => setSaveMessage(null), 3000)
+      if (onSaved) onSaved()
     } catch (e) {
       console.error(e)
       setSaveMessage({ type: 'error', text: '❌ Błąd podczas zapisywania oferty' })
@@ -547,17 +559,50 @@ export default function CalculatorNewPage() {
     }
   }
   
+  // Auto-select client in embedded mode
+  useEffect(() => {
+    if (embedded && embeddedClientId && !selectedClient) {
+      // In embedded mode, we work directly with the provided clientId
+      // Don't show client selection UI
+    }
+  }, [embedded, embeddedClientId, selectedClient])
+  
+  // Load initial snapshot if provided
+  useEffect(() => {
+    if (initialSnapshot && initialSnapshot.form) {
+      const f = initialSnapshot.form
+      // Map old format to new format
+      if (f.systemType === 'PV – Dach') { setSelectedProduct('pv_me'); setInstallationType('roof') }
+      else if (f.systemType === 'PV – Grunt') { setSelectedProduct('pv_me'); setInstallationType('ground') }
+      else if (f.systemType === 'Falownik + Magazyn') { setSelectedProduct('inverter_me') }
+      
+      if (f.pvSet) {
+        const match = f.pvSet.match(/([\d.]+)\s*kW/)
+        if (match) setSelectedPower(parseFloat(match[1]))
+      }
+      if (f.inverter) setSelectedInverter(f.inverter)
+      if (f.battery) setSelectedStorage(f.battery)
+      if (f.backup === 'Tak') setBackupEnabled(true)
+      if (f.trench === 'Tak') setExcavationEnabled(true)
+      if (f.grant && f.grant !== 'Brak dotacji') setGrantEnabled(true)
+      if (f.downPayment) setOwnContribution(f.downPayment)
+      if (f.vatRate) setVatRate(f.vatRate)
+    }
+  }, [initialSnapshot])
+  
   return (
-    <div className="container">
-      <div className="page-header">
-        <div>
-          <h1 className="page-title">⚡ ATOMIC Kalkulator</h1>
-          <p className="page-subtitle">Instalacje Fotowoltaiczne i Wiatrowe</p>
+    <div className={embedded ? "" : "container"}>
+      {!embedded && (
+        <div className="page-header">
+          <div>
+            <h1 className="page-title">⚡ ATOMIC Kalkulator</h1>
+            <p className="page-subtitle">Instalacje Fotowoltaiczne i Wiatrowe</p>
+          </div>
+          {user && user.role === 'SALES_REP' && (
+            <SalesMarginButton />
+          )}
         </div>
-        {user && user.role === 'SALES_REP' && (
-          <SalesMarginButton />
-        )}
-      </div>
+      )}
       
       {/* Product Selection */}
       <section className="card" style={{ marginBottom: 'var(--space-6)' }}>
@@ -966,7 +1011,7 @@ export default function CalculatorNewPage() {
       )}
       
       {/* Save Offer Section */}
-      {selectedProduct && calculation.totalNet > 0 && (
+      {!embedded && selectedProduct && calculation.totalNet > 0 && (
         <section className="card" style={{ marginBottom: 'var(--space-6)' }}>
           <h2 className="card-title">💾 Zapisz Ofertę</h2>
           
@@ -1176,6 +1221,26 @@ export default function CalculatorNewPage() {
             }
           </div>
         </section>
+      )}
+      
+      {/* Embedded Save Button */}
+      {embedded && embeddedClientId && calculation.totalGross > 0 && (
+        <div style={{ marginTop: 'var(--space-4)', display: 'flex', gap: 'var(--space-3)', justifyContent: 'flex-end' }}>
+          <button 
+            className="secondary" 
+            onClick={handleDownloadPDF}
+            disabled={isSaving}
+          >
+            📥 Pobierz PDF
+          </button>
+          <button 
+            className="primary" 
+            onClick={handleSaveOffer}
+            disabled={isSaving}
+          >
+            {isSaving ? '⏳ Zapisuję...' : '💾 Zapisz ofertę'}
+          </button>
+        </div>
       )}
     </div>
   )

@@ -1,10 +1,19 @@
-import { useEffect, useMemo, useState } from 'react'
-import baseData from '../data/calculatorData.json'
-import api, { generateOfferPDF, saveOfferForClient } from '../lib/api'
-import { offlineStore, newLocalId } from '../lib/offline'
-import { getUser } from '../lib/auth'
+import CalculatorNewPage from '../pages/CalculatorNew'
 
-export default function EmbeddedCalculator({ clientId, meetingId, offerId, onSaved, initialSnapshot, onSavedSnapshot }: { clientId: string; meetingId?: string; offerId?: string; onSaved?: () => void; initialSnapshot?: { form?: any; calc?: any }; onSavedSnapshot?: (snapshot: any) => void }) {
+export default function EmbeddedCalculator({ clientId, onSaved, initialSnapshot }: { clientId: string; meetingId?: string; offerId?: string; onSaved?: () => void; initialSnapshot?: { form?: any; calc?: any }; onSavedSnapshot?: (snapshot: any) => void }) {
+  return (
+    <CalculatorNewPage 
+      embedded={true}
+      clientId={clientId}
+      onSaved={onSaved}
+      initialSnapshot={initialSnapshot}
+    />
+  )
+}
+
+/*
+// OLD CALCULATOR - Kept for reference
+export function EmbeddedCalculatorOld({ clientId, meetingId, offerId, onSaved, initialSnapshot, onSavedSnapshot }: { clientId: string; meetingId?: string; offerId?: string; onSaved?: () => void; initialSnapshot?: { form?: any; calc?: any }; onSavedSnapshot?: (snapshot: any) => void }) {
   const [remoteData, setRemoteData] = useState<any | null>(null)
   const data = useMemo(() => remoteData || (baseData as any), [remoteData])
   const user = getUser()
@@ -493,5 +502,4 @@ export default function EmbeddedCalculator({ clientId, meetingId, offerId, onSav
     </div>
   )
 }
-
-
+*/
