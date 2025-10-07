@@ -52,12 +52,14 @@ router.get('/stats/today', requireAuth, requireAdmin, async (req, res) => {
       },
     });
 
-    // Count status changes to Sukces today
+    // Count status changes to Sukces or Umowa today
     const successCount = await prisma.activityLog.count({
       where: {
         OR: [
           { type: 'meeting_status_changed', newStatus: 'Sukces' },
+          { type: 'meeting_status_changed', newStatus: 'Umowa' },
           { type: 'client_status_changed', newStatus: 'Sukces' },
+          { type: 'client_status_changed', newStatus: 'Umowa' },
         ],
         createdAt: {
           gte: startOfDay,

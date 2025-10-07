@@ -768,7 +768,7 @@ export default function CalendarPage() {
             const n = s.toLowerCase()
             let bg = ''
             if (n === 'umowa' || n === 'sukces') bg = '#10b981' // green (success)
-            else if (n === 'porażka' || n === 'porazka' || n === 'spadek') bg = '#ef4444' // red (failure)
+            else if (n === 'porażka' || n === 'porazka' || n === 'spadek' || n === 'rezygnacja') bg = '#ef4444' // red (failure)
             else if (n === 'przełożone' || n === 'przelozone') bg = '#3b82f6' // blue (rescheduled)
             else if (n === 'dogrywka') bg = '#a855f7' // purple (follow-up)
             else if (!isPast) bg = '#f97316' // orange = Umówione (upcoming)
@@ -811,7 +811,7 @@ export default function CalendarPage() {
             const n = s.toLowerCase()
             let bg = ''
             if (n === 'umowa' || n === 'sukces') bg = '#10b981'
-            else if (n === 'porażka' || n === 'porazka' || n === 'spadek') bg = '#ef4444'
+            else if (n === 'porażka' || n === 'porazka' || n === 'spadek' || n === 'rezygnacja') bg = '#ef4444'
             else if (n === 'przełożone' || n === 'przelozone') bg = '#3b82f6'
             else if (n === 'dogrywka') bg = '#a855f7'
             else if (!isPast) bg = '#f97316'
@@ -1267,6 +1267,11 @@ export default function CalendarPage() {
                   <label>
                     <input type="radio" name="meetingStatus" checked={editForm.status === 'Sukces'} onChange={() => setEditForm({ ...editForm, status: 'Sukces' })} /> Sukces !
                   </label>
+                  {(editForm.status === 'Sukces' || editForm.status === 'Umowa') && (
+                    <label style={{ marginLeft: '20px' }}>
+                      <input type="radio" name="meetingStatus" checked={editForm.status === 'Umowa'} onChange={() => setEditForm({ ...editForm, status: 'Umowa' })} /> Umowa (Contract)
+                    </label>
+                  )}
                   <label>
                     <input type="radio" name="meetingStatus" checked={editForm.status === 'Rezygnacja'} onChange={() => setEditForm({ ...editForm, status: 'Rezygnacja' })} /> Rezygnacja
                   </label>
@@ -1315,7 +1320,7 @@ export default function CalendarPage() {
 
             <div style={{ marginTop: 8, paddingTop: 8, borderTop: '1px solid var(--gray-200)' }}>
               <strong>Załączniki</strong>
-              {editForm.status === 'Sukces' && (
+              {(editForm.status === 'Sukces' || editForm.status === 'Umowa') && (
                 <div style={{ marginTop: 8 }}>
                   <label className="form-label">Dodaj pliki</label>
                   <input

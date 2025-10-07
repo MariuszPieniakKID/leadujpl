@@ -53,7 +53,7 @@ export default function ManagerStatsPage() {
     const nowTs = Date.now()
     const past = meetings.filter(m => new Date(m.scheduledAt).getTime() <= nowTs)
     const future = meetings.filter(m => new Date(m.scheduledAt).getTime() > nowTs)
-    const contracts = meetings.filter(m => m.status === 'Sukces')
+    const contracts = meetings.filter(m => m.status === 'Sukces' || m.status === 'Umowa')
     const rescheduled = meetings.filter(m => m.status === 'Przełożone')
     const leads = new Set(meetings.map(m => m.clientId).filter(Boolean)).size
     const eff = past.length > 0 ? Math.round((contracts.length / past.length) * 100) : 0
@@ -259,7 +259,7 @@ function buildEfficiencySeries(meetings: Meeting[], range: Range): { labels: str
     if (!counts.has(k)) continue
     const c = counts.get(k)!
     c.past += 1
-    if (m.status === 'Sukces') c.success += 1
+    if (m.status === 'Sukces' || m.status === 'Umowa') c.success += 1
   }
   const labels = buckets.map(b => b.label)
   const values = buckets.map(b => {

@@ -154,9 +154,10 @@ export default function StatsPage() {
       const isPast = new Date(m.scheduledAt).getTime() <= now
       if (isPast) past++
       else future++
-      // Sukces = Umowa
-      if ((m.status || '').trim() === 'Umowa') success++
-      if ((m.status || '').trim() === 'Przełożone') rescheduled++
+      // Sukces or Umowa = success
+      const status = (m.status || '').trim()
+      if (status === 'Sukces' || status === 'Umowa') success++
+      if (status === 'Przełożone') rescheduled++
       // @ts-ignore
       const cid = m.clientId as string | undefined
       if (cid) uniqueClients.add(cid)
@@ -821,7 +822,7 @@ function buildEfficiencySeries(meetings: Meeting[], range: Range): { labels: str
     if (!counts.has(key)) continue
     const c = counts.get(key)!
     c.past += 1
-    if (m.status === 'Sukces') c.success += 1
+    if (m.status === 'Sukces' || m.status === 'Umowa') c.success += 1
   }
 
   const labels = buckets.map(b => b.label)
@@ -931,7 +932,7 @@ function buildComparison(meetings: Meeting[], range: Range) {
       count++
       if (+md <= +now) {
         past++
-        if (m.status === 'Sukces') success++
+        if (m.status === 'Sukces' || m.status === 'Umowa') success++
       }
     }
     const eff = past > 0 ? Math.round((success / past) * 100) : 0

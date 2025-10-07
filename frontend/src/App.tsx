@@ -103,7 +103,7 @@ async function refreshManagerAggregates() {
         const past = allMeetings.filter(m => new Date(m.scheduledAt).getTime() <= nowTs)
         const future = allMeetings.filter(m => new Date(m.scheduledAt).getTime() > nowTs)
         const rescheduled = allMeetings.filter(m => (m as any).status === 'Przełożone')
-        const contracts = allMeetings.filter(m => (m as any).status === 'Sukces')
+        const contracts = allMeetings.filter(m => (m as any).status === 'Sukces' || (m as any).status === 'Umowa')
         const clientIds = new Set<string>()
         for (const m of allMeetings) {
           const cid = (m as any).clientId as string | undefined
@@ -353,7 +353,7 @@ async function refreshManagerAggregates() {
         pastCount += 1
         const status = (m as any).status as string | undefined
         const hasStatus = !!status && status.trim() !== ''
-        if (status === 'Sukces') successPast += 1
+        if (status === 'Sukces' || status === 'Umowa') successPast += 1
         if (!hasStatus) unfinishedPast += 1
       } else {
         futureCount += 1
@@ -1159,7 +1159,7 @@ async function refreshManagerAggregates() {
                     <div className="flex items-center gap-3">
                       <div className="flex items-center gap-2">
                       {(() => {
-                        const color = m.status === 'Umowa' ? '#16a34a' : m.status === 'Spadek' ? '#dc2626' : m.status === 'Przełożone' ? '#3b82f6' : '#94a3b8'
+                        const color = (m.status === 'Umowa' || m.status === 'Sukces') ? '#16a34a' : (m.status === 'Spadek' || m.status === 'Rezygnacja') ? '#dc2626' : m.status === 'Przełożone' ? '#3b82f6' : '#94a3b8'
                         return <span title={m.status || 'brak statusu'} className="status-dot" style={{ background: color }} />
                       })()}
                       </div>
@@ -1635,12 +1635,18 @@ async function refreshManagerAggregates() {
                   <h4 className="text-lg font-semibold text-gray-800 mb-4">Status spotkania</h4>
                   <div className="radio-group">
                     <label className="radio-item">
-                      <input type="radio" name="meetingStatusDash" checked={editForm.status === 'Umowa'} onChange={() => setEditForm({ ...editForm, status: 'Umowa' })} />
-                      <span>Umowa</span>
+                      <input type="radio" name="meetingStatusDash" checked={editForm.status === 'Sukces'} onChange={() => setEditForm({ ...editForm, status: 'Sukces' })} />
+                      <span>Sukces</span>
                     </label>
+                    {(editForm.status === 'Sukces' || editForm.status === 'Umowa') && (
+                      <label className="radio-item" style={{ marginLeft: '20px' }}>
+                        <input type="radio" name="meetingStatusDash" checked={editForm.status === 'Umowa'} onChange={() => setEditForm({ ...editForm, status: 'Umowa' })} />
+                        <span>Umowa</span>
+                      </label>
+                    )}
                     <label className="radio-item">
-                      <input type="radio" name="meetingStatusDash" checked={editForm.status === 'Spadek'} onChange={() => setEditForm({ ...editForm, status: 'Spadek' })} />
-                      <span>Spadek</span>
+                      <input type="radio" name="meetingStatusDash" checked={editForm.status === 'Rezygnacja'} onChange={() => setEditForm({ ...editForm, status: 'Rezygnacja' })} />
+                      <span>Rezygnacja</span>
                     </label>
                     <label className="radio-item">
                       <input type="radio" name="meetingStatusDash" checked={editForm.status === 'Przełożone'} onChange={() => setEditForm({ ...editForm, status: 'Przełożone' })} />
