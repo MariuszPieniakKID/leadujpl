@@ -1,12 +1,12 @@
 import { Router } from 'express';
 import { PrismaClient } from '@prisma/client';
-import { requireAdmin } from '../middleware/auth';
+import { requireAuth, requireAdmin } from '../middleware/auth';
 
 const prisma = new PrismaClient();
 const router = Router();
 
 // Get today's feed (admin only)
-router.get('/today', requireAdmin, async (req, res) => {
+router.get('/today', requireAuth, requireAdmin, async (req, res) => {
   try {
     const startOfDay = new Date();
     startOfDay.setHours(0, 0, 0, 0);
@@ -33,7 +33,7 @@ router.get('/today', requireAdmin, async (req, res) => {
 });
 
 // Get today's statistics (admin only)
-router.get('/stats/today', requireAdmin, async (req, res) => {
+router.get('/stats/today', requireAuth, requireAdmin, async (req, res) => {
   try {
     const startOfDay = new Date();
     startOfDay.setHours(0, 0, 0, 0);
@@ -106,7 +106,7 @@ router.get('/stats/today', requireAdmin, async (req, res) => {
 });
 
 // Get archived feeds (by date)
-router.get('/archive', requireAdmin, async (req, res) => {
+router.get('/archive', requireAuth, requireAdmin, async (req, res) => {
   try {
     const { date } = req.query;
 
@@ -140,7 +140,7 @@ router.get('/archive', requireAdmin, async (req, res) => {
 });
 
 // Get list of archived dates (dates with activity)
-router.get('/archive/dates', requireAdmin, async (req, res) => {
+router.get('/archive/dates', requireAuth, requireAdmin, async (req, res) => {
   try {
     // Get distinct dates from activity log
     const activities = await prisma.activityLog.findMany({
