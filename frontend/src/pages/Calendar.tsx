@@ -15,7 +15,6 @@ import api, { listMeetingAttachments, type AttachmentItem, viewAttachmentUrl, do
 import { offlineStore, pendingQueue, newLocalId } from '../lib/offline'
 import EmbeddedCalculator from '../components/EmbeddedCalculator'
 import { listClientOffers, downloadOffer, fetchOffer } from '../lib/api'
-import type { Client } from '../lib/api'
 import { polishPhoneHtmlPattern, polishPhoneTitle } from '../lib/phone'
 import { getUser } from '../lib/auth'
 
@@ -149,11 +148,8 @@ export default function CalendarPage() {
   const [geoLoading, setGeoLoading] = useState(false)
   const [createSectionsOpen, setCreateSectionsOpen] = useState({ meeting: true, client: true, extra: true })
 
-  // Client autocomplete state (create modal)
-  const [clientQuery, setClientQuery] = useState('')
-  const [clientOptions, setClientOptions] = useState<Client[]>([])
-  const [isSearchingClients, setIsSearchingClients] = useState(false)
-  const [selectedClientId, setSelectedClientId] = useState<string | null>(null)
+  // Client state (create modal)
+  const [selectedClientId] = useState<string | null>(null) // Always null for new meetings (client created together with meeting)
 
   function toLocalInputValue(date: Date) {
     const pad = (n: number) => n.toString().padStart(2, '0')
@@ -237,9 +233,6 @@ export default function CalendarPage() {
       buildingType: '',
       contactConsent: false,
     }))
-    setSelectedClientId(null)
-    setClientQuery('')
-    setClientOptions([])
     setCreateSectionsOpen({ meeting: true, client: true, extra: true })
     setIsCreateOpen(true)
   }
@@ -327,51 +320,6 @@ export default function CalendarPage() {
     setIsCreateOpen(true)
   }
 
-  // Debounced search for clients
-  useEffect(() => {
-    const q = clientQuery.trim()
-    if (!isCreateOpen) return
-    if (selectedClientId) return // skip searching when a client is already chosen
-    if (q.length < 2) { setClientOptions([]); return }
-    let cancelled = false
-    const t = setTimeout(async () => {
-      try {
-        setIsSearchingClients(true)
-        const res = await api.get<Client[]>(`/api/clients/search`, { params: { q } })
-        if (!cancelled) setClientOptions(res.data)
-      } catch {
-        if (!cancelled) setClientOptions([])
-      } finally {
-        if (!cancelled) setIsSearchingClients(false)
-      }
-    }, 250)
-    return () => { cancelled = true; clearTimeout(t) }
-  }, [clientQuery, isCreateOpen, selectedClientId])
-
-  function applyClientToForm(c: Client) {
-    setCreateForm(f => ({
-      ...f,
-      notes: `${c.firstName || ''} ${c.lastName || ''}`.trim(),
-      clientFirstName: c.firstName || '',
-      clientLastName: c.lastName || '',
-      clientPhone: c.phone || '',
-      clientEmail: c.email || '',
-      clientStreet: c.street || '',
-      clientCity: c.city || '',
-      postalCode: c.postalCode || '',
-      clientCategory: c.category || '',
-      pvInstalled: c.pvInstalled === true ? 'TAK' : (c.pvInstalled === false ? 'NIE' : ''),
-      billRange: c.billRange || '',
-      extraComments: c.extraComments || '',
-    }))
-  }
-
-  function onPickClient(c: Client) {
-    setSelectedClientId(c.id)
-    setClientQuery(`${c.firstName} ${c.lastName}${c.phone ? ' • ' + c.phone : ''}`.trim())
-    setClientOptions([])
-    applyClientToForm(c)
-  }
 
   async function fillCreateAddressFromGeolocation() {
     try {
@@ -927,52 +875,8 @@ export default function CalendarPage() {
                   <option value="ME">ME</option>
                 </select>
               </div>
-              {/* Sekcja Oferta przeniesiona pod wszystkie pola klienta */}
-              <div style={{ gridColumn: '1 / -1' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <strong>Oferta (opcjonalnie)</strong>
-                  <button className="secondary" onClick={() => setShowCalc(s => !s)}>{showCalc ? 'Ukryj kalkulator' : 'Dodaj ofertę dla nowego klienta'}</button>
-                </div>
-                {showCalc && (
-                  <div style={{ marginTop: 8 }}>
-                    <EmbeddedCalculator
-                      key={calcKey}
-                      clientId={(selectedClientId || '')}
-                      initialSnapshot={calcInitialSnapshot || undefined}
-                      onSaved={async () => {
-                        setShowCalc(false)
-                        setCalcInitialSnapshot(null)
-                        if (selectedClientId) { try { const offs = await listClientOffers(selectedClientId); setOffers(offs) } catch {} }
-                      }}
-                    />
-                  </div>
-                )}
-                <div className="card" style={{ marginTop: 8 }}>
-                  <div className="flex justify-between items-center mb-2">
-                    <strong>Oferty klienta</strong>
-                  </div>
-                  {offers.length === 0 ? <div className="text-sm text-gray-500">Brak ofert</div> : (
-                    <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'grid', gap: 6 }}>
-                      {offers.map(o => (
-                        <li key={o.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
-                          <span>{o.fileName}</span>
-                          <span style={{ display: 'flex', gap: 6 }}>
-                            <a className="btn btn-sm" href={downloadOffer(o.id)} target="_blank" rel="noreferrer">Pobierz</a>
-                            <button className="btn btn-sm secondary" onClick={async () => {
-                              try {
-                                const meta = await fetchOffer(o.id)
-                                setCalcInitialSnapshot(meta.snapshot)
-                                setCalcKey(o.id)
-                                setShowCalc(true)
-                              } catch {}
-                            }}>Edytuj</button>
-                          </span>
-                        </li>
-                      ))}
-                    </ul>
-                  )}
-                </div>
-              </div>
+              {/* Note: Offer section removed from new meeting form - client doesn't exist yet.
+                  Offers can be added after meeting creation when editing the meeting. */}
             </div>
             )}
 
