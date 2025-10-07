@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import InstallPrompt from './components/InstallPrompt'
 import UpdatePrompt from './components/UpdatePrompt'
-import { BrowserRouter, Routes, Route, Navigate, Link } from 'react-router-dom'
+import { BrowserRouter, Routes, Route, Navigate, NavLink, useLocation, Link } from 'react-router-dom'
 import './App.css'
 
 // removed fetchLeads (no longer used)
@@ -22,10 +22,11 @@ import AccountPage from './pages/Account'
 import StatsPage from './pages/Stats'
 import ManagerStatsPage from './pages/ManagerStats'
 import FeedPage from './pages/Feed'
-import { getToken, getUser } from './lib/auth'
+import { clearAuth, getToken, getUser } from './lib/auth'
+import MobileNav from './components/MobileNav'
 import { polishPhoneHtmlPattern, polishPhoneTitle, isValidPolishPhone } from './lib/phone'
+import Logo from './components/Logo'
 import SyncStatus from './components/SyncStatus'
-import Layout from './components/Layout'
 // getUser already imported above
 
 function QuickTile({ label, to, icon }: { label: string; to: string; icon: React.ReactNode }) {
@@ -1642,9 +1643,62 @@ function AdminPage() {
 }
 
 function App() {
-  function Shell() {
+  function useIsMobile() {
+    const [isMobile, setIsMobile] = useState(false)
+    useEffect(() => {
+      const mq = window.matchMedia('(max-width: 768px)')
+      const update = () => setIsMobile(mq.matches)
+      update()
+      mq.addEventListener('change', update)
+      return () => mq.removeEventListener('change', update)
+    }, [])
+    return isMobile
+  }
+  function NavBar() {
+    const user = getUser()
+    const [menuOpen, setMenuOpen] = useState(false)
+    // function toggleTheme() {
+    //   const isDark = document.documentElement.classList.toggle('dark')
+    //   try { localStorage.setItem('theme', isDark ? 'dark' : 'light') } catch {}
+    // }
     return (
-      <Layout>
+      <nav className="navbar">
+        <div className="brand"><Logo size={22} /></div>
+        <button className="menu-toggle" aria-label="Otwórz menu" onClick={() => setMenuOpen(o => !o)}>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <path d="M3 6h18M3 12h18M3 18h18"/>
+          </svg>
+        </button>
+        <div className={`nav ${menuOpen ? 'open' : ''}`}>
+          <NavLink to="/" className={({ isActive }) => isActive ? 'active' : undefined}>Home</NavLink>
+          <NavLink to="/calendar" className={({ isActive }) => isActive ? 'active' : undefined}>Kalendarz</NavLink>
+          {user && (user.role === 'ADMIN' || user.role === 'MANAGER') && (
+            <NavLink to="/clients" className={({ isActive }) => isActive ? 'active' : undefined}>Klienci</NavLink>
+          )}
+          {user && (user.role === 'SALES_REP' || user.role === 'MANAGER') && (
+            <NavLink to="/my-clients" className={({ isActive }) => isActive ? 'active' : undefined}>Moi klienci</NavLink>
+          )}
+          <NavLink to="/calculator" className={({ isActive }) => isActive ? 'active' : undefined}>Kalkulator ofertowy</NavLink>
+          {user && (user.role === 'MANAGER' || user.role === 'ADMIN') && (
+            <NavLink to="/sales" className={({ isActive }) => isActive ? 'active' : undefined}>Zespół</NavLink>
+          )}
+          <NavLink to="/stats" className={({ isActive }) => isActive ? 'active' : undefined}>Statystyki i Analityka</NavLink>
+          {user && user.role === 'ADMIN' && (
+            <NavLink to="/feed" className={({ isActive }) => isActive ? 'active' : undefined}>Feed</NavLink>
+          )}
+          <NavLink to="/account" className={({ isActive }) => isActive ? 'active' : undefined}>Moje Konto</NavLink>
+          <button className="logout" onClick={() => { clearAuth(); location.href = '/login' }}>Wyloguj</button>
+        </div>
+      </nav>
+    )
+  }
+  function Shell() {
+    const location = useLocation()
+    const isMobile = useIsMobile()
+    const showNav = location.pathname !== '/login'
+    return (
+      <>
+        {showNav && !isMobile && <NavBar />}
         <Routes>
           <Route path="/login" element={<LoginGuard />} />
           <Route path="/" element={<Protected><Dashboard /></Protected>} />
@@ -1664,7 +1718,7 @@ function App() {
           <Route path="/admin" element={<Protected roles={['ADMIN']}><div className="container"><div className="page-header"><div><h1 className="page-title">Panel administratora</h1><p className="text-gray-600">Zarządzanie aplikacją</p></div></div><section className="card"><AdminPage /></section></div></Protected>} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
-      </Layout>
+      </>
     )
   }
   function LoginGuard() {
@@ -1676,6 +1730,7 @@ function App() {
   return (
     <BrowserRouter>
       <Shell />
+      <MobileNav />
       <InstallPrompt />
       <UpdatePrompt />
     </BrowserRouter>

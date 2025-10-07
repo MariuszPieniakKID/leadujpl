@@ -54,10 +54,21 @@ export default function ClientDetailsPage() {
     }
   }
 
+  async function loadOffers() {
+    try {
+      const offs = await listClientOffers(id!)
+      setOffers(offs)
+    } catch {}
+  }
+
   if (loading) {
     return (
-      <div className="container">
-        <div className="text-center py-8">Ładowanie...</div>
+      <div className="app-wrapper">
+        <div className="app-content">
+          <div className="container">
+            <div className="loading">Ładowanie...</div>
+          </div>
+        </div>
       </div>
     )
   }
@@ -67,142 +78,158 @@ export default function ClientDetailsPage() {
   }
 
   return (
-    <div className="container">
-      <div className="page-header" style={{ marginBottom: 'var(--space-6)' }}>
-        <div>
-          <Link to="/clients" className="secondary" style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--space-2)', marginBottom: 'var(--space-3)', textDecoration: 'none' }}>
-            ← Powrót do listy
-          </Link>
-          <h1 className="page-title">{client.firstName} {client.lastName}</h1>
-          <p className="text-gray-600">Szczegóły klienta</p>
-        </div>
-      </div>
-
-      <div style={{ display: 'grid', gap: 'var(--space-6)' }}>
-        {/* Contact Info Card */}
-        <div className="card">
-          <h2 className="card-title">Dane kontaktowe</h2>
-          <div className="list">
-            <div className="list-row">
-              <span>Telefon</span>
-              <span>{client.phone ? <a href={`tel:${client.phone.replace(/\s|-/g,'')}`}>{client.phone}</a> : <span className="text-gray-400">—</span>}</span>
-            </div>
-            <div className="list-row">
-              <span>E-mail</span>
-              <span>{client.email ? <a href={`mailto:${client.email}`}>{client.email}</a> : <span className="text-gray-400">—</span>}</span>
-            </div>
-            <div className="list-row">
-              <span>Adres</span>
-              <span>{[client.street, client.city, client.postalCode].filter(Boolean).join(', ') || <span className="text-gray-400">—</span>}</span>
-            </div>
-            <div className="list-row">
-              <span>Kategoria</span>
-              <span>{client.category || <span className="text-gray-400">—</span>}</span>
-            </div>
-            <div className="list-row">
-              <span>Status</span>
-              <span>
-                <select 
-                  className="form-select" 
-                  value={latestStatus || ''} 
-                  onChange={async (e) => {
-                    const newStatus = e.target.value as 'Sukces' | 'Umowa' | 'Rezygnacja' | 'Przełożone' | 'Odbyte' | 'Umówione'
-                    setLatestStatus(newStatus)
-                    try {
-                      await setClientLatestStatus(id!, newStatus)
-                    } catch {}
-                  }}
-                  style={{ minWidth: '140px' }}
-                >
-                  <option value="">—</option>
-                  <option value="Sukces">Sukces</option>
-                  <option value="Umowa">Umowa</option>
-                  <option value="Rezygnacja">Rezygnacja</option>
-                  <option value="Przełożone">Przełożone</option>
-                  <option value="Umówione">Umówione</option>
-                  <option value="Odbyte">Odbyte</option>
-                </select>
-              </span>
+    <div className="app-wrapper">
+      <div className="app-content">
+        <div className="container">
+          <div className="page-header" style={{ marginBottom: 'var(--space-6)' }}>
+            <div>
+              <Link to="/clients" className="secondary btn-sm" style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--space-2)', marginBottom: 'var(--space-3)' }}>
+                ← Powrót
+              </Link>
+              <h1 className="page-title">{client.firstName} {client.lastName}</h1>
+              <p className="page-subtitle">Szczegóły klienta</p>
             </div>
           </div>
-        </div>
 
-        {/* Offers Card */}
-        <div className="card">
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--space-4)' }}>
-            <h2 className="card-title" style={{ marginBottom: 0 }}>Oferty</h2>
-            <button className="primary" onClick={() => {
-              setShowCalc(s => !s)
-              setCalcInitialSnapshot(null)
-              setCalcKey('')
-            }}>
-              {showCalc ? 'Ukryj kalkulator' : '➕ Dodaj ofertę'}
-            </button>
-          </div>
-          
-          {showCalc && (
-            <div style={{ marginBottom: 'var(--space-4)' }}>
-              <EmbeddedCalculator
-                key={calcKey}
-                clientId={id!}
-                initialSnapshot={calcInitialSnapshot || undefined}
-                onSaved={async () => {
-                  setShowCalc(false)
-                  setCalcInitialSnapshot(null)
-                  try { const offs = await listClientOffers(id!); setOffers(offs) } catch {}
-                }}
-              />
-            </div>
-          )}
-          
-          {offers.length === 0 ? (
-            <div className="text-center py-4 text-gray-500">Brak ofert</div>
-          ) : (
-            <div className="list">
-              {offers.map(o => (
-                <div key={o.id} className="list-row">
-                  <div>
-                    <div style={{ fontWeight: 600 }}>{o.fileName}</div>
-                    <div style={{ fontSize: 'var(--text-xs)', color: 'var(--gray-600)' }}>{new Date(o.createdAt).toLocaleDateString('pl-PL')}</div>
-                  </div>
-                  <div style={{ display: 'flex', gap: 'var(--space-2)' }}>
-                    <a href={downloadOffer(o.id)} target="_blank" rel="noreferrer" className="btn-sm secondary">Pobierz</a>
-                    <button className="btn-sm secondary" onClick={async () => {
+          <div className="grid grid-cols-1" style={{ gap: 'var(--space-6)' }}>
+            {/* Contact Info Card */}
+            <div className="card">
+              <h2 className="card-title">📞 Dane kontaktowe</h2>
+              <div style={{ display: 'grid', gap: 'var(--space-4)' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', paddingBottom: 'var(--space-3)', borderBottom: '1px solid var(--gray-200)' }}>
+                  <span className="text-gray-600">Telefon</span>
+                  <span className="font-semibold">{client.phone ? <a href={`tel:${client.phone.replace(/\s|-/g,'')}`} className="text-primary-600">{client.phone}</a> : <span className="text-gray-400">—</span>}</span>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', paddingBottom: 'var(--space-3)', borderBottom: '1px solid var(--gray-200)' }}>
+                  <span className="text-gray-600">E-mail</span>
+                  <span className="font-semibold">{client.email ? <a href={`mailto:${client.email}`} className="text-primary-600">{client.email}</a> : <span className="text-gray-400">—</span>}</span>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', paddingBottom: 'var(--space-3)', borderBottom: '1px solid var(--gray-200)' }}>
+                  <span className="text-gray-600">Adres</span>
+                  <span className="font-semibold">{[client.street, client.city, (client as any).postalCode].filter(Boolean).join(', ') || <span className="text-gray-400">—</span>}</span>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', paddingBottom: 'var(--space-3)', borderBottom: '1px solid var(--gray-200)' }}>
+                  <span className="text-gray-600">Kategoria</span>
+                  <span className="font-semibold">{client.category || <span className="text-gray-400">—</span>}</span>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <span className="text-gray-600">Status</span>
+                  <select 
+                    className="form-select" 
+                    value={latestStatus || ''} 
+                    onChange={async (e) => {
+                      const newStatus = e.target.value
+                      if (!newStatus) return
+                      setLatestStatus(newStatus)
                       try {
-                        const meta = await fetchOffer(o.id)
-                        setCalcInitialSnapshot(meta.snapshot)
-                        setCalcKey(o.id)
-                        setShowCalc(true)
+                        await setClientLatestStatus(id!, newStatus as 'Sukces' | 'Umowa' | 'Rezygnacja' | 'Przełożone' | 'Odbyte' | 'Umówione')
                       } catch {}
-                    }}>Edytuj</button>
-                  </div>
+                    }}
+                    style={{ width: 'auto', minWidth: '140px' }}
+                  >
+                    <option value="">—</option>
+                    <option value="Sukces">Sukces</option>
+                    <option value="Umowa">Umowa</option>
+                    <option value="Rezygnacja">Rezygnacja</option>
+                    <option value="Przełożone">Przełożone</option>
+                    <option value="Odbyte">Odbyte</option>
+                    <option value="Umówione">Umówione</option>
+                  </select>
                 </div>
-              ))}
+              </div>
             </div>
-          )}
-        </div>
 
-        {/* Attachments Card */}
-        <div className="card">
-          <h2 className="card-title">Załączniki</h2>
-          {attachments.length === 0 ? (
-            <div className="text-center py-4 text-gray-500">Brak załączników</div>
-          ) : (
-            <div className="list">
-              {attachments.map(a => (
-                <div key={a.id} className="list-row">
-                  <span>{a.fileName}</span>
-                  <div style={{ display: 'flex', gap: 'var(--space-2)' }}>
-                    <a href={viewAttachmentUrl(a.id)} target="_blank" rel="noreferrer" className="btn-sm secondary">Zobacz</a>
-                    <a href={downloadAttachmentUrl(a.id)} download className="btn-sm secondary">Pobierz</a>
-                  </div>
+            {/* Offers Card */}
+            <div className="card">
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: showCalc ? 'var(--space-6)' : 0 }}>
+                <h2 className="card-title" style={{ marginBottom: 0 }}>📄 Oferty</h2>
+                <button className="primary" onClick={() => {
+                  setShowCalc(s => !s)
+                  setCalcInitialSnapshot(null)
+                  setCalcKey('')
+                }}>
+                  {showCalc ? 'Ukryj' : '➕ Dodaj ofertę'}
+                </button>
+              </div>
+              
+              {showCalc && (
+                <div style={{ marginTop: 'var(--space-6)', marginBottom: 'var(--space-6)' }}>
+                  <EmbeddedCalculator
+                    key={calcKey}
+                    clientId={id!}
+                    initialSnapshot={calcInitialSnapshot || undefined}
+                    onSaved={async () => {
+                      setShowCalc(false)
+                      setCalcInitialSnapshot(null)
+                      await loadOffers()
+                    }}
+                  />
                 </div>
-              ))}
+              )}
+              
+              {!showCalc && (
+                offers.length === 0 ? (
+                  <div className="empty-state" style={{ padding: 'var(--space-8) var(--space-4)' }}>
+                    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1">
+                      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                      <polyline points="14 2 14 8 20 8"/>
+                    </svg>
+                    <div className="empty-state-title">Brak ofert</div>
+                    <div className="empty-state-text">Kliknij "Dodaj ofertę" aby utworzyć pierwszą</div>
+                  </div>
+                ) : (
+                  <div style={{ display: 'grid', gap: 'var(--space-3)', marginTop: 'var(--space-4)' }}>
+                    {offers.map(o => (
+                      <div key={o.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: 'var(--space-4)', background: 'var(--gray-50)', borderRadius: 'var(--radius-lg)' }}>
+                        <div>
+                          <div className="font-semibold">{o.fileName}</div>
+                          <div className="text-xs text-gray-500">{new Date(o.createdAt).toLocaleDateString('pl-PL')}</div>
+                        </div>
+                        <div style={{ display: 'flex', gap: 'var(--space-2)' }}>
+                          <a href={downloadOffer(o.id)} target="_blank" rel="noreferrer" className="btn-sm secondary">Pobierz</a>
+                          <button className="btn-sm secondary" onClick={async () => {
+                            try {
+                              const meta = await fetchOffer(o.id)
+                              setCalcInitialSnapshot(meta.snapshot)
+                              setCalcKey(o.id)
+                              setShowCalc(true)
+                            } catch {}
+                          }}>Edytuj</button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )
+              )}
             </div>
-          )}
+
+            {/* Attachments Card */}
+            <div className="card">
+              <h2 className="card-title">📎 Załączniki</h2>
+              {attachments.length === 0 ? (
+                <div className="empty-state" style={{ padding: 'var(--space-8) var(--space-4)' }}>
+                  <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1">
+                    <path d="m21.44 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/>
+                  </svg>
+                  <div className="empty-state-title">Brak załączników</div>
+                </div>
+              ) : (
+                <div style={{ display: 'grid', gap: 'var(--space-3)' }}>
+                  {attachments.map(a => (
+                    <div key={a.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: 'var(--space-3)', background: 'var(--gray-50)', borderRadius: 'var(--radius-lg)' }}>
+                      <span className="font-medium truncate" style={{ flex: 1 }}>{a.fileName}</span>
+                      <div style={{ display: 'flex', gap: 'var(--space-2)' }}>
+                        <a href={viewAttachmentUrl(a.id)} target="_blank" rel="noreferrer" className="btn-sm secondary">Zobacz</a>
+                        <a href={downloadAttachmentUrl(a.id)} download className="btn-sm secondary">Pobierz</a>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
         </div>
       </div>
     </div>
   )
 }
-

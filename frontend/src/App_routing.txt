@@ -1,0 +1,109 @@
+function App() {
+  function useIsMobile() {
+    const [isMobile, setIsMobile] = useState(false)
+    useEffect(() => {
+      const mq = window.matchMedia('(max-width: 768px)')
+      const update = () => setIsMobile(mq.matches)
+      update()
+      mq.addEventListener('change', update)
+      return () => mq.removeEventListener('change', update)
+    }, [])
+    return isMobile
+  }
+  function NavBar() {
+    const user = getUser()
+    const [menuOpen, setMenuOpen] = useState(false)
+    // function toggleTheme() {
+    //   const isDark = document.documentElement.classList.toggle('dark')
+    //   try { localStorage.setItem('theme', isDark ? 'dark' : 'light') } catch {}
+    // }
+    return (
+      <nav className="navbar">
+        <div className="brand"><Logo size={22} /></div>
+        <button className="menu-toggle" aria-label="Otwórz menu" onClick={() => setMenuOpen(o => !o)}>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <path d="M3 6h18M3 12h18M3 18h18"/>
+          </svg>
+        </button>
+        <div className={`nav ${menuOpen ? 'open' : ''}`}>
+          <NavLink to="/" className={({ isActive }) => isActive ? 'active' : undefined}>Home</NavLink>
+          <NavLink to="/calendar" className={({ isActive }) => isActive ? 'active' : undefined}>Kalendarz</NavLink>
+          {user && (user.role === 'ADMIN' || user.role === 'MANAGER') && (
+            <NavLink to="/clients" className={({ isActive }) => isActive ? 'active' : undefined}>Klienci</NavLink>
+          )}
+          {user && (user.role === 'SALES_REP' || user.role === 'MANAGER') && (
+            <NavLink to="/my-clients" className={({ isActive }) => isActive ? 'active' : undefined}>Moi klienci</NavLink>
+          )}
+          <NavLink to="/calculator" className={({ isActive }) => isActive ? 'active' : undefined}>Kalkulator ofertowy</NavLink>
+          {user && (user.role === 'MANAGER' || user.role === 'ADMIN') && (
+            <NavLink to="/sales" className={({ isActive }) => isActive ? 'active' : undefined}>Zespół</NavLink>
+          )}
+          <NavLink to="/stats" className={({ isActive }) => isActive ? 'active' : undefined}>Statystyki i Analityka</NavLink>
+          {user && user.role === 'ADMIN' && (
+            <NavLink to="/feed" className={({ isActive }) => isActive ? 'active' : undefined}>Feed</NavLink>
+          )}
+          <NavLink to="/account" className={({ isActive }) => isActive ? 'active' : undefined}>Moje Konto</NavLink>
+          <button className="logout" onClick={() => { clearAuth(); location.href = '/login' }}>Wyloguj</button>
+        </div>
+      </nav>
+    )
+  }
+  function Shell() {
+    const location = useLocation()
+    const isMobile = useIsMobile()
+    const showNav = location.pathname !== '/login'
+    return (
+      <>
+        {showNav && !isMobile && <NavBar />}
+        <Routes>
+          <Route path="/login" element={<LoginGuard />} />
+          <Route path="/" element={<Protected><Dashboard /></Protected>} />
+          <Route path="/calendar" element={<Protected><CalendarPage /></Protected>} />
+          <Route path="/clients" element={<Protected roles={['ADMIN','MANAGER']}><ClientsPage /></Protected>} />
+          <Route path="/clients/:id" element={<Protected roles={['ADMIN','MANAGER']}><ClientDetailsPage /></Protected>} />
+          <Route path="/sales" element={<Protected roles={['MANAGER','ADMIN']}><SalesPage /></Protected>} />
+          <Route path="/my-clients" element={<Protected roles={['SALES_REP','MANAGER']}><MyClientsPage /></Protected>} />
+          <Route path="/my-clients/:id" element={<Protected roles={['SALES_REP','MANAGER']}><MyClientDetailsPage /></Protected>} />
+          <Route path="/calculator" element={<Protected><CalculatorNewPage /></Protected>} />
+          <Route path="/calculator/old" element={<Protected><CalculatorPage /></Protected>} />
+          <Route path="/calculator/settings" element={<Protected roles={['ADMIN']}><CalculatorSettingsPage /></Protected>} />
+          <Route path="/stats" element={<Protected><StatsPage /></Protected>} />
+          <Route path="/manager/stats" element={<Protected roles={['MANAGER']}><ManagerStatsPage /></Protected>} />
+          <Route path="/account" element={<Protected><AccountPage /></Protected>} />
+          <Route path="/feed" element={<Protected roles={['ADMIN']}><FeedPage /></Protected>} />
+          <Route path="/admin" element={<Protected roles={['ADMIN']}><div className="container"><div className="page-header"><div><h1 className="page-title">Panel administratora</h1><p className="text-gray-600">Zarządzanie aplikacją</p></div></div><section className="card"><AdminPage /></section></div></Protected>} />
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+      </>
+    )
+  }
+  function LoginGuard() {
+    const token = getToken()
+    const user = getUser()
+    if (token && user) return <Navigate to="/" replace />
+    return <Login />
+  }
+  return (
+    <BrowserRouter>
+      <Shell />
+      <MobileNav />
+      <InstallPrompt />
+      <UpdatePrompt />
+    </BrowserRouter>
+  )
+}
+
+async function reverseGeocode(lat: number, lon: number): Promise<{ address: string; city: string; postalCode: string; street: string; houseNumber: string }> {
+  const url = `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${encodeURIComponent(lat)}&lon=${encodeURIComponent(lon)}&addressdetails=1`;
+  const res = await fetch(url, { headers: { 'Accept': 'application/json' } });
+  const data = await res.json();
+  const addr = data.address || {};
+  const street = addr.road || addr.pedestrian || addr.footway || '';
+  const houseNumber = addr.house_number || '';
+  const city = addr.city || addr.town || addr.village || addr.municipality || '';
+  const postalCode = addr.postcode || '';
+  const addressStr = [street && `${street}${houseNumber ? ' ' + houseNumber : ''}`, city, postalCode].filter(Boolean).join(', ');
+  return { address: addressStr, city, postalCode, street, houseNumber };
+}
+
+export default App
