@@ -745,7 +745,9 @@ async function refreshManagerAggregates() {
   }
 
   return (
-    <div className="container">
+    <div className="app-wrapper">
+      <div className="app-content">
+        <div className="container">
 
       {headerCollapsed ? (
       <div className="dashboard-compact">
@@ -1628,6 +1630,8 @@ async function refreshManagerAggregates() {
           </div>
         </div>
       )}
+        </div>
+      </div>
     </div>
   )
 }
