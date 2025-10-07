@@ -15,6 +15,7 @@ import ClientsPage from './pages/Clients'
 import SalesPage from './pages/Sales'
 import MyClientsPage from './pages/MyClients'
 import CalculatorPage from './pages/Calculator'
+import CalculatorNewPage from './pages/CalculatorNew'
 import CalculatorSettingsPage from './pages/CalculatorSettings'
 import AccountPage from './pages/Account'
 import StatsPage from './pages/Stats'
@@ -1837,7 +1838,8 @@ function App() {
           <Route path="/clients" element={<Protected roles={['ADMIN','MANAGER']}><ClientsPage /></Protected>} />
           <Route path="/sales" element={<Protected roles={['MANAGER','ADMIN']}><SalesPage /></Protected>} />
           <Route path="/my-clients" element={<Protected roles={['SALES_REP','MANAGER']}><MyClientsPage /></Protected>} />
-          <Route path="/calculator" element={<Protected><CalculatorPage /></Protected>} />
+          <Route path="/calculator" element={<Protected><CalculatorNewPage /></Protected>} />
+          <Route path="/calculator/old" element={<Protected><CalculatorPage /></Protected>} />
           <Route path="/calculator/settings" element={<Protected roles={['ADMIN']}><CalculatorSettingsPage /></Protected>} />
           <Route path="/stats" element={<Protected><StatsPage /></Protected>} />
           <Route path="/manager/stats" element={<Protected roles={['MANAGER']}><ManagerStatsPage /></Protected>} />
