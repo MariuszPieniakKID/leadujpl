@@ -19,6 +19,7 @@ import CalculatorSettingsPage from './pages/CalculatorSettings'
 import AccountPage from './pages/Account'
 import StatsPage from './pages/Stats'
 import ManagerStatsPage from './pages/ManagerStats'
+import FeedPage from './pages/Feed'
 import { clearAuth, getToken, getUser } from './lib/auth'
 import MobileNav from './components/MobileNav'
 import { polishPhoneHtmlPattern, polishPhoneTitle, isValidPolishPhone } from './lib/phone'
@@ -1807,6 +1808,9 @@ function App() {
             <NavLink to="/sales" className={({ isActive }) => isActive ? 'active' : undefined}>Zespół</NavLink>
           )}
           <NavLink to="/stats" className={({ isActive }) => isActive ? 'active' : undefined}>Statystyki i Analityka</NavLink>
+          {user && user.role === 'ADMIN' && (
+            <NavLink to="/feed" className={({ isActive }) => isActive ? 'active' : undefined}>Feed</NavLink>
+          )}
           <NavLink to="/account" className={({ isActive }) => isActive ? 'active' : undefined}>Moje Konto</NavLink>
           <button className="logout" onClick={() => { clearAuth(); location.href = '/login' }}>Wyloguj</button>
         </div>
@@ -1832,6 +1836,7 @@ function App() {
           <Route path="/stats" element={<Protected><StatsPage /></Protected>} />
           <Route path="/manager/stats" element={<Protected roles={['MANAGER']}><ManagerStatsPage /></Protected>} />
           <Route path="/account" element={<Protected><AccountPage /></Protected>} />
+          <Route path="/feed" element={<Protected roles={['ADMIN']}><FeedPage /></Protected>} />
           <Route path="/admin" element={<Protected roles={['ADMIN']}><div className="container"><div className="page-header"><div><h1 className="page-title">Panel administratora</h1><p className="text-gray-600">Zarządzanie aplikacją</p></div></div><section className="card"><AdminPage /></section></div></Protected>} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>

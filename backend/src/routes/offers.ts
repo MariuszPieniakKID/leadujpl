@@ -391,6 +391,27 @@ router.post('/save', requireAuth, async (req, res) => {
           snapshot,
         },
       })
+      
+      // Log activity for offer generation
+      try {
+        const user = await prisma.user.findUnique({ where: { id: current.id }, select: { firstName: true, lastName: true } })
+        const client = await prisma.client.findUnique({ where: { id: clientId }, select: { firstName: true, lastName: true } })
+        
+        await prisma.activityLog.create({
+          data: {
+            type: 'offer_generated',
+            userId: current.id,
+            userName: user ? `${user.firstName} ${user.lastName}` : 'Unknown',
+            clientId: clientId,
+            clientName: client ? `${client.firstName} ${client.lastName}` : 'Unknown',
+            offerId: created.id,
+            meetingId: meetingId || null,
+          },
+        })
+      } catch (logError) {
+        console.error('Failed to log offer_generated activity:', logError)
+      }
+      
       return res.status(201).json({ id: created.id, fileName: created.fileName })
     }
   } catch (e) {

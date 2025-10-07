@@ -145,6 +145,29 @@ router.post('/', requireAuth, async (req, res) => {
 
     const meeting = await prisma.meeting.create({ data: createData });
 
+    // Log activity for feed
+    try {
+      const attendeeUser = await prisma.user.findUnique({ where: { id: ownerId }, select: { firstName: true, lastName: true } });
+      const client = meeting.clientId ? await prisma.client.findUnique({ where: { id: meeting.clientId }, select: { firstName: true, lastName: true } }) : null;
+      
+      await prisma.activityLog.create({
+        data: {
+          type: 'meeting_created',
+          userId: ownerId,
+          userName: attendeeUser ? `${attendeeUser.firstName} ${attendeeUser.lastName}` : 'Unknown',
+          clientId: meeting.clientId || null,
+          clientName: client ? `${client.firstName} ${client.lastName}` : null,
+          meetingId: meeting.id,
+          metadata: {
+            meetingDate: meeting.scheduledAt.toISOString(),
+            meetingTime: meeting.scheduledAt.toLocaleTimeString('pl-PL', { hour: '2-digit', minute: '2-digit' }),
+          },
+        },
+      });
+    } catch (logError) {
+      console.error('Failed to log meeting_created activity:', logError);
+    }
+
     // Send SMS confirmation to client if phone number is available
     if (meeting.clientId) {
       try {
@@ -230,6 +253,11 @@ router.patch('/:id', requireAuth, async (req, res) => {
       ...(location !== undefined ? { location } : {}),
       ...(notes !== undefined ? { notes } : {}),
     };
+    
+    // Track status change for activity log
+    const oldStatus = meeting.status;
+    const statusChanged = status !== undefined && status !== oldStatus;
+    
     if (status !== undefined) patchData.status = status;
     if (pvInstalled !== undefined) patchData.pvInstalled = pvInstalled;
     if (billRange !== undefined) patchData.billRange = billRange;
@@ -276,6 +304,29 @@ router.patch('/:id', requireAuth, async (req, res) => {
     }
 
     const updated = await prisma.meeting.update({ where: { id }, data: patchData });
+
+    // Log activity for status change
+    if (statusChanged) {
+      try {
+        const attendeeUser = await prisma.user.findUnique({ where: { id: meeting.attendeeId }, select: { firstName: true, lastName: true } });
+        const client = meeting.clientId ? await prisma.client.findUnique({ where: { id: meeting.clientId }, select: { firstName: true, lastName: true } }) : null;
+        
+        await prisma.activityLog.create({
+          data: {
+            type: 'meeting_status_changed',
+            userId: meeting.attendeeId,
+            userName: attendeeUser ? `${attendeeUser.firstName} ${attendeeUser.lastName}` : 'Unknown',
+            clientId: meeting.clientId || null,
+            clientName: client ? `${client.firstName} ${client.lastName}` : null,
+            meetingId: meeting.id,
+            oldStatus: oldStatus || null,
+            newStatus: status || null,
+          },
+        });
+      } catch (logError) {
+        console.error('Failed to log meeting_status_changed activity:', logError);
+      }
+    }
 
     // Award points for status 'Umowa' (normalize to 'Sukces' in other routes, here we accept both)
     try {

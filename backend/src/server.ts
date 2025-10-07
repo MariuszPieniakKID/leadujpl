@@ -13,6 +13,7 @@ import { PrismaClient } from '@prisma/client';
 import attachmentsRouter from './routes/attachments';
 import pushNotificationsRouter from './routes/push-notifications';
 import reportsRouter from './routes/reports';
+import feedRouter from './routes/feed';
 
 dotenv.config();
 
@@ -34,6 +35,7 @@ app.use('/api/attachments', attachmentsRouter);
 app.use('/api/offers', offersRouter);
 app.use('/api/push-notifications', pushNotificationsRouter);
 app.use('/api/reports', reportsRouter);
+app.use('/api/feed', feedRouter);
 
 app.get('/health', async (_req, res) => {
   let dbHealthy = true;

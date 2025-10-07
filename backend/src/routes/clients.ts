@@ -212,10 +212,32 @@ router.patch('/:id/status', requireAuth, async (req, res) => {
     const meetingToUpdate = await prisma.meeting.findFirst({
       where,
       orderBy: { scheduledAt: 'desc' },
-      select: { id: true, attendeeId: true },
+      select: { id: true, attendeeId: true, status: true },
     })
     if (!meetingToUpdate) return res.status(404).json({ error: 'No meeting for client' })
+    const oldStatus = meetingToUpdate.status
     const updated = await prisma.meeting.update({ where: { id: meetingToUpdate.id }, data: { status } })
+    // Log activity for client status change
+    try {
+      const attendeeUser = await prisma.user.findUnique({ where: { id: meetingToUpdate.attendeeId }, select: { firstName: true, lastName: true } })
+      const client = await prisma.client.findUnique({ where: { id }, select: { firstName: true, lastName: true } })
+      
+      await prisma.activityLog.create({
+        data: {
+          type: 'client_status_changed',
+          userId: meetingToUpdate.attendeeId,
+          userName: attendeeUser ? `${attendeeUser.firstName} ${attendeeUser.lastName}` : 'Unknown',
+          clientId: id,
+          clientName: client ? `${client.firstName} ${client.lastName}` : 'Unknown',
+          meetingId: meetingToUpdate.id,
+          oldStatus: oldStatus || null,
+          newStatus: status,
+        },
+      })
+    } catch (logError) {
+      console.error('Failed to log client_status_changed activity:', logError)
+    }
+    
     // Award points for 'Sukces' / 'Umowa' to meeting attendee
     try {
       const finalStatus = (updated.status || '').trim()

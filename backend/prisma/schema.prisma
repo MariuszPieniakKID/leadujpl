@@ -201,3 +201,23 @@ model PointsEvent {
   @@index([userId])
   @@index([createdAt])
 }
+
+// Activity Feed: track all user activities for admin dashboard
+model ActivityLog {
+  id          String   @id @default(cuid())
+  type        String   // 'meeting_created', 'meeting_status_changed', 'client_status_changed', 'offer_generated'
+  userId      String   // User who performed the action
+  userName    String   // Cached user name for performance
+  clientId    String?
+  clientName  String?  // Cached client name
+  meetingId   String?
+  offerId     String?
+  oldStatus   String?  // For status changes
+  newStatus   String?  // For status changes
+  metadata    Json?    // Additional data (e.g., meeting date/time)
+  createdAt   DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([type])
+  @@index([userId])
+}

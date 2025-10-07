@@ -10,7 +10,15 @@ export default function MobileNav() {
 
   // Choose primary tabs based on role
   const tabs = (
-    isManager || isAdmin
+    isAdmin
+      ? [
+          { to: '/', label: 'Home', icon: HomeIcon },
+          { to: '/calendar', label: 'Kalendarz', icon: CalendarIcon },
+          { to: '/clients', label: 'Klienci', icon: UsersIcon },
+          { to: '/feed', label: 'Feed', icon: FeedIcon },
+          { to: '/account', label: 'Konto', icon: UserIcon },
+        ]
+      : isManager
       ? [
           { to: '/', label: 'Home', icon: HomeIcon },
           { to: '/calendar', label: 'Kalendarz', icon: CalendarIcon },
@@ -97,6 +105,16 @@ function UserIcon() {
     <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
       <path d="M20 21a8 8 0 0 0-16 0"/>
       <circle cx="12" cy="7" r="4"/>
+    </svg>
+  )
+}
+
+function FeedIcon() {
+  return (
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
+      <path d="M4 11a9 9 0 0 1 9 9"/>
+      <path d="M4 4a16 16 0 0 1 16 16"/>
+      <circle cx="5" cy="19" r="1"/>
     </svg>
   )
 }
