@@ -108,7 +108,7 @@ export async function getClientLatestStatus(clientId: string): Promise<{ meeting
   return res.data
 }
 
-export async function setClientLatestStatus(clientId: string, status: 'Umowa' | 'Sukces' | 'Porażka' | 'Dogrywka' | 'Przełożone' | 'Umówione' | 'Odbyte'): Promise<{ meetingId: string | null; status: string | null }> {
+export async function setClientLatestStatus(clientId: string, status: 'Umowa' | 'Sukces' | 'Rezygnacja' | 'Przełożone' | 'Umówione' | 'Odbyte'): Promise<{ meetingId: string | null; status: string | null }> {
   const res = await api.patch(`/api/clients/${clientId}/status`, { status })
   return res.data
 }

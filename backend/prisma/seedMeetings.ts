@@ -30,7 +30,7 @@ async function main() {
   nextMonday.setDate(nextMonday.getDate() + 7)
 
   const rand = (n: number) => Math.floor(Math.random() * n)
-  const statuses = [ 'Sukces', 'Porażka', undefined ] as const
+  const statuses = [ 'Sukces', 'Rezygnacja', undefined ] as const
 
   // Previous week: 3 meetings per day
   const pastCreates: any[] = []

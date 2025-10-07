@@ -264,7 +264,7 @@ export default function CalendarPage() {
     pvInstalled: '', // '' | 'TAK' | 'NIE'
     billRange: '',
     extraComments: '',
-    status: '', // 'Sukces' | 'Porażka' | 'Dogrywka' | ''
+    status: '', // 'Sukces' | 'Rezygnacja' | 'Przełożone' | ''
   })
   const [, setShowFollowUpCreate] = useState(false)
   const [editSectionsOpen, setEditSectionsOpen] = useState({ meeting: false, client: false, extra: false })
@@ -1268,23 +1268,23 @@ export default function CalendarPage() {
                     <input type="radio" name="meetingStatus" checked={editForm.status === 'Sukces'} onChange={() => setEditForm({ ...editForm, status: 'Sukces' })} /> Sukces !
                   </label>
                   <label>
-                    <input type="radio" name="meetingStatus" checked={editForm.status === 'Porażka'} onChange={() => setEditForm({ ...editForm, status: 'Porażka' })} /> Porażka
+                    <input type="radio" name="meetingStatus" checked={editForm.status === 'Rezygnacja'} onChange={() => setEditForm({ ...editForm, status: 'Rezygnacja' })} /> Rezygnacja
                   </label>
                   <label>
-                    <input type="radio" name="meetingStatus" checked={editForm.status === 'Dogrywka'} onChange={() => setEditForm({ ...editForm, status: 'Dogrywka' })} /> Dogrywka
+                    <input type="radio" name="meetingStatus" checked={editForm.status === 'Przełożone'} onChange={() => setEditForm({ ...editForm, status: 'Przełożone' })} /> Przełożone
                   </label>
                   <div style={{ display: 'flex', gap: 8 }}>
                     <button onClick={async () => {
                       if (!editMeetingId) return
                       try {
                         await api.patch(`/api/meetings/${editMeetingId}`, { status: editForm.status || 'Sukces' })
-                        if (editForm.status === 'Dogrywka') {
-                          // Prefill create form with same client and mark notes as Dogrywka
+                        if (editForm.status === 'Przełożone') {
+                          // Prefill create form with same client and mark notes as Przełożone
                           setIsEditOpen(false)
                           setShowFollowUpCreate(true)
                           setCreateForm(f => ({
                             ...f,
-                            notes: 'Dogrywka',
+                            notes: 'Przełożone',
                             clientFirstName: editForm.clientFirstName,
                             clientLastName: editForm.clientLastName,
                             clientPhone: editForm.clientPhone,

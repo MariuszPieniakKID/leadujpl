@@ -54,7 +54,7 @@ export default function ManagerStatsPage() {
     const past = meetings.filter(m => new Date(m.scheduledAt).getTime() <= nowTs)
     const future = meetings.filter(m => new Date(m.scheduledAt).getTime() > nowTs)
     const contracts = meetings.filter(m => m.status === 'Sukces')
-    const rescheduled = meetings.filter(m => m.status === 'Dogrywka')
+    const rescheduled = meetings.filter(m => m.status === 'Przełożone')
     const leads = new Set(meetings.map(m => m.clientId).filter(Boolean)).size
     const eff = past.length > 0 ? Math.round((contracts.length / past.length) * 100) : 0
     return { past: past.length, future: future.length, contracts: contracts.length, rescheduled: rescheduled.length, leads, eff }

@@ -101,7 +101,7 @@ async function refreshManagerAggregates() {
         const nowTs = Date.now()
         const past = allMeetings.filter(m => new Date(m.scheduledAt).getTime() <= nowTs)
         const future = allMeetings.filter(m => new Date(m.scheduledAt).getTime() > nowTs)
-        const rescheduled = allMeetings.filter(m => (m as any).status === 'Dogrywka')
+        const rescheduled = allMeetings.filter(m => (m as any).status === 'Przełożone')
         const contracts = allMeetings.filter(m => (m as any).status === 'Sukces')
         const clientIds = new Set<string>()
         for (const m of allMeetings) {

@@ -74,7 +74,7 @@ function atTime(date, hour, minute) {
       location: locations[idx % locations.length],
       notes: `${notesPast[idx % notesPast.length]} (przeszłe)`,
       attendeeId: user.id,
-      status: idx % 2 === 0 ? 'Sukces' : 'Porażka',
+      status: idx % 2 === 0 ? 'Sukces' : 'Rezygnacja',
       client: {
         firstName: `KlientP${idx+1}`,
         lastName: 'Testowy',

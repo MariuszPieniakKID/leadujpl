@@ -95,7 +95,7 @@ model Meeting {
   pvInstalled Boolean?
   billRange   String?
   extraComments String?
-  status      String?  // 'Sukces', 'Porażka', 'Dogrywka'
+  status      String?  // 'Sukces', 'Rezygnacja', 'Przełożone'
   contactConsent Boolean @default(false)
   attendee    User     @relation(fields: [attendeeId], references: [id])
   attendeeId  String

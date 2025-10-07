@@ -200,7 +200,7 @@ router.patch('/:id/status', requireAuth, async (req, res) => {
     if (!status) return res.status(400).json({ error: 'status is required' })
     // Normalize: treat "Umowa" as "Sukces"
     if (status === 'Umowa') status = 'Sukces'
-    if (!['Sukces', 'Porażka', 'Dogrywka', 'Przełożone', 'Umówione', 'Odbyte'].includes(status)) {
+    if (!['Sukces', 'Rezygnacja', 'Przełożone', 'Umówione', 'Odbyte'].includes(status)) {
       return res.status(400).json({ error: 'invalid status' })
     }
     const where: any = { clientId: id }

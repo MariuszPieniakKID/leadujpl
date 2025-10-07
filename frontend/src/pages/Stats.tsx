@@ -30,9 +30,9 @@ export default function StatsPage() {
   // Ranking state (ADMIN only)
   const [repLoading, setRepLoading] = useState(false)
   const [repError, setRepError] = useState<string | null>(null)
-  const [metric, setMetric] = useState<'Spotkania' | 'Umowa' | 'Przełożone' | 'Dogrywka' | 'Odbyte' | 'Umówione' | 'Porażka'>('Spotkania')
+  const [metric, setMetric] = useState<'Spotkania' | 'Umowa' | 'Przełożone' | 'Odbyte' | 'Umówione' | 'Rezygnacja'>('Spotkania')
   const [ranking, setRanking] = useState<Array<{ id: string; firstName: string; lastName: string; total: number; byStatus: Record<string, number> }>>([])
-  const [statusFilter, setStatusFilter] = useState<'' | 'Umowa' | 'Porażka' | 'Dogrywka' | 'Przełożone' | 'Umówione' | 'Odbyte'>('')
+  const [statusFilter, setStatusFilter] = useState<'' | 'Umowa' | 'Rezygnacja' | 'Przełożone' | 'Umówione' | 'Odbyte'>('')
   const [startDate, setStartDate] = useState<string>('')
   const [endDate, setEndDate] = useState<string>('')
 
@@ -424,10 +424,9 @@ export default function StatsPage() {
                   <option value="Spotkania">Ilość spotkań</option>
                   <option value="Umowa">Umowa</option>
                   <option value="Przełożone">Przełożone</option>
-                  <option value="Dogrywka">Dogrywka</option>
                   <option value="Umówione">Umówione</option>
                   <option value="Odbyte">Odbyte</option>
-                  <option value="Porażka">Porażka</option>
+                  <option value="Rezygnacja">Rezygnacja</option>
                 </select>
               </div>
               <div className="form-group" style={{ margin: 0, ...(isMobile ? { width: '100%' } : {}) }}>
@@ -443,10 +442,9 @@ export default function StatsPage() {
                   <option value="">Wszystkie</option>
                   <option value="Umowa">Umowa</option>
                   <option value="Przełożone">Przełożone</option>
-                  <option value="Dogrywka">Dogrywka</option>
                   <option value="Umówione">Umówione</option>
                   <option value="Odbyte">Odbyte</option>
-                  <option value="Porażka">Porażka</option>
+                  <option value="Rezygnacja">Rezygnacja</option>
                 </select>
               </div>
               <div className="form-group" style={{ margin: 0, ...(isMobile ? { width: '100%' } : {}) }}>
@@ -486,10 +484,10 @@ export default function StatsPage() {
                         {showPoints && (
                           <div className="list-row"><span>Punkty</span><span>{(r as any).total || 0}</span></div>
                         )}
-                        <div className="list-row"><span>Dogrywka</span><span>{r.byStatus['Dogrywka'] || 0}</span></div>
+                        <div className="list-row"><span>Przełożone</span><span>{r.byStatus['Przełożone'] || 0}</span></div>
                         <div className="list-row"><span>Umówione</span><span>{r.byStatus['Umówione'] || 0}</span></div>
                         <div className="list-row"><span>Odbyte</span><span>{r.byStatus['Odbyte'] || 0}</span></div>
-                        <div className="list-row"><span>Porażka</span><span>{r.byStatus['Porażka'] || 0}</span></div>
+                        <div className="list-row"><span>Rezygnacja</span><span>{r.byStatus['Rezygnacja'] || 0}</span></div>
                       </div>
                     </div>
                   ))}
@@ -503,10 +501,10 @@ export default function StatsPage() {
                       <th>Spotkania</th>
                       <th>Umowa</th>
                       <th>Punkty</th>
-                      <th>Dogrywka</th>
+                      <th>Przełożone</th>
                       <th>Umówione</th>
                       <th>Odbyte</th>
-                      <th>Porażka</th>
+                      <th>Rezygnacja</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -523,10 +521,10 @@ export default function StatsPage() {
                           <td>{r.total}</td>
                           <td>{r.byStatus['Umowa'] || 0}</td>
                           <td>{/* points */}{(() => { try { return (r as any).total } catch { return 0 } })()}</td>
-                          <td>{r.byStatus['Dogrywka'] || 0}</td>
+                          <td>{r.byStatus['Przełożone'] || 0}</td>
                           <td>{r.byStatus['Umówione'] || 0}</td>
                           <td>{r.byStatus['Odbyte'] || 0}</td>
-                          <td>{r.byStatus['Porażka'] || 0}</td>
+                          <td>{r.byStatus['Rezygnacja'] || 0}</td>
                         </tr>
                     ))}
                   </tbody>
@@ -649,7 +647,7 @@ function exportRankingCsv(rows: Array<{ id: string; firstName: string; lastName:
     alert('Brak danych do eksportu')
     return
   }
-  const headers = ['Handlowiec','Spotkania','Umowa','Punkty','Dogrywka','Umówione','Odbyte','Porażka']
+  const headers = ['Handlowiec','Spotkania','Umowa','Punkty','Przełożone','Umówione','Odbyte','Rezygnacja']
   const data = rows
     .slice()
     .sort((a, b) => {
@@ -662,10 +660,10 @@ function exportRankingCsv(rows: Array<{ id: string; firstName: string; lastName:
       r.total,
       r.byStatus['Umowa'] || 0,
       (r as any).total || 0,
-      r.byStatus['Dogrywka'] || 0,
+      r.byStatus['Przełożone'] || 0,
       r.byStatus['Umówione'] || 0,
       r.byStatus['Odbyte'] || 0,
-      r.byStatus['Porażka'] || 0,
+      r.byStatus['Rezygnacja'] || 0,
     ])
   const sep = ';'
   const escapeCell = (v: string | number) => '"' + String(v).replace(/"/g, '""') + '"'

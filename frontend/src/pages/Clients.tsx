@@ -143,8 +143,7 @@ export default function ClientsPage() {
             <select className="form-select" value={status} onChange={e => setStatus(e.target.value)}>
               <option value="">Wszystkie</option>
               <option value="Sukces">Umowa</option>
-              <option value="Porażka">Porażka</option>
-              <option value="Dogrywka">Dogrywka</option>
+              <option value="Rezygnacja">Rezygnacja</option>
               <option value="Przełożone">Przełożone</option>
               <option value="Umówione">Umówione</option>
               <option value="Odbyte">Odbyte</option>
@@ -410,10 +409,9 @@ function ClientStatusSelect({ clientId }: { clientId: string }) {
       <option value="">—</option>
       <option value="Umówione">Umówione</option>
       <option value="Odbyte">Odbyte</option>
-      <option value="Dogrywka">Dogrywka</option>
       <option value="Przełożone">Przełożone</option>
       <option value="Sukces">Umowa</option>
-      <option value="Porażka">Porażka</option>
+      <option value="Rezygnacja">Rezygnacja</option>
     </select>
   )
 }

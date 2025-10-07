@@ -413,10 +413,6 @@ export default function CalculatorPage() {
               <span>Szacowana moc (Metoda A — zużycie)</span>
               <span>{quickKwpUsage && quickKwpUsage > 0 ? `${quickKwpUsage.toFixed(2)} kWp` : '—'}</span>
             </div>
-            <div className="list-row" style={{ fontWeight: 600 }}>
-              <span>Szacowana moc (Metoda B — koszt)</span>
-              <span>{quickKwpCost && quickKwpCost > 0 ? `${quickKwpCost.toFixed(2)} kWp` : '—'}</span>
-            </div>
           </div>
         </div>
         )}
