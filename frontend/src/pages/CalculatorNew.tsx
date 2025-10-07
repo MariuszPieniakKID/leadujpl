@@ -1,5 +1,6 @@
 import { useMemo, useState, useEffect, useRef } from 'react'
 import { createPortal } from 'react-dom'
+import { Link } from 'react-router-dom'
 import { generateOfferPDF, saveOfferForClient, type Client } from '../lib/api'
 import api from '../lib/api'
 import { getUser } from '../lib/auth'
@@ -598,9 +599,16 @@ export default function CalculatorNewPage({ embedded = false, clientId: embedded
             <h1 className="page-title">⚡ ATOMIC Kalkulator</h1>
             <p className="page-subtitle">Instalacje Fotowoltaiczne i Wiatrowe</p>
           </div>
-          {user && user.role === 'SALES_REP' && (
-            <SalesMarginButton />
-          )}
+          <div style={{ display: 'flex', gap: 'var(--space-3)', alignItems: 'center' }}>
+            {user && user.role === 'SALES_REP' && (
+              <SalesMarginButton />
+            )}
+            {user && (user.role === 'ADMIN' || user.role === 'MANAGER') && (
+              <Link to="/calculator/settings" className="secondary" style={{ textDecoration: 'none' }}>
+                ⚙️ Ustawienia
+              </Link>
+            )}
+          </div>
         </div>
       )}
       
