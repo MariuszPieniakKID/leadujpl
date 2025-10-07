@@ -1,6 +1,8 @@
-import { useMemo, useState } from 'react'
+import { useMemo, useState, useEffect } from 'react'
 import { generateOfferPDF, saveOfferForClient, type Client } from '../lib/api'
 import api from '../lib/api'
+import { getUser } from '../lib/auth'
+import baseData from '../data/calculatorData.json'
 
 // Pricing data from PDF
 const pricingData: Record<number, { modules: number; basePrice: number; groundWork: number }> = {
@@ -62,6 +64,24 @@ const storagePrices: Record<string, number> = {
 }
 
 export default function CalculatorNewPage() {
+  const user = getUser()
+  
+  // Load config from backend (marże)
+  const [remoteData, setRemoteData] = useState<any | null>(null)
+  const data = useMemo(() => remoteData || (baseData as any), [remoteData])
+  const settings = (data as any).settings || {}
+  
+  useEffect(() => {
+    (async () => {
+      try {
+        const res = await api.get('/api/calculator/config')
+        setRemoteData(res.data)
+      } catch {
+        setRemoteData(null)
+      }
+    })()
+  }, [])
+  
   // State
   const [selectedProduct, setSelectedProduct] = useState<'pv_me' | 'inverter_me' | null>(null)
   const [installationType, setInstallationType] = useState<'roof' | 'ground' | null>(null)
@@ -74,9 +94,20 @@ export default function CalculatorNewPage() {
   const [backupEnabled, setBackupEnabled] = useState(false)
   const [grantEnabled, setGrantEnabled] = useState(false)
   const [vatRate, setVatRate] = useState<8 | 23>(8)
-  const [marginAmount, setMarginAmount] = useState(0)
-  const [contractPrice, setContractPrice] = useState(0)
   const [ownContribution, setOwnContribution] = useState(0)
+  const [extraItems, setExtraItems] = useState<Array<{ label: string; amount: number }>>([])
+  
+  // Personal sales margin (only for SALES_REP)
+  function getSalesMargin() {
+    try {
+      const raw = localStorage.getItem('salesMargin')
+      if (!raw) return { amount: 0, percent: 0 }
+      const parsed = JSON.parse(raw)
+      return { amount: Number(parsed.amount || 0), percent: Number(parsed.percent || 0) }
+    } catch {
+      return { amount: 0, percent: 0 }
+    }
+  }
   
   // Client info
   const [clientName, setClientName] = useState('')
@@ -94,12 +125,12 @@ export default function CalculatorNewPage() {
   
   // Calculate prices
   const calculation = useMemo(() => {
-    let totalNet = 0
+    let subtotalPlain = 0
     const breakdown: Array<{ service: string; details: string; price: number }> = []
     
     if (selectedProduct === 'pv_me' && selectedPower && installationType) {
       const data = pricingData[selectedPower]
-      totalNet += data.basePrice
+      subtotalPlain += data.basePrice
       
       const installationTypeText = installationType === 'roof' ? 'na dachu' : 'na gruncie'
       breakdown.push({
@@ -109,7 +140,7 @@ export default function CalculatorNewPage() {
       })
       
       if (installationType === 'ground') {
-        totalNet += data.groundWork
+        subtotalPlain += data.groundWork
         breakdown.push({
           service: 'Prace ziemne',
           details: 'Przygotowanie gruntu pod instalację',
@@ -119,7 +150,7 @@ export default function CalculatorNewPage() {
       
       // Inverter
       const inverterPrice = inverterPrices[selectedInverter]
-      totalNet += inverterPrice
+      subtotalPlain += inverterPrice
       breakdown.push({
         service: 'Falownik Deye HYD',
         details: selectedInverter,
@@ -128,7 +159,7 @@ export default function CalculatorNewPage() {
       
       // Storage
       const storagePrice = storagePrices[selectedStorage]
-      totalNet += storagePrice
+      subtotalPlain += storagePrice
       breakdown.push({
         service: 'Magazyn energii',
         details: selectedStorage,
@@ -137,7 +168,7 @@ export default function CalculatorNewPage() {
     } else if (selectedProduct === 'inverter_me') {
       // Inverter
       const inverterPrice = inverterPrices[selectedInverter]
-      totalNet += inverterPrice
+      subtotalPlain += inverterPrice
       breakdown.push({
         service: 'Wymiana falownika',
         details: selectedInverter,
@@ -146,7 +177,7 @@ export default function CalculatorNewPage() {
       
       // Storage
       const storagePrice = storagePrices[selectedStorage]
-      totalNet += storagePrice
+      subtotalPlain += storagePrice
       breakdown.push({
         service: 'Magazyn energii',
         details: selectedStorage,
@@ -156,7 +187,7 @@ export default function CalculatorNewPage() {
     
     // Turbine
     if (turbineEnabled) {
-      totalNet += 30000
+      subtotalPlain += 30000
       breakdown.push({
         service: 'Turbina wiatrowa',
         details: 'XALTUS 6kW',
@@ -167,7 +198,7 @@ export default function CalculatorNewPage() {
     // Excavation
     if (excavationEnabled) {
       const excavationPrice = 500 + (excavationMeters * 30)
-      totalNet += excavationPrice
+      subtotalPlain += excavationPrice
       breakdown.push({
         service: 'Przekop',
         details: `Koparka: 500 zł + ${excavationMeters} metrów × 30 zł/m`,
@@ -177,7 +208,7 @@ export default function CalculatorNewPage() {
     
     // Backup
     if (backupEnabled) {
-      totalNet += 2500
+      subtotalPlain += 2500
       breakdown.push({
         service: 'Backup (zasilanie awaryjne)',
         details: 'System zasilania awaryjnego',
@@ -185,15 +216,83 @@ export default function CalculatorNewPage() {
       })
     }
     
-    // Company margin (always added, hidden)
-    totalNet += 20000
-    
-    // Custom margin
-    if (marginAmount > 0) {
-      totalNet += marginAmount
+    // Extra items
+    for (const item of extraItems) {
+      subtotalPlain += item.amount
       breakdown.push({
-        service: 'Marża dodatkowa',
-        details: 'Indywidualna marża',
+        service: item.label || 'Pozycja dodatkowa',
+        details: 'Dodatkowa usługa',
+        price: item.amount
+      })
+    }
+    
+    // Apply margins in order: Admin global → Manager → Sales Rep own
+    let totalNet = subtotalPlain
+    let marginAmount = 0
+    
+    try {
+      const margins = settings?.margins || {}
+      
+      // 1. Admin global margin (applies to everyone)
+      const adminMargin = settings.adminMargin
+      if (adminMargin) {
+        const amount = Number(adminMargin.amount || 0)
+        const percent = Number(adminMargin.percent || 0)
+        const uplift = (percent > 0) ? (totalNet * (percent / 100)) : amount
+        if (uplift > 0) {
+          totalNet = Math.max(totalNet + uplift, 0)
+          marginAmount += uplift
+        }
+      }
+      
+      // 2. Manager margin (for SALES_REP assigned to manager, or for MANAGER themselves)
+      if (user?.role === 'SALES_REP') {
+        // For sales rep: use their manager's margin
+        const managerId = user?.managerId || null
+        const m = managerId ? margins[managerId] : null
+        if (m) {
+          const amount = Number(m.amount || 0)
+          const percent = Number(m.percent || 0)
+          const uplift = (percent > 0) ? (totalNet * (percent / 100)) : amount
+          if (uplift > 0) {
+            totalNet = Math.max(totalNet + uplift, 0)
+            marginAmount += uplift
+          }
+        }
+      } else if (user?.role === 'MANAGER') {
+        // For manager: use their own margin
+        const m = margins[user.id] || null
+        if (m) {
+          const amount = Number(m.amount || 0)
+          const percent = Number(m.percent || 0)
+          const uplift = (percent > 0) ? (totalNet * (percent / 100)) : amount
+          if (uplift > 0) {
+            totalNet = Math.max(totalNet + uplift, 0)
+            marginAmount += uplift
+          }
+        }
+      }
+    } catch {}
+    
+    // 3. Sales rep's personal margin (only for SALES_REP)
+    if (user && user.role === 'SALES_REP') {
+      const sm = getSalesMargin()
+      if (sm) {
+        const amount = Number(sm.amount || 0)
+        const percent = Number(sm.percent || 0)
+        const uplift = (percent > 0) ? (totalNet * (percent / 100)) : amount
+        if (uplift > 0) {
+          totalNet = Math.max(totalNet + uplift, 0)
+          marginAmount += uplift
+        }
+      }
+    }
+    
+    // Show margin in breakdown if it exists
+    if (marginAmount > 0) {
+      breakdown.push({
+        service: 'Marża',
+        details: 'Marża handlowa',
         price: marginAmount
       })
     }
@@ -225,7 +324,7 @@ export default function CalculatorNewPage() {
       totalGross,
       priceBeforeGrant
     }
-  }, [selectedProduct, selectedPower, installationType, selectedInverter, selectedStorage, turbineEnabled, excavationEnabled, excavationMeters, backupEnabled, marginAmount, vatRate, grantEnabled])
+  }, [selectedProduct, selectedPower, installationType, selectedInverter, selectedStorage, turbineEnabled, excavationEnabled, excavationMeters, backupEnabled, vatRate, grantEnabled, extraItems, user, settings])
   
   // Calculate financing
   const financing = useMemo(() => {
@@ -282,9 +381,8 @@ export default function CalculatorNewPage() {
     setBackupEnabled(false)
     setGrantEnabled(false)
     setVatRate(8)
-    setMarginAmount(0)
-    setContractPrice(0)
     setOwnContribution(0)
+    setExtraItems([])
     setClientName('')
     setClientDate('')
     setSelectedClient(null)
@@ -330,6 +428,7 @@ export default function CalculatorNewPage() {
       downPayment: ownContribution,
       termMonths: 120,
       vatRate,
+      extraItems,
     }
     
     const calc = {
@@ -347,7 +446,7 @@ export default function CalculatorNewPage() {
       otherTerms: financing.map(f => ({ term: f.months, monthly: f.after })),
     }
     
-    return { form, calc, clientName, clientDate, turbineEnabled, excavationMeters, marginAmount }
+    return { form, calc, clientName, clientDate, turbineEnabled, excavationMeters }
   }
   
   // Download PDF
@@ -374,8 +473,8 @@ export default function CalculatorNewPage() {
   
   // Save offer for client
   const handleSaveOffer = async () => {
-    if (!selectedClient) {
-      setSaveMessage({ type: 'error', text: '❌ Wybierz klienta' })
+    if (!selectedClient && !clientName) {
+      setSaveMessage({ type: 'error', text: '❌ Wybierz klienta lub wpisz nazwę klienta' })
       setTimeout(() => setSaveMessage(null), 3000)
       return
     }
@@ -383,9 +482,26 @@ export default function CalculatorNewPage() {
     setSaving(true)
     try {
       const snapshot = generateSnapshot()
-      const fileName = `oferta-${selectedClient.firstName}-${selectedClient.lastName}-${new Date().getTime()}.pdf`
-      await saveOfferForClient(selectedClient.id, fileName, snapshot)
-      setSaveMessage({ type: 'success', text: `✅ Oferta zapisana dla ${selectedClient.firstName} ${selectedClient.lastName}` })
+      const fileName = selectedClient 
+        ? `oferta-${selectedClient.firstName}-${selectedClient.lastName}-${new Date().getTime()}.pdf`
+        : `oferta-${clientName || 'klient'}-${new Date().getTime()}.pdf`
+      
+      if (selectedClient) {
+        await saveOfferForClient(selectedClient.id, fileName, snapshot)
+        setSaveMessage({ type: 'success', text: `✅ Oferta zapisana dla ${selectedClient.firstName} ${selectedClient.lastName}` })
+      } else {
+        // Save without client - just download PDF
+        const blob = await generateOfferPDF(snapshot)
+        const url = URL.createObjectURL(blob)
+        const a = document.createElement('a')
+        a.href = url
+        a.download = fileName
+        document.body.appendChild(a)
+        a.click()
+        document.body.removeChild(a)
+        URL.revokeObjectURL(url)
+        setSaveMessage({ type: 'success', text: `✅ PDF pobrano dla ${clientName}` })
+      }
       setTimeout(() => setSaveMessage(null), 5000)
     } catch (e) {
       console.error(e)
@@ -592,31 +708,82 @@ export default function CalculatorNewPage() {
             </div>
           </div>
           
-          {/* Margin & Contract */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-4)', paddingTop: 'var(--space-4)', borderTop: '1px solid var(--gray-200)' }}>
-            <div className="form-group">
-              <label className="form-label">Marża (zł)</label>
-              <input 
-                type="number" 
-                min="0" 
-                step="0.01" 
-                value={marginAmount || ''} 
-                onChange={e => setMarginAmount(parseFloat(e.target.value) || 0)}
-                placeholder="0 zł"
-              />
-            </div>
-            <div className="form-group">
-              <label className="form-label">Cena umowy (zł brutto)</label>
-              <input 
-                type="number" 
-                min="0" 
-                step="0.01" 
-                value={contractPrice || ''} 
-                onChange={e => setContractPrice(parseFloat(e.target.value) || 0)}
-                placeholder="0 zł brutto"
-              />
+          {/* Extra Items */}
+          <div style={{ marginBottom: 'var(--space-6)', paddingTop: 'var(--space-4)', borderTop: '1px solid var(--gray-200)' }}>
+            <h3 style={{ fontSize: 'var(--text-lg)', fontWeight: 600, marginBottom: 'var(--space-4)' }}>
+              📋 Dodatkowe Pozycje
+            </h3>
+            
+            {extraItems.length > 0 && (
+              <div style={{ marginBottom: 'var(--space-4)' }}>
+                {extraItems.map((item, idx) => (
+                  <div key={idx} style={{ 
+                    display: 'flex', 
+                    justifyContent: 'space-between', 
+                    alignItems: 'center',
+                    padding: 'var(--space-3)',
+                    marginBottom: 'var(--space-2)',
+                    background: 'var(--gray-50)',
+                    borderRadius: 'var(--radius-lg)',
+                    border: '1px solid var(--gray-200)'
+                  }}>
+                    <div>
+                      <div style={{ fontWeight: 600 }}>{item.label || 'Pozycja'}</div>
+                      <div style={{ fontSize: 'var(--text-sm)', color: 'var(--gray-600)' }}>
+                        {item.amount.toLocaleString('pl-PL', { minimumFractionDigits: 2 })} zł
+                      </div>
+                    </div>
+                    <button 
+                      className="btn-sm secondary" 
+                      onClick={() => setExtraItems(extraItems.filter((_, i) => i !== idx))}
+                      style={{ minWidth: '80px' }}
+                    >
+                      🗑️ Usuń
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+            
+            <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr auto', gap: 'var(--space-3)', alignItems: 'end' }}>
+              <div className="form-group" style={{ marginBottom: 0 }}>
+                <label className="form-label">Nazwa pozycji</label>
+                <input 
+                  type="text" 
+                  id="extraLabel"
+                  placeholder="np. Dodatkowe okablowanie"
+                />
+              </div>
+              <div className="form-group" style={{ marginBottom: 0 }}>
+                <label className="form-label">Kwota (netto)</label>
+                <input 
+                  type="number" 
+                  id="extraAmount"
+                  min="0"
+                  step="0.01"
+                  placeholder="0.00"
+                />
+              </div>
+              <button 
+                className="primary" 
+                onClick={() => {
+                  const labelInput = document.getElementById('extraLabel') as HTMLInputElement
+                  const amountInput = document.getElementById('extraAmount') as HTMLInputElement
+                  const label = labelInput?.value || ''
+                  const amount = parseFloat(amountInput?.value || '0')
+                  if (label || amount > 0) {
+                    setExtraItems([...extraItems, { label: label || 'Pozycja', amount: isNaN(amount) ? 0 : amount }])
+                    if (labelInput) labelInput.value = ''
+                    if (amountInput) amountInput.value = ''
+                  }
+                }}
+                style={{ minWidth: '120px', height: '48px' }}
+              >
+                ➕ Dodaj
+              </button>
             </div>
           </div>
+          
         </section>
       )}
       
