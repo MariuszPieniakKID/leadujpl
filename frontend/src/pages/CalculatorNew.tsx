@@ -119,6 +119,15 @@ export default function CalculatorNewPage() {
   const [clientOptions, setClientOptions] = useState<Client[]>([])
   const [isSearchingClients, setIsSearchingClients] = useState(false)
   
+  // New client creation
+  const [showNewClientForm, setShowNewClientForm] = useState(false)
+  const [newClientForm, setNewClientForm] = useState({
+    firstName: '',
+    lastName: '',
+    phone: '',
+    email: '',
+  })
+  
   // Save offer state
   const [isSaving, setSaving] = useState(false)
   const [saveMessage, setSaveMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
@@ -471,10 +480,45 @@ export default function CalculatorNewPage() {
     }
   }
   
-  // Save offer for client
+  // Create new client
+  const handleCreateNewClient = async () => {
+    if (!newClientForm.firstName || !newClientForm.lastName) {
+      setSaveMessage({ type: 'error', text: '❌ Imię i nazwisko są wymagane' })
+      setTimeout(() => setSaveMessage(null), 3000)
+      return
+    }
+    
+    setSaving(true)
+    try {
+      // Create new client
+      const res = await api.post<Client>('/api/clients', newClientForm)
+      const createdClient = res.data
+      
+      // Save offer for the newly created client
+      const snapshot = generateSnapshot()
+      const fileName = `oferta-${createdClient.firstName}-${createdClient.lastName}-${new Date().getTime()}.pdf`
+      await saveOfferForClient(createdClient.id, fileName, snapshot)
+      
+      setSaveMessage({ type: 'success', text: `✅ Utworzono klienta ${createdClient.firstName} ${createdClient.lastName} i zapisano ofertę` })
+      
+      // Reset form
+      setNewClientForm({ firstName: '', lastName: '', phone: '', email: '' })
+      setShowNewClientForm(false)
+      
+      setTimeout(() => setSaveMessage(null), 5000)
+    } catch (e: any) {
+      console.error(e)
+      setSaveMessage({ type: 'error', text: `❌ ${e?.response?.data?.error || 'Błąd podczas tworzenia klienta'}` })
+      setTimeout(() => setSaveMessage(null), 3000)
+    } finally {
+      setSaving(false)
+    }
+  }
+  
+  // Save offer for existing client
   const handleSaveOffer = async () => {
-    if (!selectedClient && !clientName) {
-      setSaveMessage({ type: 'error', text: '❌ Wybierz klienta lub wpisz nazwę klienta' })
+    if (!selectedClient) {
+      setSaveMessage({ type: 'error', text: '❌ Wybierz klienta z listy' })
       setTimeout(() => setSaveMessage(null), 3000)
       return
     }
@@ -482,26 +526,9 @@ export default function CalculatorNewPage() {
     setSaving(true)
     try {
       const snapshot = generateSnapshot()
-      const fileName = selectedClient 
-        ? `oferta-${selectedClient.firstName}-${selectedClient.lastName}-${new Date().getTime()}.pdf`
-        : `oferta-${clientName || 'klient'}-${new Date().getTime()}.pdf`
-      
-      if (selectedClient) {
-        await saveOfferForClient(selectedClient.id, fileName, snapshot)
-        setSaveMessage({ type: 'success', text: `✅ Oferta zapisana dla ${selectedClient.firstName} ${selectedClient.lastName}` })
-      } else {
-        // Save without client - just download PDF
-        const blob = await generateOfferPDF(snapshot)
-        const url = URL.createObjectURL(blob)
-        const a = document.createElement('a')
-        a.href = url
-        a.download = fileName
-        document.body.appendChild(a)
-        a.click()
-        document.body.removeChild(a)
-        URL.revokeObjectURL(url)
-        setSaveMessage({ type: 'success', text: `✅ PDF pobrano dla ${clientName}` })
-      }
+      const fileName = `oferta-${selectedClient.firstName}-${selectedClient.lastName}-${new Date().getTime()}.pdf`
+      await saveOfferForClient(selectedClient.id, fileName, snapshot)
+      setSaveMessage({ type: 'success', text: `✅ Oferta zapisana dla ${selectedClient.firstName} ${selectedClient.lastName}` })
       setTimeout(() => setSaveMessage(null), 5000)
     } catch (e) {
       console.error(e)
@@ -970,88 +997,182 @@ export default function CalculatorNewPage() {
             </div>
           )}
           
-          {/* Client Search */}
-          <div className="form-group">
-            <label className="form-label">Wybierz klienta (aby zapisać ofertę)</label>
-            <input 
-              type="text" 
-              value={clientQuery} 
-              onChange={e => {
-                setClientQuery(e.target.value)
-                searchClients(e.target.value)
+          {/* Toggle between existing/new client */}
+          <div style={{ display: 'flex', gap: 'var(--space-3)', marginBottom: 'var(--space-4)' }}>
+            <button 
+              className={!showNewClientForm ? 'primary' : 'secondary'}
+              onClick={() => {
+                setShowNewClientForm(false)
+                setNewClientForm({ firstName: '', lastName: '', phone: '', email: '' })
               }}
-              onFocus={() => clientQuery && searchClients(clientQuery)}
-              placeholder="Wpisz nazwisko lub telefon klienta..."
               disabled={isSaving}
-            />
-            
-            {/* Autocomplete dropdown */}
-            {clientOptions.length > 0 && (
-              <div className="autocomplete-dropdown">
-                {clientOptions.map(client => (
-                  <div 
-                    key={client.id}
-                    className="autocomplete-item"
-                    onClick={() => {
-                      setSelectedClient(client)
-                      setClientQuery(`${client.firstName} ${client.lastName}`)
-                      setClientOptions([])
-                    }}
-                  >
-                    <div style={{ fontWeight: 600 }}>{client.firstName} {client.lastName}</div>
-                    {client.phone && <div style={{ fontSize: 'var(--text-xs)', color: 'var(--gray-600)' }}>{client.phone}</div>}
-                  </div>
-                ))}
-              </div>
-            )}
-            
-            {isSearchingClients && (
-              <div style={{ fontSize: 'var(--text-sm)', color: 'var(--gray-600)', marginTop: 'var(--space-2)' }}>
-                Szukam...
-              </div>
-            )}
-            
-            {selectedClient && (
-              <div style={{ 
-                marginTop: 'var(--space-3)', 
-                padding: 'var(--space-3)', 
-                background: 'var(--primary-50)', 
-                borderRadius: 'var(--radius-lg)',
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center'
-              }}>
-                <div>
-                  <div style={{ fontWeight: 600, color: 'var(--primary-700)' }}>
-                    ✓ Wybrany klient: {selectedClient.firstName} {selectedClient.lastName}
-                  </div>
-                  {selectedClient.phone && (
-                    <div style={{ fontSize: 'var(--text-sm)', color: 'var(--primary-600)' }}>{selectedClient.phone}</div>
-                  )}
-                </div>
-                <button 
-                  className="btn-sm secondary" 
-                  onClick={() => {
-                    setSelectedClient(null)
-                    setClientQuery('')
-                  }}
-                  disabled={isSaving}
-                >
-                  Zmień
-                </button>
-              </div>
-            )}
+              style={{ flex: 1 }}
+            >
+              📋 Wybierz istniejącego klienta
+            </button>
+            <button 
+              className={showNewClientForm ? 'primary' : 'secondary'}
+              onClick={() => {
+                setShowNewClientForm(true)
+                setSelectedClient(null)
+                setClientQuery('')
+              }}
+              disabled={isSaving}
+              style={{ flex: 1 }}
+            >
+              ➕ Utwórz nowego klienta
+            </button>
           </div>
+          
+          {/* Existing Client Search */}
+          {!showNewClientForm && (
+            <div className="form-group">
+              <label className="form-label">Wyszukaj klienta z bazy danych</label>
+              <input 
+                type="text" 
+                value={clientQuery} 
+                onChange={e => {
+                  setClientQuery(e.target.value)
+                  searchClients(e.target.value)
+                  if (selectedClient) setSelectedClient(null)
+                }}
+                onFocus={() => clientQuery && searchClients(clientQuery)}
+                placeholder="Szukaj po nazwisku, telefonie, email..."
+                disabled={isSaving}
+              />
+              
+              {/* Autocomplete dropdown */}
+              {clientOptions.length > 0 && (
+                <div className="autocomplete-dropdown">
+                  {clientOptions.map(client => (
+                    <div 
+                      key={client.id}
+                      className="autocomplete-item"
+                      onClick={() => {
+                        setSelectedClient(client)
+                        setClientQuery(`${client.firstName} ${client.lastName}`)
+                        setClientOptions([])
+                      }}
+                    >
+                      <div style={{ fontWeight: 600 }}>{client.firstName} {client.lastName}</div>
+                      {client.phone && <div style={{ fontSize: 'var(--text-xs)', color: 'var(--gray-600)' }}>{client.phone}</div>}
+                    </div>
+                  ))}
+                </div>
+              )}
+              
+              {isSearchingClients && (
+                <div style={{ fontSize: 'var(--text-sm)', color: 'var(--gray-600)', marginTop: 'var(--space-2)' }}>
+                  Szukam...
+                </div>
+              )}
+              
+              {selectedClient && (
+                <div style={{ 
+                  marginTop: 'var(--space-3)', 
+                  padding: 'var(--space-3)', 
+                  background: 'var(--primary-50)', 
+                  borderRadius: 'var(--radius-lg)',
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center'
+                }}>
+                  <div>
+                    <div style={{ fontWeight: 600, color: 'var(--primary-700)' }}>
+                      ✓ Wybrany klient: {selectedClient.firstName} {selectedClient.lastName}
+                    </div>
+                    {selectedClient.phone && (
+                      <div style={{ fontSize: 'var(--text-sm)', color: 'var(--primary-600)' }}>{selectedClient.phone}</div>
+                    )}
+                  </div>
+                  <button 
+                    className="btn-sm secondary" 
+                    onClick={() => {
+                      setSelectedClient(null)
+                      setClientQuery('')
+                    }}
+                    disabled={isSaving}
+                  >
+                    Zmień
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
+          
+          {/* New Client Form */}
+          {showNewClientForm && (
+            <div>
+              <h3 style={{ fontSize: 'var(--text-lg)', fontWeight: 600, marginBottom: 'var(--space-4)' }}>
+                Dane nowego klienta
+              </h3>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-4)' }}>
+                <div className="form-group">
+                  <label className="form-label">Imię *</label>
+                  <input 
+                    type="text" 
+                    value={newClientForm.firstName}
+                    onChange={e => setNewClientForm({ ...newClientForm, firstName: e.target.value })}
+                    placeholder="Imię klienta"
+                    disabled={isSaving}
+                  />
+                </div>
+                <div className="form-group">
+                  <label className="form-label">Nazwisko *</label>
+                  <input 
+                    type="text" 
+                    value={newClientForm.lastName}
+                    onChange={e => setNewClientForm({ ...newClientForm, lastName: e.target.value })}
+                    placeholder="Nazwisko klienta"
+                    disabled={isSaving}
+                  />
+                </div>
+                <div className="form-group">
+                  <label className="form-label">Telefon</label>
+                  <input 
+                    type="tel" 
+                    value={newClientForm.phone}
+                    onChange={e => setNewClientForm({ ...newClientForm, phone: e.target.value })}
+                    placeholder="Numer telefonu"
+                    disabled={isSaving}
+                  />
+                </div>
+                <div className="form-group">
+                  <label className="form-label">Email</label>
+                  <input 
+                    type="email" 
+                    value={newClientForm.email}
+                    onChange={e => setNewClientForm({ ...newClientForm, email: e.target.value })}
+                    placeholder="Adres email"
+                    disabled={isSaving}
+                  />
+                </div>
+              </div>
+              <div style={{ fontSize: 'var(--text-xs)', color: 'var(--gray-600)', marginTop: 'var(--space-2)' }}>
+                * Pola wymagane
+              </div>
+            </div>
+          )}
           
           {/* Action Buttons */}
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-4)', marginTop: 'var(--space-6)' }}>
-            <button 
-              className="primary" 
-              onClick={handleSaveOffer}
-              disabled={!selectedClient || isSaving}
-            >
-              {isSaving ? '⏳ Zapisuję...' : '💾 Zapisz ofertę dla klienta'}
-            </button>
+            {showNewClientForm ? (
+              <button 
+                className="primary" 
+                onClick={handleCreateNewClient}
+                disabled={isSaving || !newClientForm.firstName || !newClientForm.lastName}
+              >
+                {isSaving ? '⏳ Tworzę klienta...' : '➕ Utwórz klienta i zapisz ofertę'}
+              </button>
+            ) : (
+              <button 
+                className="primary" 
+                onClick={handleSaveOffer}
+                disabled={!selectedClient || isSaving}
+              >
+                {isSaving ? '⏳ Zapisuję...' : '💾 Zapisz ofertę dla klienta'}
+              </button>
+            )}
             <button 
               className="secondary" 
               onClick={handleDownloadPDF}
@@ -1062,7 +1183,10 @@ export default function CalculatorNewPage() {
           </div>
           
           <div style={{ fontSize: 'var(--text-xs)', color: 'var(--gray-600)', marginTop: 'var(--space-4)', textAlign: 'center' }}>
-            💡 Oferta zostanie zapisana w systemie i przypisana do wybranego klienta
+            {showNewClientForm 
+              ? '💡 Nowy klient zostanie utworzony w systemie i od razu przypisana zostanie mu oferta'
+              : '💡 Oferta zostanie zapisana w systemie i przypisana do wybranego klienta z bazy'
+            }
           </div>
         </section>
       )}
