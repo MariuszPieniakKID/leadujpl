@@ -11,6 +11,7 @@ import Login from './pages/Login'
 import EmbeddedCalculator from './components/EmbeddedCalculator'
 import CalendarPage from './pages/Calendar'
 import ClientsPage from './pages/Clients'
+import ClientDetailsPage from './pages/ClientDetails'
 import SalesPage from './pages/Sales'
 import MyClientsPage from './pages/MyClients'
 import CalculatorPage from './pages/Calculator'
@@ -1702,6 +1703,7 @@ function App() {
           <Route path="/" element={<Protected><Dashboard /></Protected>} />
           <Route path="/calendar" element={<Protected><CalendarPage /></Protected>} />
           <Route path="/clients" element={<Protected roles={['ADMIN','MANAGER']}><ClientsPage /></Protected>} />
+          <Route path="/clients/:id" element={<Protected roles={['ADMIN','MANAGER']}><ClientDetailsPage /></Protected>} />
           <Route path="/sales" element={<Protected roles={['MANAGER','ADMIN']}><SalesPage /></Protected>} />
           <Route path="/my-clients" element={<Protected roles={['SALES_REP','MANAGER']}><MyClientsPage /></Protected>} />
           <Route path="/calculator" element={<Protected><CalculatorNewPage /></Protected>} />
