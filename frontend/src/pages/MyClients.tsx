@@ -1,9 +1,8 @@
 import { useEffect, useState } from 'react'
-import { createPortal } from 'react-dom'
-import api, { listClientOffers, downloadOffer, viewOffer, fetchOffer, listClientAttachments, type AttachmentItem, viewAttachmentUrl, downloadAttachmentUrl, getClientLatestStatus, setClientLatestStatus, deleteAttachment, fetchUsers, type AppUserSummary } from '../lib/api'
-import { offlineStore, pendingQueue, newLocalId } from '../lib/offline'
+import { Link } from 'react-router-dom'
 import { getUser } from '../lib/auth'
-import EmbeddedCalculator from '../components/EmbeddedCalculator'
+import api from '../lib/api'
+import { offlineStore } from '../lib/offline'
 
 type Client = {
   id: string
@@ -23,9 +22,6 @@ export default function MyClientsPage() {
   const [query, setQuery] = useState('')
   const [status, setStatus] = useState('')
   const [scope, setScope] = useState<'mine' | 'team'>('mine')
-  const [managers, setManagers] = useState<AppUserSummary[]>([])
-  const [managerId, setManagerId] = useState<string>('')
-  const [expanded, setExpanded] = useState<Record<string, boolean>>({})
   const user = getUser()
 
   async function load() {
@@ -33,12 +29,7 @@ export default function MyClientsPage() {
     setError(null)
     try {
       const isManager = user && user.role === 'MANAGER'
-      const isAdmin = user && user.role === 'ADMIN'
-      if (isAdmin) {
-        const res = await api.get<Client[]>('/api/clients', { params: { q: query || undefined, status: status || undefined, managerId: managerId || undefined } })
-        setClients(res.data)
-        try { for (const c of res.data) { await offlineStore.put('clients', c as any) } } catch {}
-      } else if (isManager && scope === 'team') {
+      if (isManager && scope === 'team') {
         const res = await api.get<Client[]>('/api/clients', { params: { q: query || undefined, status: status || undefined, scope: 'team' } })
         setClients(res.data)
         try { for (const c of res.data) { await offlineStore.put('clients', c as any) } } catch {}
@@ -48,7 +39,7 @@ export default function MyClientsPage() {
         try { for (const c of res.data) { await offlineStore.put('clients', c as any) } } catch {}
       }
     } catch (e: any) {
-      // Fallback offline
+      setError(e?.response?.data?.error || e?.message || 'Błąd ładowania klientów')
       try {
         const local = await offlineStore.getAll<Client>('clients')
         const q = (query || '').trim().toLowerCase()
@@ -58,118 +49,59 @@ export default function MyClientsPage() {
           return hay.includes(q)
         })
         setClients(filtered)
-        setError(null)
-      } catch {
-        setError(e?.response?.data?.error || e?.message || 'Nie udało się pobrać klientów')
-      }
+      } catch {}
     } finally {
       setLoading(false)
     }
   }
 
   useEffect(() => { load() }, [])
-  // Update list immediately when client added offline
-  useEffect(() => {
-    function onOfflineClientAdded(e: any) {
-      const c = e?.detail?.client as any
-      if (!c) return
-      setClients(prev => {
-        if (prev.find(x => (x as any).id === c.id)) return prev
-        return [c, ...prev]
-      })
-    }
-    window.addEventListener('offline-client-added', onOfflineClientAdded as any)
-    return () => window.removeEventListener('offline-client-added', onOfflineClientAdded as any)
-  }, [])
-
-  // Load managers list for admin filter
-  useEffect(() => {
-    const isAdmin = user && user.role === 'ADMIN'
-    if (!isAdmin) return
-    ;(async () => {
-      try {
-        const users = await fetchUsers()
-        setManagers(users.filter(u => u.role === 'MANAGER'))
-      } catch (e) {
-        // ignore
-      }
-    })()
-  }, [user?.role])
-
-  function exportCsv() {
-    if (!clients || clients.length === 0) {
-      alert('Brak danych do eksportu')
-      return
-    }
-    const headers = ['Imię', 'Nazwisko', 'Telefon', 'E-mail', 'Adres', 'Kategoria']
-    const rows = clients.map(c => {
-      const address = [c.street, c.city].filter(Boolean).join(', ')
-      const cat = (c.category && c.category.toUpperCase()) === 'PV' ? 'PV' : (c.category && c.category.toUpperCase()) === 'ME' ? 'ME' : ''
-      return [c.firstName || '', c.lastName || '', c.phone || '', c.email || '', address, cat]
-    })
-    const escapeCell = (v: string) => '"' + String(v).replace(/"/g, '""') + '"'
-    const sep = ';'
-    const lines = [headers.map(escapeCell).join(sep), ...rows.map(r => r.map(escapeCell).join(sep))]
-    const csv = '\ufeff' + lines.join('\n')
-    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
-    const a = document.createElement('a')
-    const url = URL.createObjectURL(blob)
-    a.href = url
-    const scopeLabel = (user && user.role === 'MANAGER' && scope === 'team') ? 'zespol' : 'moi'
-    const statusLabel = status || 'all'
-    a.download = `klienci_${scopeLabel}_${statusLabel}.csv`
-    a.click()
-    URL.revokeObjectURL(url)
-  }
 
   return (
     <div className="container">
       <div className="page-header">
         <div>
           <h1 className="page-title">Moi klienci</h1>
-          <p className="text-gray-600">Klienci z Twoimi spotkaniami</p>
+          <p className="text-gray-600">Klienci z którymi miałeś spotkania</p>
         </div>
-        <div className="flex items-center gap-4" style={{ flexWrap: 'wrap' }}>
-          <div className="form-group" style={{ margin: 0, flex: '1 1 240px', minWidth: 0 }}>
+      </div>
+
+      {/* Filters */}
+      <div className="card" style={{ marginBottom: 'var(--space-6)' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 'var(--space-4)' }}>
+          <div className="form-group" style={{ marginBottom: 0 }}>
             <label className="form-label">Szukaj</label>
-            <input className="form-input" placeholder="Nazwisko, telefon, e-mail, adres" value={query} onChange={e => setQuery(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') load() }} />
+            <input 
+              className="form-input" 
+              placeholder="Nazwisko, telefon..." 
+              value={query} 
+              onChange={e => setQuery(e.target.value)} 
+              onKeyDown={e => { if (e.key === 'Enter') load() }} 
+            />
           </div>
-          <div className="form-group" style={{ margin: 0, flex: '1 1 180px', minWidth: 0 }}>
-            <label className="form-label">Status spotkania</label>
+          <div className="form-group" style={{ marginBottom: 0 }}>
+            <label className="form-label">Status</label>
             <select className="form-select" value={status} onChange={e => setStatus(e.target.value)}>
               <option value="">Wszystkie</option>
               <option value="Sukces">Sukces</option>
+              <option value="Umowa">Umowa</option>
               <option value="Rezygnacja">Rezygnacja</option>
               <option value="Przełożone">Przełożone</option>
-              <option value="Umówione">Umówione</option>
-              <option value="Odbyte">Odbyte</option>
             </select>
           </div>
-          {(user && user.role === 'MANAGER') && (
-            <div className="form-group" style={{ margin: 0 }}>
+          {user && user.role === 'MANAGER' && (
+            <div className="form-group" style={{ marginBottom: 0 }}>
               <label className="form-label">Zakres</label>
-              <select className="form-select" value={scope} onChange={e => setScope(e.target.value as any)}>
+              <select className="form-select" value={scope} onChange={e => setScope(e.target.value as 'mine' | 'team')}>
                 <option value="mine">Moi klienci</option>
-                <option value="team">Klienci mojego zespołu</option>
+                <option value="team">Zespół</option>
               </select>
             </div>
           )}
-          {(user && user.role === 'ADMIN') && (
-            <div className="form-group" style={{ margin: 0 }}>
-              <label className="form-label">Manager</label>
-              <select className="form-select" value={managerId} onChange={e => setManagerId(e.target.value)}>
-                <option value="">Wszyscy</option>
-                {managers.map(m => (
-                  <option key={m.id} value={m.id}>{m.firstName} {m.lastName}</option>
-                ))}
-              </select>
-            </div>
-          )}
+        </div>
+        <div style={{ display: 'flex', gap: 'var(--space-3)', marginTop: 'var(--space-4)', alignItems: 'center' }}>
           <button className="secondary" onClick={load}>Filtruj</button>
-          {(user && user.role === 'ADMIN') && (
-            <button className="primary" onClick={exportCsv}>Eksport CSV</button>
-          )}
-          <span className="text-sm text-gray-500" style={{ flex: '0 0 auto' }}>{clients.length} klientów</span>
+          <span className="text-sm text-gray-500">{clients.length} klientów</span>
         </div>
       </div>
 
@@ -179,6 +111,7 @@ export default function MyClientsPage() {
         </div>
       )}
 
+      {/* Clients List */}
       <div className="card">
         {loading ? (
           <div className="text-center py-8 text-gray-500">Ładowanie…</div>
@@ -192,51 +125,38 @@ export default function MyClientsPage() {
             <p>Brak klientów</p>
           </div>
         ) : (
-          <div style={{ display: 'grid', gap: 8 }}>
+          <div style={{ display: 'grid', gap: 'var(--space-3)' }}>
             {clients.map(c => (
-              <div key={c.id} className="list-item" style={{ alignItems: 'stretch', overflowX: 'hidden', width: '100%', minWidth: 0 }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8, flexWrap: 'wrap', width: '100%', minWidth: 0 }}>
-                  <div style={{ display: 'flex', flexDirection: 'column' }}>
-                    <span className="font-medium">{c.firstName} {c.lastName}</span>
-                    <span style={{ color: 'var(--gray-600)', fontSize: 12 }}>{c.phone ? <a href={`tel:${String(c.phone).replace(/\s|-/g,'')}`}>{c.phone}</a> : '—'}</span>
-                  </div>
-                  <div className="client-actions" style={{ display: 'flex', gap: 8, flexShrink: 0, minWidth: 0 }}>
-                    {!expanded[c.id] && (
-                      <button className="btn btn-sm secondary" onClick={() => setExpanded(prev => ({ ...prev, [c.id]: true }))}>Szczegóły</button>
-                    )}
-                  </div>
+              <Link 
+                key={c.id} 
+                to={`/my-clients/${c.id}`} 
+                className="list-item" 
+                style={{ 
+                  textDecoration: 'none', 
+                  color: 'inherit', 
+                  transition: 'all 0.2s ease', 
+                  display: 'flex', 
+                  justifyContent: 'space-between', 
+                  alignItems: 'center',
+                  padding: 'var(--space-4)',
+                  borderRadius: 'var(--radius-xl)',
+                  background: 'white',
+                  border: '1px solid var(--gray-200)',
+                  cursor: 'pointer'
+                }}
+              >
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-1)' }}>
+                  <span style={{ fontWeight: 600, fontSize: 'var(--text-base)' }}>{c.firstName} {c.lastName}</span>
+                  <span style={{ color: 'var(--gray-600)', fontSize: 'var(--text-sm)' }}>{c.phone || c.email || '—'}</span>
+                  {c.city && <span style={{ color: 'var(--gray-500)', fontSize: 'var(--text-xs)' }}>📍 {c.city}</span>}
                 </div>
-                {expanded[c.id] && (
-                  <div style={{ marginTop: 8, display: 'grid', gridTemplateColumns: '1fr', gap: 8, minWidth: 0, overflow: 'hidden' }}>
-                    <div className="list" style={{ width: '100%', minWidth: 0 }}>
-                      <div className="list-row"><span>E-mail</span><span>{c.email ? <a href={`mailto:${c.email}`}>{c.email}</a> : <span className="text-gray-400">—</span>}</span></div>
-                      <div className="list-row"><span>Adres</span><span style={{ whiteSpace: 'normal', overflowWrap: 'anywhere' }}>{[c.street, c.city].filter(Boolean).join(', ') || <span className="text-gray-400">—</span>}</span></div>
-                      <div className="list-row"><span>Kod pocztowy</span><span>{(c as any).postalCode || <span className="text-gray-400">—</span>}</span></div>
-                      <div className="list-row"><span>Kategoria</span><span>{renderCategory(c.category)}</span></div>
-                    </div>
-                    <div className="client-status-actions" style={{ display: 'grid', gridTemplateColumns: '1fr', rowGap: 8, width: '100%', minWidth: 0 }}>
-                      <div style={{ width: '100%', minWidth: 0 }}>
-                        <ClientStatusAndActions clientId={c.id} />
-                      </div>
-                    </div>
-                    <div>
-                      <strong>Załączniki</strong>
-                      <div style={{ marginTop: 6 }}>
-                        <ClientAttachments clientId={c.id} />
-                      </div>
-                    </div>
-                    <div>
-                      <strong>Oferty</strong>
-                      <div style={{ marginTop: 6 }}>
-                        <ClientOffers clientId={c.id} />
-                      </div>
-                    </div>
-                    <div className="modal-footer" style={{ justifyContent: 'flex-end' }}>
-                      <button className="secondary" onClick={() => setExpanded(prev => ({ ...prev, [c.id]: false }))}>Zwiń</button>
-                    </div>
-                  </div>
-                )}
-              </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)', color: 'var(--primary-600)' }}>
+                  <span style={{ fontSize: 'var(--text-sm)', fontWeight: 600 }}>Zobacz</span>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="m9 18 6-6-6-6"/>
+                  </svg>
+                </div>
+              </Link>
             ))}
           </div>
         )}
@@ -244,342 +164,3 @@ export default function MyClientsPage() {
     </div>
   )
 }
-
-function ClientStatusAndActions({ clientId }: { clientId: string }) {
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
-  const [status, setStatus] = useState<string | null>(null)
-  const [meetingId, setMeetingId] = useState<string | null>(null)
-  const [uploading, setUploading] = useState(false)
-  const [info, setInfo] = useState<string | null>(null)
-  const [attCategory, setAttCategory] = useState<'umowa' | 'aum' | 'formatka kredytowa' | 'zdjęcia'>('umowa')
-  const categoryOptions = [
-    { value: 'umowa' as const, label: 'Umowa' },
-    { value: 'aum' as const, label: 'AUM' },
-    { value: 'formatka kredytowa' as const, label: 'Formatka kredytowa' },
-    { value: 'zdjęcia' as const, label: 'Zdjęcia' },
-  ]
-  const user = getUser()
-
-  async function load() {
-    try {
-      setLoading(true)
-      setError(null)
-      const s = await getClientLatestStatus(clientId)
-      setStatus(s.status)
-      setMeetingId(s.meetingId)
-    } catch (e: any) {
-      setError(e?.response?.data?.error || 'Nie udało się pobrać statusu')
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  useEffect(() => { load() }, [clientId])
-
-  async function onChangeStatus(next: string) {
-    try {
-      setError(null)
-      if (navigator.onLine) {
-        const res = await setClientLatestStatus(clientId, next as any)
-        setStatus(res.status)
-        setMeetingId(res.meetingId)
-      } else {
-        // Queue PATCH and optimistically update UI
-        await pendingQueue.enqueue({ id: newLocalId('att'), method: 'PATCH', url: (import.meta.env.VITE_API_BASE || '') + `/api/clients/${clientId}/status`, body: { status: next }, headers: {}, createdAt: Date.now(), entityStore: 'meetings' })
-        setStatus(next)
-      }
-      setInfo('Zapisano status')
-      setTimeout(() => setInfo(null), 1500)
-    } catch (e: any) {
-      setError(e?.response?.data?.error || 'Nie udało się zapisać statusu')
-    }
-  }
-
-  async function onUpload(files: FileList | null) {
-    if (!files || files.length === 0) return
-    if (!meetingId) { setError('Brak spotkania do przypisania plików'); return }
-    try {
-      setUploading(true)
-      if (navigator.onLine) {
-        const form = new FormData()
-        form.append('meetingId', meetingId)
-        form.append('clientId', clientId)
-        form.append('category', attCategory)
-        for (const f of Array.from(files)) form.append('files', f)
-        await api.post(`/api/attachments/upload`, form, { headers: { 'Content-Type': 'multipart/form-data' } })
-      } else {
-        for (const f of Array.from(files)) {
-          const id = newLocalId('att')
-          await offlineStore.put('attachments', { id, meetingId, clientId, fileName: f.name, data: f, uploaded: false, category: attCategory })
-        }
-      }
-      setInfo('Dodano pliki')
-      try { window.dispatchEvent(new CustomEvent('client-attachments-uploaded', { detail: { clientId } })) } catch {}
-      setTimeout(() => setInfo(null), 1500)
-    } catch (e: any) {
-      setError(e?.response?.data?.error || 'Nie udało się wgrać plików')
-    } finally {
-      setUploading(false)
-    }
-  }
-
-  if (loading) return <span className="text-sm text-gray-500">Ładowanie…</span>
-  // Admin has read-only view here
-  if (user && user.role === 'ADMIN') {
-    return <span className="text-sm text-gray-500">—</span>
-  }
-  return (
-    <div className="client-status-actions" style={{ display: 'grid', gridTemplateColumns: '1fr', rowGap: 8, width: '100%', minWidth: 0 }}>
-      <select className="form-select" value={status || ''} onChange={e => onChangeStatus(e.target.value)} style={{ width: '100%', minWidth: 0, maxWidth: '100%' }}>
-        <option value="">—</option>
-        <option value="Umówione">Umówione</option>
-        <option value="Odbyte">Odbyte</option>
-        <option value="Przełożone">Przełożone</option>
-        <option value="Sukces">Umowa</option>
-        <option value="Rezygnacja">Rezygnacja</option>
-      </select>
-      <div className="text-xs" style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', width: '100%', minWidth: 0, overflow: 'hidden' }}>
-        <span className="text-gray-600" style={{ minWidth: 90 }}>Rodzaj pliku:</span>
-        <div className="att-cat-row" style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center', paddingBottom: 4, minWidth: 0, maxWidth: '100%' }}>
-          {categoryOptions.map(opt => {
-            const selected = attCategory === opt.value
-            return (
-              <label key={opt.value} className="inline-flex items-center" style={{ gap: 6 }}>
-                <input type="radio" name={`att-cat-${clientId}`} value={opt.value} checked={selected} onChange={() => setAttCategory(opt.value)} style={{ display: 'none' }} />
-                <span
-                  aria-pressed={selected}
-                  role="button"
-                  style={{
-                    fontSize: 12,
-                    padding: '6px 10px',
-                    borderRadius: 9999,
-                    border: '1px solid',
-                    borderColor: selected ? 'var(--primary-500)' : 'var(--gray-300)',
-                    background: selected ? 'var(--primary-50)' : '#fff',
-                    color: selected ? 'var(--primary-700)' : 'var(--gray-700)',
-                    boxShadow: selected ? 'inset 0 0 0 1px var(--primary-100)' : 'none',
-                    display: 'inline-block'
-                  }}
-                >
-                  {opt.label}
-                </span>
-              </label>
-            )
-          })}
-        </div>
-      </div>
-      <label className="btn btn-sm secondary" style={{ margin: 0 }}>
-        {uploading ? 'Wgrywanie…' : 'Dodaj pliki'}
-        <input type="file" multiple onChange={e => onUpload(e.target.files)} style={{ display: 'none' }} />
-      </label>
-      <span className="text-xs" style={{ background: 'var(--gray-100)', color: 'var(--gray-700)', padding: '4px 8px', borderRadius: 9999 }}>
-        {categoryOptions.find(o => o.value === attCategory)?.label}
-      </span>
-      {info && <span className="text-xs text-green-600">{info}</span>}
-      {error && <span className="text-xs text-error">{error}</span>}
-    </div>
-  )
-}
-
-function ClientOffers({ clientId, defaultOpen = false }: { clientId: string; defaultOpen?: boolean }) {
-  const [offers, setOffers] = useState<Array<{ id: string; fileName: string; createdAt: string }>>([])
-  const [open, setOpen] = useState(!!defaultOpen)
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-  const [showCalcModal, setShowCalcModal] = useState(false)
-
-  async function load() {
-    try {
-      setLoading(true)
-      setError(null)
-      const list = await listClientOffers(clientId)
-      setOffers(list)
-    } catch (e: any) {
-      setError(e?.response?.data?.error || 'Nie udało się pobrać ofert')
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  useEffect(() => { if (open) { setShowCalcModal(false); load() } }, [])
-  return (
-    <div>
-      {!defaultOpen && (
-        <button className="btn btn-sm secondary" onClick={() => { const next = !open; setOpen(next); if (next) { setShowCalcModal(false); load() } }}>{open ? 'Ukryj' : 'Pokaż'}</button>
-      )}
-      {open && (
-        <div className="card" style={{ marginTop: 6 }}>
-          {loading ? <div className="text-sm text-gray-500">Ładowanie…</div> : error ? <div className="text-error text-sm">{error}</div> : (
-            offers.length === 0 ? (
-              <div>
-                {!showCalcModal ? (
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <div className="text-sm text-gray-500">Brak ofert</div>
-                    <button className="btn btn-sm primary" onClick={() => setShowCalcModal(true)}>Dodaj ofertę</button>
-                  </div>
-                ) : null}
-              </div>
-            ) : (
-              <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'grid', gap: 6 }}>
-                {offers.map(o => (
-                  <li key={o.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
-                    <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>{o.fileName}</span>
-                    <span style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
-                      <a className="btn btn-sm secondary" href={viewOffer(o.id)} target="_blank" rel="noreferrer">Podgląd</a>
-                      <button className="btn btn-sm secondary" onClick={async () => {
-                        try {
-                          const full = await fetchOffer(o.id)
-                          setShowCalcModal(true)
-                          setTimeout(() => {
-                            const host = document.querySelector('#calc-host')
-                            if (host) {
-                              ;(host as any).__offer = full
-                            }
-                          }, 0)
-                        } catch {}
-                      }}>Edytuj</button>
-                      <a className="btn btn-sm" href={downloadOffer(o.id)} target="_blank" rel="noreferrer">Pobierz</a>
-                    </span>
-                  </li>
-                ))}
-              </ul>
-            )
-          )}
-        </div>
-      )}
-
-      {showCalcModal && createPortal(
-        <div style={{ position: 'fixed', inset: 0, zIndex: 2147483647, display: 'flex', alignItems: 'flex-start', justifyContent: 'center', padding: 24 }}>
-          <div onClick={() => setShowCalcModal(false)} style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.25)' }} />
-          <div onClick={e => e.stopPropagation()} style={{ position: 'relative', background: '#fff', width: 'min(1000px, 95vw)', maxHeight: '90vh', overflow: 'auto', border: '1px solid var(--gray-200)', borderRadius: 8, boxShadow: '0 10px 30px rgba(0,0,0,0.15)' }}>
-            <div className="modal-header">
-              <h3 className="modal-title">Dodaj ofertę</h3>
-              <button className="secondary" onClick={() => setShowCalcModal(false)} style={{ padding: 'var(--space-2)' }}>
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path d="M18 6L6 18M6 6l12 12"/>
-                </svg>
-              </button>
-            </div>
-            <div id="calc-host" style={{ padding: 12 }}>
-              <EmbeddedCalculator
-                clientId={clientId}
-                onSaved={async () => { setShowCalcModal(false); await load() }}
-                offerId={(document.querySelector('#calc-host') as any)?.__offer?.id}
-                initialSnapshot={(document.querySelector('#calc-host') as any)?.__offer?.snapshot}
-              />
-            </div>
-          </div>
-        </div>,
-        document.body
-      )}
-    </div>
-  )
-}
-
-function ClientAttachments({ clientId, defaultOpen = false }: { clientId: string; defaultOpen?: boolean }) {
-  const [items, setItems] = useState<AttachmentItem[]>([])
-  const [open, setOpen] = useState(!!defaultOpen)
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-
-  async function load() {
-    try {
-      setLoading(true)
-      setError(null)
-      const list = await listClientAttachments(clientId)
-      setItems(list)
-    } catch (e: any) {
-      setError(e?.response?.data?.error || 'Nie udało się pobrać załączników')
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  // Auto-open and reload when any upload happens for this client
-  useEffect(() => {
-    function handler(e: any) {
-      if (e?.detail?.clientId === clientId) {
-        setOpen(true)
-        load()
-      }
-    }
-    window.addEventListener('client-attachments-uploaded', handler as any)
-    return () => window.removeEventListener('client-attachments-uploaded', handler as any)
-  }, [clientId])
-
-  // Group by category for clearer UX
-  const order = ['umowa', 'aum', 'formatka kredytowa', 'zdjęcia']
-  const groups = items.reduce<Record<string, AttachmentItem[]>>((acc, it) => {
-    const key = (it.category || 'Inne').toLowerCase()
-    acc[key] = acc[key] || []
-    acc[key].push(it)
-    return acc
-  }, {})
-  const sortedGroupKeys = Object.keys(groups).sort((a, b) => {
-    const ia = order.indexOf(a)
-    const ib = order.indexOf(b)
-    const aa = ia === -1 ? 999 : ia
-    const bb = ib === -1 ? 999 : ib
-    if (aa !== bb) return aa - bb
-    return a.localeCompare(b)
-  })
-
-  useEffect(() => { if (open) load() }, [])
-  return (
-    <div>
-      {!defaultOpen && (
-        <button className="btn btn-sm secondary" onClick={() => { setOpen(o => !o); if (!open) load() }}>{open ? 'Ukryj' : 'Pokaż'}</button>
-      )}
-      {open && (
-        <div className="card" style={{ marginTop: 6 }}>
-          {loading ? <div className="text-sm text-gray-500">Ładowanie…</div> : error ? <div className="text-error text-sm">{error}</div> : (
-            items.length === 0 ? <div className="text-sm text-gray-500">Brak załączników</div> : (
-              <div style={{ display: 'grid', gap: 10 }}>
-                {sortedGroupKeys.map(key => {
-                  const display = key === 'inne' ? 'Inne' : key.charAt(0).toUpperCase() + key.slice(1)
-                  const list = [...groups[key]].sort((a,b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
-                  return (
-                    <div key={key}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, margin: '6px 0' }}>
-                        <span style={{ fontSize: 12, background: 'var(--gray-100)', color: 'var(--gray-700)', padding: '4px 10px', borderRadius: 9999 }}>{display}</span>
-                        <span className="text-xs text-gray-500">{list.length}</span>
-                      </div>
-                      <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'grid', gap: 6 }}>
-                        {list.map(a => (
-                          <li key={a.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                            <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>{a.fileName}</span>
-                            <span style={{ display: 'flex', gap: 6 }}>
-                              <a className="btn btn-sm secondary" href={viewAttachmentUrl(a.id)} target="_blank" rel="noreferrer" aria-label="Podgląd" title="Podgląd">
-                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7Z"/><circle cx="12" cy="12" r="3"/></svg>
-                              </a>
-                              <a className="btn btn-sm" href={downloadAttachmentUrl(a.id)} target="_blank" rel="noreferrer" aria-label="Pobierz" title="Pobierz">
-                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-                              </a>
-                              <button className="btn btn-sm danger" onClick={async () => { if (!confirm('Usunąć plik trwale?')) return; try { await deleteAttachment(a.id); await load() } catch (e) {} }} aria-label="Usuń" title="Usuń">
-                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2"/></svg>
-                              </button>
-                            </span>
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  )
-                })}
-              </div>
-            )
-          )}
-        </div>
-      )}
-    </div>
-  )
-}
-
-function renderCategory(category?: string | null) {
-  if (!category || category.trim() === '') return <span className="text-gray-400">—</span>
-  const c = category.toUpperCase()
-  if (c === 'PV') return 'PV'
-  if (c === 'ME') return 'ME'
-  return <span className="text-gray-400">—</span>
-}
-

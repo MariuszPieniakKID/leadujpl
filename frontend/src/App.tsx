@@ -14,6 +14,7 @@ import ClientsPage from './pages/Clients'
 import ClientDetailsPage from './pages/ClientDetails'
 import SalesPage from './pages/Sales'
 import MyClientsPage from './pages/MyClients'
+import MyClientDetailsPage from './pages/MyClientDetails'
 import CalculatorPage from './pages/Calculator'
 import CalculatorNewPage from './pages/CalculatorNew'
 import CalculatorSettingsPage from './pages/CalculatorSettings'
@@ -1706,6 +1707,7 @@ function App() {
           <Route path="/clients/:id" element={<Protected roles={['ADMIN','MANAGER']}><ClientDetailsPage /></Protected>} />
           <Route path="/sales" element={<Protected roles={['MANAGER','ADMIN']}><SalesPage /></Protected>} />
           <Route path="/my-clients" element={<Protected roles={['SALES_REP','MANAGER']}><MyClientsPage /></Protected>} />
+          <Route path="/my-clients/:id" element={<Protected roles={['SALES_REP','MANAGER']}><MyClientDetailsPage /></Protected>} />
           <Route path="/calculator" element={<Protected><CalculatorNewPage /></Protected>} />
           <Route path="/calculator/old" element={<Protected><CalculatorPage /></Protected>} />
           <Route path="/calculator/settings" element={<Protected roles={['ADMIN']}><CalculatorSettingsPage /></Protected>} />
