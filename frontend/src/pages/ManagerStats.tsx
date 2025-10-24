@@ -50,15 +50,42 @@ export default function ManagerStatsPage() {
   }, [])
 
   const kpi = useMemo(() => {
-    const nowTs = Date.now()
-    const past = meetings.filter(m => new Date(m.scheduledAt).getTime() <= nowTs)
-    const future = meetings.filter(m => new Date(m.scheduledAt).getTime() > nowTs)
-    const contracts = meetings.filter(m => m.status === 'Sukces' || m.status === 'Umowa')
-    const rescheduled = meetings.filter(m => m.status === 'Przełożone')
-    const leads = new Set(meetings.map(m => m.clientId).filter(Boolean)).size
+    const now = new Date()
+    const nowTs = now.getTime()
+    
+    // Get range boundaries
+    let rangeStart: Date, rangeEnd: Date
+    if (range === 'week') {
+      rangeStart = startOfWeek(now)
+      rangeEnd = addDays(rangeStart, 7)
+    } else if (range === 'month') {
+      rangeStart = startOfMonth(now)
+      rangeEnd = addMonths(rangeStart, 1)
+    } else if (range === 'quarter') {
+      rangeStart = startOfQuarter(now)
+      rangeEnd = addMonths(rangeStart, 3)
+    } else {
+      rangeStart = startOfYear(now)
+      rangeEnd = addMonths(rangeStart, 12)
+    }
+    
+    const rangeStartTs = rangeStart.getTime()
+    const rangeEndTs = rangeEnd.getTime()
+    
+    // Filter meetings within range
+    const filteredMeetings = meetings.filter(m => {
+      const mTs = new Date(m.scheduledAt).getTime()
+      return mTs >= rangeStartTs && mTs < rangeEndTs
+    })
+    
+    const past = filteredMeetings.filter(m => new Date(m.scheduledAt).getTime() <= nowTs)
+    const future = filteredMeetings.filter(m => new Date(m.scheduledAt).getTime() > nowTs)
+    const contracts = filteredMeetings.filter(m => m.status === 'Sukces' || m.status === 'Umowa')
+    const rescheduled = filteredMeetings.filter(m => m.status === 'Przełożone')
+    const leads = new Set(filteredMeetings.map(m => m.clientId).filter(Boolean)).size
     const eff = past.length > 0 ? Math.round((contracts.length / past.length) * 100) : 0
     return { past: past.length, future: future.length, contracts: contracts.length, rescheduled: rescheduled.length, leads, eff }
-  }, [meetings])
+  }, [meetings, range])
 
   const effSeries = useMemo(() => buildEfficiencySeries(meetings, range), [meetings, range])
   const countSeries = useMemo(() => buildCountSeries(meetings, range), [meetings, range])

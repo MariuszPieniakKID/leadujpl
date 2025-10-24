@@ -147,11 +147,38 @@ export default function StatsPage() {
   }, [view, managerId, startDate, endDate, statusFilter, showPoints])
 
   const kpi = useMemo(() => {
-    const now = Date.now()
+    const now = new Date()
+    const nowTs = now.getTime()
+    
+    // Get range boundaries
+    let rangeStart: Date, rangeEnd: Date
+    if (range === 'week') {
+      rangeStart = startOfWeek(now)
+      rangeEnd = addDays(rangeStart, 7)
+    } else if (range === 'month') {
+      rangeStart = startOfMonth(now)
+      rangeEnd = addMonths(rangeStart, 1)
+    } else if (range === 'quarter') {
+      rangeStart = startOfQuarter(now)
+      rangeEnd = addMonths(rangeStart, 3)
+    } else {
+      rangeStart = startOfYear(now)
+      rangeEnd = addMonths(rangeStart, 12)
+    }
+    
+    const rangeStartTs = rangeStart.getTime()
+    const rangeEndTs = rangeEnd.getTime()
+    
+    // Filter meetings within range
+    const filteredMeetings = meetings.filter(m => {
+      const mTs = new Date(m.scheduledAt).getTime()
+      return mTs >= rangeStartTs && mTs < rangeEndTs
+    })
+    
     let past = 0, future = 0, success = 0, rescheduled = 0
     const uniqueClients = new Set<string>()
-    for (const m of meetings) {
-      const isPast = new Date(m.scheduledAt).getTime() <= now
+    for (const m of filteredMeetings) {
+      const isPast = new Date(m.scheduledAt).getTime() <= nowTs
       if (isPast) past++
       else future++
       // Sukces or Umowa = success
@@ -164,7 +191,7 @@ export default function StatsPage() {
     }
     const skutecznosc = past > 0 ? Math.round((success / past) * 100) : 0
     return { past, future, success, rescheduled, skutecznosc, leads: uniqueClients.size }
-  }, [meetings])
+  }, [meetings, range])
 
   const series = useMemo(() => buildEfficiencySeries(meetings, range), [meetings, range])
   const countSeries = useMemo(() => buildCountSeries(meetings, range), [meetings, range])
