@@ -23,7 +23,7 @@ router.post('/upload', requireAuth, upload.array('files', 10), async (req, res) 
       category: category?.trim() || null,
       fileName: f.originalname,
       mimeType: f.mimetype,
-      data: f.buffer,
+      data: Buffer.from(f.buffer),
     }})))
     res.status(201).json({ count: created.length })
   } catch (e) {
