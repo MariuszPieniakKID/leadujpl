@@ -355,12 +355,7 @@ export default function CalendarPage() {
         return
       }
       // Required extra info (except comments)
-      if (!createForm.pvInstalled) { setCreateError('Wybierz, czy klient posiada instalację PV'); return }
-      if (createForm.pvInstalled === 'TAK') {
-        if (!createForm.newRules) { setCreateError('Wybierz nowe/stare zasady (net-billing)'); return }
-        const pvNum = Number(String((createForm as any).pvPower || '').replace(',', '.'))
-        if (!(pvNum > 0)) { setCreateError('Podaj moc instalacji (kW)'); return }
-      }
+      if (!createForm.pvInstalled) { setCreateError('Wybierz moc instalacji PV'); return }
       if (!createForm.billRange) { setCreateError('Wybierz wysokość rachunków'); return }
       if (!createForm.buildingType) { setCreateError('Wybierz rodzaj zabudowy'); return }
       const attendeeId = canManageAll && selectedUserId ? selectedUserId : currentUser.id
@@ -368,6 +363,18 @@ export default function CalendarPage() {
       const endsAt = (createForm.endDate && createForm.endTime)
         ? composeIsoFromLocal(createForm.endDate, createForm.endTime)
         : undefined
+      // Parse PV range to pvInstalled boolean and pvPower number
+      const pvRange = createForm.pvInstalled
+      const pvInstalled = pvRange && pvRange !== '0'
+      let pvPower: number | undefined
+      if (pvInstalled && pvRange) {
+        if (pvRange === '3-5') pvPower = 4
+        else if (pvRange === '5-10') pvPower = 7.5
+        else if (pvRange === '10-15') pvPower = 12.5
+        else if (pvRange === '15-20') pvPower = 17.5
+        else if (pvRange === '20+') pvPower = 25
+      }
+      
       const client = {
         firstName: createForm.clientFirstName || undefined,
         lastName: createForm.clientLastName || undefined,
@@ -377,16 +384,16 @@ export default function CalendarPage() {
         city: createForm.clientCity || undefined,
         postalCode: createForm.postalCode || undefined,
         category: createForm.clientCategory || undefined,
-        newRules: createForm.newRules === 'TAK' ? true : (createForm.newRules === 'NIE' ? false : undefined),
+        newRules: undefined, // No longer collected in UI
         buildingType: createForm.buildingType || undefined,
         billRange: createForm.billRange || undefined,
-        pvInstalled: createForm.pvInstalled ? (createForm.pvInstalled === 'TAK') : undefined,
-        pvPower: createForm.pvPower ? Number(String(createForm.pvPower).replace(',','.')) : undefined,
+        pvInstalled: pvInstalled,
+        pvPower: pvPower,
         extraComments: createForm.extraComments || undefined,
       }
       // Only send client if any field provided
       const hasClient = Object.values(client).some(v => v && `${v}`.trim() !== '')
-      const pvInstalled = createForm.pvInstalled ? (createForm.pvInstalled === 'TAK') : undefined
+      const pvInstalledPayload = pvInstalled
       const billRange = createForm.billRange || undefined
       const extraComments = createForm.extraComments || undefined
       const payload = {
@@ -396,7 +403,7 @@ export default function CalendarPage() {
         location: createForm.location || undefined,
         attendeeId,
         ...(selectedClientId ? { clientId: selectedClientId } : (hasClient ? { client } : {})),
-        ...(pvInstalled !== undefined ? { pvInstalled } : {}),
+        ...(pvInstalledPayload !== undefined ? { pvInstalled: pvInstalledPayload } : {}),
         ...(billRange ? { billRange } : {}),
         ...(extraComments ? { extraComments } : {}),
         contactConsent: true,
@@ -472,6 +479,20 @@ export default function CalendarPage() {
       const m = res.data as any
       const start = new Date(m.scheduledAt)
       const end = m.endsAt ? new Date(m.endsAt) : addHours(start, 1)
+      // Map pvInstalled boolean + pvPower to range string
+      let pvRange = ''
+      if (m.pvInstalled === false) {
+        pvRange = '0'
+      } else if (m.pvInstalled === true && m.pvPower) {
+        const power = Number(m.pvPower)
+        if (power < 3) pvRange = '0'
+        else if (power <= 5) pvRange = '3-5'
+        else if (power <= 10) pvRange = '5-10'
+        else if (power <= 15) pvRange = '10-15'
+        else if (power <= 20) pvRange = '15-20'
+        else pvRange = '20+'
+      }
+      
       setEditForm({
         notes: m.notes || '',
         location: m.location || '',
@@ -484,7 +505,7 @@ export default function CalendarPage() {
         clientStreet: m.client?.street || '',
         clientCity: m.client?.city || '',
         clientCategory: m.client?.category || '',
-        pvInstalled: m.pvInstalled === true ? 'TAK' : (m.pvInstalled === false ? 'NIE' : ''),
+        pvInstalled: pvRange, // Now stores PV range
         billRange: m.billRange || '',
         extraComments: m.extraComments || '',
         status: m.status || '',
@@ -530,6 +551,20 @@ export default function CalendarPage() {
         if (m) {
           const start = new Date(m.scheduledAt)
           const end = m.endsAt ? new Date(m.endsAt) : addHours(start, 1)
+          // Map pvInstalled boolean + pvPower to range string
+          let pvRange = ''
+          if (m.pvInstalled === false) {
+            pvRange = '0'
+          } else if (m.pvInstalled === true && m.pvPower) {
+            const power = Number(m.pvPower)
+            if (power < 3) pvRange = '0'
+            else if (power <= 5) pvRange = '3-5'
+            else if (power <= 10) pvRange = '5-10'
+            else if (power <= 15) pvRange = '10-15'
+            else if (power <= 20) pvRange = '15-20'
+            else pvRange = '20+'
+          }
+          
           setEditForm({
             notes: m.notes || '',
             location: m.location || '',
@@ -542,7 +577,7 @@ export default function CalendarPage() {
             clientStreet: m.client?.street || '',
             clientCity: m.client?.city || '',
             clientCategory: m.client?.category || '',
-            pvInstalled: m.pvInstalled === true ? 'TAK' : (m.pvInstalled === false ? 'NIE' : ''),
+            pvInstalled: pvRange, // Now stores PV range
             billRange: m.billRange || '',
             extraComments: m.extraComments || '',
             status: m.status || '',
@@ -575,7 +610,9 @@ export default function CalendarPage() {
         location: editForm.location || undefined,
       }
       if (editForm.status) payload.status = editForm.status
-      if (editForm.pvInstalled) payload.pvInstalled = editForm.pvInstalled === 'TAK'
+      if (editForm.pvInstalled) {
+        payload.pvInstalled = editForm.pvInstalled !== '0'
+      }
       if (editForm.billRange) payload.billRange = editForm.billRange
       if (editForm.extraComments) payload.extraComments = editForm.extraComments
       const client = {
@@ -889,34 +926,16 @@ export default function CalendarPage() {
             {createSectionsOpen.extra && (
             <div className="form-grid-2">
               <div>
-                <label style={{ display: 'block', marginBottom: 4 }}>Czy posiada instalację PV?</label>
-                <div>
-                  <label style={{ marginRight: 12 }}>
-                    <input type="radio" name="pvInstalledCreate" checked={createForm.pvInstalled === 'TAK'} onChange={() => setCreateForm({ ...createForm, pvInstalled: 'TAK' })} /> TAK
-                  </label>
-                  <label>
-                    <input type="radio" name="pvInstalledCreate" checked={createForm.pvInstalled === 'NIE'} onChange={() => setCreateForm({ ...createForm, pvInstalled: 'NIE' })} /> NIE
-                  </label>
-                </div>
-                {createForm.pvInstalled === 'TAK' && (
-                  <div style={{ marginTop: 8, display: 'grid', gridTemplateColumns: '1fr', gap: 8 }}>
-                    <div>
-                      <label>Nowe zasady (net-billing)</label>
-                      <div>
-                        <label style={{ marginRight: 12 }}>
-                          <input type="radio" name="newRulesCreateCal" checked={createForm.newRules === 'TAK'} onChange={() => setCreateForm({ ...createForm, newRules: 'TAK' })} /> TAK (nowe)
-                        </label>
-                        <label>
-                          <input type="radio" name="newRulesCreateCal" checked={createForm.newRules === 'NIE'} onChange={() => setCreateForm({ ...createForm, newRules: 'NIE' })} /> NIE (stare)
-                        </label>
-                      </div>
-                    </div>
-                    <div>
-                      <label>Jaka moc (kW)</label>
-                      <input type="number" step="0.1" min="0" inputMode="decimal" pattern="[0-9]*[.,]?[0-9]*" value={(createForm as any).pvPower || ''} onChange={e => setCreateForm({ ...createForm, pvPower: e.target.value } as any)} />
-                    </div>
-                  </div>
-                )}
+                <label style={{ display: 'block', marginBottom: 4 }}>Moc instalacji PV (kW)</label>
+                <select value={createForm.pvInstalled} onChange={e => setCreateForm({ ...createForm, pvInstalled: e.target.value })}>
+                  <option value="">— wybierz —</option>
+                  <option value="0">0 (brak instalacji)</option>
+                  <option value="3-5">3-5 kW</option>
+                  <option value="5-10">5-10 kW</option>
+                  <option value="10-15">10-15 kW</option>
+                  <option value="15-20">15-20 kW</option>
+                  <option value="20+">20+ kW</option>
+                </select>
               </div>
               <div>
                 <label>Wysokość rachunków (zł)</label>
@@ -1285,15 +1304,16 @@ export default function CalendarPage() {
             {editSectionsOpen.extra && (
             <div className="form-grid-2">
               <div>
-                <label style={{ display: 'block', marginBottom: 4 }}>Czy posiada instalację PV?</label>
-                <div>
-                  <label style={{ marginRight: 12 }}>
-                    <input type="radio" name="pvInstalledEdit" checked={editForm.pvInstalled === 'TAK'} onChange={() => setEditForm({ ...editForm, pvInstalled: 'TAK' })} /> TAK
-                  </label>
-                  <label>
-                    <input type="radio" name="pvInstalledEdit" checked={editForm.pvInstalled === 'NIE'} onChange={() => setEditForm({ ...editForm, pvInstalled: 'NIE' })} /> NIE
-                  </label>
-                </div>
+                <label style={{ display: 'block', marginBottom: 4 }}>Moc instalacji PV (kW)</label>
+                <select value={editForm.pvInstalled} onChange={e => setEditForm({ ...editForm, pvInstalled: e.target.value })}>
+                  <option value="">— wybierz —</option>
+                  <option value="0">0 (brak instalacji)</option>
+                  <option value="3-5">3-5 kW</option>
+                  <option value="5-10">5-10 kW</option>
+                  <option value="10-15">10-15 kW</option>
+                  <option value="15-20">15-20 kW</option>
+                  <option value="20+">20+ kW</option>
+                </select>
               </div>
               <div>
                 <label>Wysokość rachunków (zł)</label>
