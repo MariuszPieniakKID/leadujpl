@@ -849,7 +849,7 @@ export default function CalendarPage() {
                     const { endDate, endTime } = computeEndForStart(createForm.startDate, startTime)
                     setCreateForm({ ...createForm, startTime, endDate, endTime })
                   }}>
-                    {Array.from({ length: 24 }).map((_, h) => (
+                    {Array.from({ length: 15 }, (_, i) => i + 7).map(h => (
                       [0,30].map(mn => {
                         const hh = String(h).padStart(2, '0')
                         const mm = String(mn).padStart(2, '0')

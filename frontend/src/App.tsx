@@ -1246,7 +1246,7 @@ async function refreshManagerAggregates() {
                   const end = new Date(start.getTime() + 60 * 60 * 1000)
                   setCreateForm({ ...createForm, startTime: v, endDate: toLocalDateValue(end), endTime: toLocalTimeValue(end) })
                 }}>
-                  {Array.from({ length: 24 }).map((_, h) => (
+                  {Array.from({ length: 15 }, (_, i) => i + 7).map(h => (
                     [0,30].map(mn => {
                       const hh = String(h).padStart(2, '0')
                       const mm = String(mn).padStart(2, '0')
