@@ -112,4 +112,64 @@ export function clearAuth() {
   localStorage.removeItem('offline_credentials')
 }
 
+// Verify user still exists on server (called when going online)
+export async function verifyUserExists(): Promise<{ valid: boolean; shouldLogout: boolean; user?: User }> {
+  const token = getToken()
+  
+  if (!token) {
+    return { valid: false, shouldLogout: false }
+  }
+  
+  // Check if token is offline token (base64 encoded with offline flag)
+  try {
+    const decoded = JSON.parse(atob(token))
+    if (decoded.offline === true) {
+      // Offline token - skip verification when offline
+      if (!navigator.onLine) {
+        return { valid: true, shouldLogout: false }
+      }
+      // Online but using offline token - should re-login online
+      console.log('[Auth] Using offline token while online - verification needed')
+    }
+  } catch {
+    // Not a base64 offline token, continue with verification
+  }
+  
+  try {
+    // Try to verify with backend
+    const response = await fetch((import.meta.env.VITE_API_BASE || '') + '/api/auth/verify', {
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    })
+    
+    if (response.status === 401) {
+      // User was deleted or token invalid
+      const data = await response.json()
+      console.warn('[Auth] User verification failed:', data.error)
+      return { valid: false, shouldLogout: true }
+    }
+    
+    if (!response.ok) {
+      // Server error - don't logout, just log the error
+      console.error('[Auth] Verification request failed:', response.status)
+      return { valid: false, shouldLogout: false }
+    }
+    
+    const data = await response.json()
+    
+    if (data.valid && data.user) {
+      // Update stored user data with fresh data from server
+      saveAuth(token, data.user)
+      return { valid: true, shouldLogout: false, user: data.user }
+    }
+    
+    return { valid: false, shouldLogout: true }
+  } catch (error) {
+    // Network error or offline - don't logout
+    console.log('[Auth] Verification failed (network error):', error)
+    return { valid: false, shouldLogout: false }
+  }
+}
+
 

@@ -20,7 +20,7 @@ import AccountPage from './pages/Account'
 import StatsPage from './pages/Stats'
 import ManagerStatsPage from './pages/ManagerStats'
 import FeedPage from './pages/Feed'
-import { clearAuth, getToken, getUser } from './lib/auth'
+import { clearAuth, getToken, getUser, verifyUserExists } from './lib/auth'
 import MobileNav from './components/MobileNav'
 import { polishPhoneHtmlPattern, polishPhoneTitle, isValidPolishPhone } from './lib/phone'
 import Logo from './components/Logo'
@@ -1643,6 +1643,49 @@ function AdminPage() {
 }
 
 function App() {
+  // Verify user exists on mount and when going online
+  useEffect(() => {
+    const checkUserValidity = async () => {
+      const result = await verifyUserExists()
+      
+      if (result.shouldLogout) {
+        console.warn('[App] User no longer valid - logging out')
+        alert('Twoje konto zostało usunięte lub dezaktywowane. Zostaniesz wylogowany.')
+        clearAuth()
+        window.location.href = '/login'
+      } else if (result.valid && result.user) {
+        console.log('[App] User verification successful')
+      }
+    }
+    
+    // Check on mount (if online)
+    if (navigator.onLine && getToken()) {
+      checkUserValidity()
+    }
+    
+    // Check when going online
+    const handleOnline = () => {
+      console.log('[App] Went online - verifying user')
+      if (getToken()) {
+        checkUserValidity()
+      }
+    }
+    
+    window.addEventListener('online', handleOnline)
+    
+    // Periodic check every 5 minutes (if online)
+    const interval = setInterval(() => {
+      if (navigator.onLine && getToken()) {
+        checkUserValidity()
+      }
+    }, 5 * 60 * 1000)
+    
+    return () => {
+      window.removeEventListener('online', handleOnline)
+      clearInterval(interval)
+    }
+  }, [])
+  
   function useIsMobile() {
     const [isMobile, setIsMobile] = useState(false)
     useEffect(() => {

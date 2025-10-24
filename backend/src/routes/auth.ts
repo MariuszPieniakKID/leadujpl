@@ -73,6 +73,49 @@ router.post('/accept-terms', requireAuth, async (req, res) => {
   }
 })
 
+// Verify that user still exists and is active
+router.get('/verify', requireAuth, async (req, res) => {
+  try {
+    const userId = req.user!.id
+    
+    // Check if user exists in database
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: {
+        id: true,
+        email: true,
+        firstName: true,
+        lastName: true,
+        role: true,
+        managerId: true,
+        termsAcceptedAt: true,
+      },
+    })
+    
+    if (!user) {
+      // User was deleted - return 401 to force logout
+      return res.status(401).json({ error: 'User no longer exists', deleted: true })
+    }
+    
+    // User exists - return fresh user data
+    return res.json({ 
+      valid: true, 
+      user: {
+        id: user.id,
+        email: user.email,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        role: user.role,
+        managerId: user.managerId || null,
+        termsAcceptedAt: user.termsAcceptedAt || null,
+      }
+    })
+  } catch (e) {
+    console.error('[Auth] Verify error:', e)
+    return res.status(500).json({ error: 'Verification failed' })
+  }
+})
+
 export default router;
 
 
