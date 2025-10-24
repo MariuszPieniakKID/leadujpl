@@ -461,12 +461,35 @@ async function refreshManagerAggregates() {
         setCreateError('Aby zapisać wydarzenie, zaznacz wymagany checkbox zgody.')
         return
       }
+      // Required client info (except email)
+      if (!createForm.clientFirstName || !createForm.clientFirstName.trim()) {
+        setCreateError('Imię klienta jest wymagane')
+        return
+      }
+      if (!createForm.clientLastName || !createForm.clientLastName.trim()) {
+        setCreateError('Nazwisko klienta jest wymagane')
+        return
+      }
+      if (!createForm.clientPhone || !createForm.clientPhone.trim()) {
+        setCreateError('Telefon klienta jest wymagany')
+        return
+      }
       // Validate phone number
-      if (createForm.clientPhone && createForm.clientPhone.trim() !== '') {
-        if (!isValidPolishPhone(createForm.clientPhone)) {
-          setCreateError('Nieprawidłowy numer telefonu (wymagany format polski)')
-          return
-        }
+      if (!isValidPolishPhone(createForm.clientPhone)) {
+        setCreateError('Nieprawidłowy numer telefonu (wymagany format polski)')
+        return
+      }
+      if (!createForm.clientStreet || !createForm.clientStreet.trim()) {
+        setCreateError('Ulica klienta jest wymagana')
+        return
+      }
+      if (!createForm.clientCity || !createForm.clientCity.trim()) {
+        setCreateError('Miasto klienta jest wymagane')
+        return
+      }
+      if (!createForm.postalCode || !createForm.postalCode.trim()) {
+        setCreateError('Kod pocztowy jest wymagany')
+        return
       }
       // Required extra info (except comments)
       if (!createForm.pvInstalled) { setCreateError('Wybierz moc instalacji PV'); return }
@@ -1264,32 +1287,32 @@ async function refreshManagerAggregates() {
               <h4 className="text-lg font-semibold text-gray-800 mb-4">Dane nowego klienta</h4>
               <div className="form-grid-2">
                 <div className="form-group">
-                  <label className="form-label">Imię</label>
-                  <input className="form-input" value={createForm.clientFirstName} onChange={e => setCreateForm({ ...createForm, clientFirstName: e.target.value })} />
+                  <label className="form-label">Imię *</label>
+                  <input className="form-input" value={createForm.clientFirstName} onChange={e => setCreateForm({ ...createForm, clientFirstName: e.target.value })} required />
                 </div>
                 <div className="form-group">
-                  <label className="form-label">Nazwisko</label>
-                  <input className="form-input" value={createForm.clientLastName} onChange={e => setCreateForm({ ...createForm, clientLastName: e.target.value })} />
+                  <label className="form-label">Nazwisko *</label>
+                  <input className="form-input" value={createForm.clientLastName} onChange={e => setCreateForm({ ...createForm, clientLastName: e.target.value })} required />
                 </div>
                 <div className="form-group">
-                  <label className="form-label">Telefon</label>
-                  <input className="form-input" value={createForm.clientPhone} onChange={e => setCreateForm({ ...createForm, clientPhone: e.target.value })} pattern={polishPhoneHtmlPattern} title={polishPhoneTitle} inputMode="tel" />
+                  <label className="form-label">Telefon *</label>
+                  <input className="form-input" value={createForm.clientPhone} onChange={e => setCreateForm({ ...createForm, clientPhone: e.target.value })} pattern={polishPhoneHtmlPattern} title={polishPhoneTitle} inputMode="tel" required />
                 </div>
                 <div className="form-group">
-                  <label className="form-label">Ulica</label>
-                  <input className="form-input" value={createForm.clientStreet} onChange={e => setCreateForm({ ...createForm, clientStreet: e.target.value })} />
+                  <label className="form-label">Ulica *</label>
+                  <input className="form-input" value={createForm.clientStreet} onChange={e => setCreateForm({ ...createForm, clientStreet: e.target.value })} required />
                 </div>
                 <div className="form-group">
-                  <label className="form-label">Miasto</label>
-                  <input className="form-input" value={createForm.clientCity} onChange={e => setCreateForm({ ...createForm, clientCity: e.target.value })} />
+                  <label className="form-label">Miasto *</label>
+                  <input className="form-input" value={createForm.clientCity} onChange={e => setCreateForm({ ...createForm, clientCity: e.target.value })} required />
                 </div>
                 <div className="form-group">
-                  <label className="form-label">Kod pocztowy</label>
-                  <input className="form-input" value={createForm.postalCode} onChange={e => setCreateForm({ ...createForm, postalCode: e.target.value })} />
+                  <label className="form-label">Kod pocztowy *</label>
+                  <input className="form-input" value={createForm.postalCode} onChange={e => setCreateForm({ ...createForm, postalCode: e.target.value })} required />
                 </div>
                 <div className="form-group">
                   <label className="form-label">E-mail (opcjonalne)</label>
-                  <input className="form-input" value={createForm.clientEmail} onChange={e => setCreateForm({ ...createForm, clientEmail: e.target.value })} />
+                  <input className="form-input" type="email" value={createForm.clientEmail} onChange={e => setCreateForm({ ...createForm, clientEmail: e.target.value })} />
                 </div>
                 <div className="form-group" style={{ gridColumn: '1 / -1' }}>
                   <button className="secondary" onClick={fillCreateAddressFromGeolocation} disabled={geoLoading}>{geoLoading ? 'Pobieram położenie…' : 'Dodaj położenie'}</button>

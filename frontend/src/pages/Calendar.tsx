@@ -15,7 +15,7 @@ import api, { listMeetingAttachments, type AttachmentItem, viewAttachmentUrl, do
 import { offlineStore, pendingQueue, newLocalId } from '../lib/offline'
 import EmbeddedCalculator from '../components/EmbeddedCalculator'
 import { listClientOffers, downloadOffer, fetchOffer } from '../lib/api'
-import { polishPhoneHtmlPattern, polishPhoneTitle } from '../lib/phone'
+import { polishPhoneHtmlPattern, polishPhoneTitle, isValidPolishPhone } from '../lib/phone'
 import { getUser } from '../lib/auth'
 
 type EditMeta = {
@@ -352,6 +352,36 @@ export default function CalendarPage() {
       setCreateError(null)
       if (!createForm.contactConsent) {
         setCreateError('Aby zapisać wydarzenie, zaznacz wymagany checkbox zgody.')
+        return
+      }
+      // Required client info (except email)
+      if (!createForm.clientFirstName || !createForm.clientFirstName.trim()) {
+        setCreateError('Imię klienta jest wymagane')
+        return
+      }
+      if (!createForm.clientLastName || !createForm.clientLastName.trim()) {
+        setCreateError('Nazwisko klienta jest wymagane')
+        return
+      }
+      if (!createForm.clientPhone || !createForm.clientPhone.trim()) {
+        setCreateError('Telefon klienta jest wymagany')
+        return
+      }
+      // Validate phone number
+      if (!isValidPolishPhone(createForm.clientPhone)) {
+        setCreateError('Nieprawidłowy numer telefonu (wymagany format polski)')
+        return
+      }
+      if (!createForm.clientStreet || !createForm.clientStreet.trim()) {
+        setCreateError('Ulica klienta jest wymagana')
+        return
+      }
+      if (!createForm.clientCity || !createForm.clientCity.trim()) {
+        setCreateError('Miasto klienta jest wymagane')
+        return
+      }
+      if (!createForm.postalCode || !createForm.postalCode.trim()) {
+        setCreateError('Kod pocztowy jest wymagany')
         return
       }
       // Required extra info (except comments)
@@ -875,32 +905,32 @@ export default function CalendarPage() {
             <div className="form-grid-2">
               {/* Pola klienta */}
               <div>
-                <label>Imię</label>
-                <input value={createForm.clientFirstName} onChange={e => setCreateForm({ ...createForm, clientFirstName: e.target.value })} />
+                <label>Imię *</label>
+                <input value={createForm.clientFirstName} onChange={e => setCreateForm({ ...createForm, clientFirstName: e.target.value })} required />
               </div>
               <div>
-                <label>Nazwisko</label>
-                <input value={createForm.clientLastName} onChange={e => setCreateForm({ ...createForm, clientLastName: e.target.value })} />
+                <label>Nazwisko *</label>
+                <input value={createForm.clientLastName} onChange={e => setCreateForm({ ...createForm, clientLastName: e.target.value })} required />
               </div>
               <div>
-                <label>Telefon</label>
-                <input value={createForm.clientPhone} onChange={e => setCreateForm({ ...createForm, clientPhone: e.target.value })} pattern={polishPhoneHtmlPattern} title={polishPhoneTitle} inputMode="tel" />
+                <label>Telefon *</label>
+                <input value={createForm.clientPhone} onChange={e => setCreateForm({ ...createForm, clientPhone: e.target.value })} pattern={polishPhoneHtmlPattern} title={polishPhoneTitle} inputMode="tel" required />
               </div>
               <div>
-                <label>Ulica</label>
-                <input value={createForm.clientStreet} onChange={e => setCreateForm({ ...createForm, clientStreet: e.target.value })} />
+                <label>Ulica *</label>
+                <input value={createForm.clientStreet} onChange={e => setCreateForm({ ...createForm, clientStreet: e.target.value })} required />
               </div>
               <div>
-                <label>Miasto</label>
-                <input value={createForm.clientCity} onChange={e => setCreateForm({ ...createForm, clientCity: e.target.value })} />
+                <label>Miasto *</label>
+                <input value={createForm.clientCity} onChange={e => setCreateForm({ ...createForm, clientCity: e.target.value })} required />
               </div>
               <div>
-                <label>Kod pocztowy</label>
-                <input value={createForm.postalCode} onChange={e => setCreateForm({ ...createForm, postalCode: e.target.value })} />
+                <label>Kod pocztowy *</label>
+                <input value={createForm.postalCode} onChange={e => setCreateForm({ ...createForm, postalCode: e.target.value })} required />
               </div>
               <div>
                 <label>E-mail (opcjonalne)</label>
-                <input value={createForm.clientEmail} onChange={e => setCreateForm({ ...createForm, clientEmail: e.target.value })} />
+                <input type="email" value={createForm.clientEmail} onChange={e => setCreateForm({ ...createForm, clientEmail: e.target.value })} />
               </div>
               <div style={{ gridColumn: '1 / -1' }}>
                 <button className="secondary" onClick={fillCreateAddressFromGeolocation} disabled={geoLoading}>{geoLoading ? 'Pobieram położenie…' : 'Dodaj położenie'}</button>
