@@ -84,7 +84,7 @@ function Dashboard() {
   const [managerUpcoming, setManagerUpcoming] = useState<Array<{ id: string; date: string; time: string; place: string; topic: string }>>([])
   const [myPoints, setMyPoints] = useState<number>(0)
   const [managerRecent, setManagerRecent] = useState<Array<{ id: string; date: string; time: string; place: string; topic: string }>>([])
-  const [statsFilter, setStatsFilter] = useState<'today' | 'yesterday' | 'tomorrow'>('today')
+  const [statsFilter, setStatsFilter] = useState<'today' | 'yesterday' | 'tomorrow' | 'week' | 'month'>('today')
 
 async function refreshManagerAggregates() {
     if (!user || user.role !== 'MANAGER') return
@@ -309,32 +309,45 @@ async function refreshManagerAggregates() {
   }
 
   const stats = useMemo(() => {
-    // Calculate start and end of the selected day based on filter
+    // Calculate start and end of the selected period based on filter
     const now = new Date()
-    let startOfDay: Date
-    let endOfDay: Date
+    let startOfPeriod: Date
+    let endOfPeriod: Date
     
     if (statsFilter === 'today') {
-      startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0)
-      endOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999)
+      startOfPeriod = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0)
+      endOfPeriod = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999)
     } else if (statsFilter === 'yesterday') {
       const yesterday = new Date(now)
       yesterday.setDate(yesterday.getDate() - 1)
-      startOfDay = new Date(yesterday.getFullYear(), yesterday.getMonth(), yesterday.getDate(), 0, 0, 0, 0)
-      endOfDay = new Date(yesterday.getFullYear(), yesterday.getMonth(), yesterday.getDate(), 23, 59, 59, 999)
-    } else { // tomorrow
+      startOfPeriod = new Date(yesterday.getFullYear(), yesterday.getMonth(), yesterday.getDate(), 0, 0, 0, 0)
+      endOfPeriod = new Date(yesterday.getFullYear(), yesterday.getMonth(), yesterday.getDate(), 23, 59, 59, 999)
+    } else if (statsFilter === 'tomorrow') {
       const tomorrow = new Date(now)
       tomorrow.setDate(tomorrow.getDate() + 1)
-      startOfDay = new Date(tomorrow.getFullYear(), tomorrow.getMonth(), tomorrow.getDate(), 0, 0, 0, 0)
-      endOfDay = new Date(tomorrow.getFullYear(), tomorrow.getMonth(), tomorrow.getDate(), 23, 59, 59, 999)
+      startOfPeriod = new Date(tomorrow.getFullYear(), tomorrow.getMonth(), tomorrow.getDate(), 0, 0, 0, 0)
+      endOfPeriod = new Date(tomorrow.getFullYear(), tomorrow.getMonth(), tomorrow.getDate(), 23, 59, 59, 999)
+    } else if (statsFilter === 'week') {
+      // Current week (Monday to Sunday)
+      const dayOfWeek = now.getDay()
+      const diff = dayOfWeek === 0 ? -6 : 1 - dayOfWeek // Monday as start
+      const monday = new Date(now)
+      monday.setDate(now.getDate() + diff)
+      startOfPeriod = new Date(monday.getFullYear(), monday.getMonth(), monday.getDate(), 0, 0, 0, 0)
+      const sunday = new Date(startOfPeriod)
+      sunday.setDate(startOfPeriod.getDate() + 6)
+      endOfPeriod = new Date(sunday.getFullYear(), sunday.getMonth(), sunday.getDate(), 23, 59, 59, 999)
+    } else { // month
+      startOfPeriod = new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0, 0)
+      endOfPeriod = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999)
     }
     
-    const startTs = startOfDay.getTime()
-    const endTs = endOfDay.getTime()
+    const startTs = startOfPeriod.getTime()
+    const endTs = endOfPeriod.getTime()
     const nowTs = Date.now()
     
-    // Filter meetings for the selected day
-    const dayMeetings = meetings.filter(m => {
+    // Filter meetings for the selected period
+    const periodMeetings = meetings.filter(m => {
       const meetingTs = new Date(m.scheduledAt).getTime()
       return meetingTs >= startTs && meetingTs <= endTs
     })
@@ -344,7 +357,7 @@ async function refreshManagerAggregates() {
     let successPast = 0
     let unfinishedPast = 0
     
-    for (const m of dayMeetings) {
+    for (const m of periodMeetings) {
       const isPast = new Date(m.scheduledAt).getTime() <= nowTs
       if (isPast) {
         pastCount += 1
@@ -1096,47 +1109,72 @@ async function refreshManagerAggregates() {
             )}
           </section>
           <section className="card">
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="card-title">Twoje statystyki</h3>
-              <div style={{ display: 'flex', gap: 'var(--space-2)' }}>
+            <div style={{ marginBottom: 'var(--space-4)' }}>
+              <h3 className="card-title" style={{ marginBottom: 'var(--space-3)' }}>Twoje statystyki</h3>
+              <div style={{ 
+                display: 'grid', 
+                gridTemplateColumns: 'repeat(auto-fit, minmax(75px, 1fr))',
+                gap: 'var(--space-2)'
+              }}>
                 <button 
-                  className={statsFilter === 'yesterday' ? 'primary' : 'secondary'} 
+                  className={statsFilter === 'yesterday' ? 'primary btn-sm' : 'secondary btn-sm'} 
                   onClick={() => setStatsFilter('yesterday')}
                   style={{ 
-                    padding: 'var(--space-2) var(--space-3)',
-                    fontSize: 'var(--text-sm)',
+                    padding: 'var(--space-2) var(--space-2)',
+                    fontSize: '0.75rem',
                     fontWeight: 600,
-                    borderRadius: 'var(--radius-lg)',
-                    transition: 'all 0.2s ease'
+                    whiteSpace: 'nowrap'
                   }}
                 >
                   Wczoraj
                 </button>
                 <button 
-                  className={statsFilter === 'today' ? 'primary' : 'secondary'} 
+                  className={statsFilter === 'today' ? 'primary btn-sm' : 'secondary btn-sm'} 
                   onClick={() => setStatsFilter('today')}
                   style={{ 
-                    padding: 'var(--space-2) var(--space-3)',
-                    fontSize: 'var(--text-sm)',
+                    padding: 'var(--space-2) var(--space-2)',
+                    fontSize: '0.75rem',
                     fontWeight: 600,
-                    borderRadius: 'var(--radius-lg)',
-                    transition: 'all 0.2s ease'
+                    whiteSpace: 'nowrap'
                   }}
                 >
                   Dzisiaj
                 </button>
                 <button 
-                  className={statsFilter === 'tomorrow' ? 'primary' : 'secondary'} 
+                  className={statsFilter === 'tomorrow' ? 'primary btn-sm' : 'secondary btn-sm'} 
                   onClick={() => setStatsFilter('tomorrow')}
                   style={{ 
-                    padding: 'var(--space-2) var(--space-3)',
-                    fontSize: 'var(--text-sm)',
+                    padding: 'var(--space-2) var(--space-2)',
+                    fontSize: '0.75rem',
                     fontWeight: 600,
-                    borderRadius: 'var(--radius-lg)',
-                    transition: 'all 0.2s ease'
+                    whiteSpace: 'nowrap'
                   }}
                 >
                   Jutro
+                </button>
+                <button 
+                  className={statsFilter === 'week' ? 'primary btn-sm' : 'secondary btn-sm'} 
+                  onClick={() => setStatsFilter('week')}
+                  style={{ 
+                    padding: 'var(--space-2) var(--space-2)',
+                    fontSize: '0.75rem',
+                    fontWeight: 600,
+                    whiteSpace: 'nowrap'
+                  }}
+                >
+                  Tydzień
+                </button>
+                <button 
+                  className={statsFilter === 'month' ? 'primary btn-sm' : 'secondary btn-sm'} 
+                  onClick={() => setStatsFilter('month')}
+                  style={{ 
+                    padding: 'var(--space-2) var(--space-2)',
+                    fontSize: '0.75rem',
+                    fontWeight: 600,
+                    whiteSpace: 'nowrap'
+                  }}
+                >
+                  Miesiąc
                 </button>
               </div>
             </div>
