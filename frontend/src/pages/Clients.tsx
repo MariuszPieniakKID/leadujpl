@@ -272,7 +272,12 @@ export default function ClientsPage() {
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8, flexWrap: 'wrap', width: '100%', minWidth: 0 }}>
                   <div style={{ display: 'flex', flexDirection: 'column' }}>
                     <span className="font-medium">{c.firstName} {c.lastName}</span>
-                    <span style={{ color: 'var(--gray-600)', fontSize: 12 }}>{c.phone || '—'}</span>
+                    <span style={{ color: 'var(--gray-600)', fontSize: 12 }}>
+                      tel: {c.phone ? <a href={`tel:${String(c.phone).replace(/\s|-/g,'')}`}>{c.phone}</a> : '—'}
+                    </span>
+                    <span style={{ color: 'var(--gray-600)', fontSize: 12 }}>
+                      adres: {[c.street, c.city].filter(Boolean).join(', ') || '—'}
+                    </span>
                   </div>
                   <div className="client-actions" style={{ display: 'flex', gap: 8, flexShrink: 0, minWidth: 0 }}>
                     {!expanded[c.id] && (
