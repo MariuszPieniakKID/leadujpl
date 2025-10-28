@@ -26,6 +26,7 @@ export default function MyClientsPage() {
   const [managers, setManagers] = useState<AppUserSummary[]>([])
   const [managerId, setManagerId] = useState<string>('')
   const [expanded, setExpanded] = useState<Record<string, boolean>>({})
+  const [isPWA, setIsPWA] = useState(false)
   const user = getUser()
 
   async function load() {
@@ -68,6 +69,22 @@ export default function MyClientsPage() {
   }
 
   useEffect(() => { load() }, [])
+  
+  // Detect PWA mode
+  useEffect(() => {
+    try {
+      const mm = window.matchMedia && window.matchMedia('(display-mode: standalone)')
+      const fromQuery = new URLSearchParams(window.location.search).get('source') === 'pwa'
+      const standalone = fromQuery || (mm && mm.matches) || (navigator as any).standalone === true
+      setIsPWA(!!standalone)
+      if (mm && typeof mm.addEventListener === 'function') {
+        const handler = (e: any) => setIsPWA(!!(e?.matches))
+        mm.addEventListener('change', handler)
+        return () => mm.removeEventListener('change', handler)
+      }
+    } catch {}
+  }, [])
+  
   // Update list immediately when client added offline
   useEffect(() => {
     function onOfflineClientAdded(e: any) {
@@ -213,17 +230,51 @@ export default function MyClientsPage() {
                 </div>
                 {expanded[c.id] && (
                   <div style={{ marginTop: 8, display: 'grid', gridTemplateColumns: '1fr', gap: 8, minWidth: 0, overflow: 'hidden' }}>
-                    <div className="list" style={{ width: '100%', minWidth: 0 }}>
-                      <div className="list-row"><span>E-mail</span><span>{c.email ? <a href={`mailto:${c.email}`}>{c.email}</a> : <span className="text-gray-400">—</span>}</span></div>
-                      <div className="list-row"><span>Adres</span><span style={{ whiteSpace: 'normal', overflowWrap: 'anywhere' }}>{[c.street, c.city].filter(Boolean).join(', ') || <span className="text-gray-400">—</span>}</span></div>
-                      <div className="list-row"><span>Kod pocztowy</span><span>{(c as any).postalCode || <span className="text-gray-400">—</span>}</span></div>
-                      <div className="list-row"><span>Kategoria</span><span>{renderCategory(c.category)}</span></div>
-                    </div>
-                    <div className="client-status-actions" style={{ display: 'grid', gridTemplateColumns: '1fr', rowGap: 8, width: '100%', minWidth: 0 }}>
-                      <div style={{ width: '100%', minWidth: 0 }}>
-                        <ClientStatusAndActions clientId={c.id} />
-                      </div>
-                    </div>
+                    {isPWA ? (
+                      <>
+                        <div className="list" style={{ width: '100%', minWidth: 0 }}>
+                          <div className="list-row"><span>E-mail</span><span>{c.email ? <a href={`mailto:${c.email}`}>{c.email}</a> : <span className="text-gray-400">—</span>}</span></div>
+                          <div className="list-row"><span>Adres</span><span style={{ whiteSpace: 'normal', overflowWrap: 'anywhere' }}>{[c.street, c.city].filter(Boolean).join(', ') || <span className="text-gray-400">—</span>}</span></div>
+                          <div className="list-row"><span>Kod pocztowy</span><span>{(c as any).postalCode || <span className="text-gray-400">—</span>}</span></div>
+                          <div className="list-row"><span>Kategoria</span><span>{renderCategory(c.category)}</span></div>
+                        </div>
+                        <div className="client-status-actions" style={{ display: 'grid', gridTemplateColumns: '1fr', rowGap: 8, width: '100%', minWidth: 0 }}>
+                          <div style={{ width: '100%', minWidth: 0 }}>
+                            <ClientStatusAndActions clientId={c.id} />
+                          </div>
+                        </div>
+                      </>
+                    ) : (
+                      <>
+                        <div style={{ width: '100%', minWidth: 0, background: '#fff', border: '1px solid var(--gray-200)', borderRadius: 8, padding: 16 }}>
+                          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: 16, marginBottom: 16 }}>
+                            <div>
+                              <div className="text-gray-600 text-xs" style={{ marginBottom: 4, fontWeight: 600 }}>Telefon</div>
+                              <div>{c.phone ? <a href={`tel:${String(c.phone).replace(/\s|-/g,'')}`} style={{ color: 'var(--primary-600)' }}>{c.phone}</a> : <span className="text-gray-400">—</span>}</div>
+                            </div>
+                            <div>
+                              <div className="text-gray-600 text-xs" style={{ marginBottom: 4, fontWeight: 600 }}>E-mail</div>
+                              <div>{c.email ? <a href={`mailto:${c.email}`} style={{ color: 'var(--primary-600)' }}>{c.email}</a> : <span className="text-gray-400">—</span>}</div>
+                            </div>
+                            <div>
+                              <div className="text-gray-600 text-xs" style={{ marginBottom: 4, fontWeight: 600 }}>Adres</div>
+                              <div style={{ whiteSpace: 'normal', overflowWrap: 'anywhere' }}>{[c.street, c.city].filter(Boolean).join(', ') || <span className="text-gray-400">—</span>}</div>
+                            </div>
+                            <div>
+                              <div className="text-gray-600 text-xs" style={{ marginBottom: 4, fontWeight: 600 }}>Kod pocztowy</div>
+                              <div>{(c as any).postalCode || <span className="text-gray-400">—</span>}</div>
+                            </div>
+                            <div>
+                              <div className="text-gray-600 text-xs" style={{ marginBottom: 4, fontWeight: 600 }}>Kategoria</div>
+                              <div>{renderCategory(c.category)}</div>
+                            </div>
+                          </div>
+                          <div style={{ borderTop: '1px solid var(--gray-200)', paddingTop: 16 }}>
+                            <ClientStatusAndActions clientId={c.id} />
+                          </div>
+                        </div>
+                      </>
+                    )}
                     <div>
                       <strong>Załączniki</strong>
                       <div style={{ marginTop: 6 }}>
