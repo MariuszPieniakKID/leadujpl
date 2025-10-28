@@ -296,7 +296,7 @@ export default function ClientsPage() {
                       </div>
                     ) : (
                       <div style={{ width: '100%', minWidth: 0, background: '#fff', border: '1px solid var(--gray-200)', borderRadius: 8, padding: 16 }}>
-                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: 16, marginBottom: 16 }}>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                           <div>
                             <div className="text-gray-600 text-xs" style={{ marginBottom: 4, fontWeight: 600 }}>Telefon</div>
                             <div>{c.phone ? <a href={`tel:${String(c.phone).replace(/\s|-/g,'')}`} style={{ color: 'var(--primary-600)' }}>{c.phone}</a> : <span className="text-gray-400">—</span>}</div>
@@ -317,8 +317,10 @@ export default function ClientsPage() {
                             <div className="text-gray-600 text-xs" style={{ marginBottom: 4, fontWeight: 600 }}>Status</div>
                             <div><ClientStatusSelect clientId={c.id} /></div>
                           </div>
+                          <div style={{ paddingTop: 8, borderTop: '1px solid var(--gray-200)' }}>
+                            <ClientUploadControls clientId={c.id} />
+                          </div>
                         </div>
-                        <ClientUploadControls clientId={c.id} />
                       </div>
                     )}
                     {isPWA && (
