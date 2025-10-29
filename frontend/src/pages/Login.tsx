@@ -120,7 +120,7 @@ export default function Login() {
             justifyContent: 'center',
             marginBottom: 'var(--space-6)' 
           }}>
-            <Logo size={48} showText={true} />
+            <Logo size={55} showText={true} />
           </div>
           <h1 style={{ 
             fontSize: 'var(--text-3xl)', 

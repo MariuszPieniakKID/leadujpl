@@ -1783,7 +1783,7 @@ function App() {
     // }
     return (
       <nav className="navbar">
-        <div className="brand"><Logo size={22} /></div>
+        <div className="brand"><Logo size={25} /></div>
         <button className="menu-toggle" aria-label="Otwórz menu" onClick={() => setMenuOpen(o => !o)}>
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
             <path d="M3 6h18M3 12h18M3 18h18"/>
