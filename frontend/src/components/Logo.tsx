@@ -1,7 +1,7 @@
 export default function Logo({ size = 32, showText = true }: { size?: number; showText?: boolean }) {
   return (
     <div style={{ display: 'inline-flex', alignItems: 'center', gap: size * 0.25 }}>
-      <img src="/leady_logo.png" alt="leaduj" width={size} height={size} style={{ display: 'block', borderRadius: size * 0.2 }} />
+      <img src="/atomic_logo.png" alt="leaduj" width={size} height={size} style={{ display: 'block', borderRadius: size * 0.2 }} />
       {showText && (
         <span style={{ 
           fontWeight: 800, 

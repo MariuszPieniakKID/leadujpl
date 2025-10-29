@@ -8,7 +8,7 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: 'autoUpdate',
-      includeAssets: ['leady_logo.png'],
+      includeAssets: ['atomic_logo.png'],
       srcDir: 'src',
       filename: 'sw.ts',
       strategies: 'injectManifest',
@@ -69,8 +69,8 @@ export default defineConfig({
         background_color: '#0b1220',
         theme_color: '#7c3aed',
         icons: [
-          { src: '/leady_logo.png?v=2', sizes: '192x192', type: 'image/png', purpose: 'any maskable' },
-          { src: '/leady_logo.png?v=2', sizes: '512x512', type: 'image/png', purpose: 'any maskable' },
+          { src: '/atomic_logo.png?v=3', sizes: '192x192', type: 'image/png', purpose: 'any maskable' },
+          { src: '/atomic_logo.png?v=3', sizes: '512x512', type: 'image/png', purpose: 'any maskable' },
         ],
       },
     }),

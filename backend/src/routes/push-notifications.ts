@@ -106,8 +106,8 @@ router.post('/send', requireManagerOrAdmin, async (req, res) => {
     const pushPayload = JSON.stringify({
       title: `Wiadomość od ${sender.firstName} ${sender.lastName}`,
       body: message,
-      icon: '/leady_logo.png',
-      badge: '/leady_logo.png',
+      icon: '/atomic_logo.png',
+      badge: '/atomic_logo.png',
       data: {
         senderId,
         timestamp: new Date().toISOString()

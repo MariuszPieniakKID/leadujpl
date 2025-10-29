@@ -116,8 +116,8 @@ self.addEventListener('push', function(event) {
   // Use any type for notification options due to limited TypeScript definitions
   const options: any = {
     body: notificationData.body || 'Nowa wiadomość',
-    icon: notificationData.icon || '/leady_logo.png',
-    badge: notificationData.badge || '/leady_logo.png',
+    icon: notificationData.icon || '/atomic_logo.png',
+    badge: notificationData.badge || '/atomic_logo.png',
     data: notificationData.data || {},
     tag: 'leaduj-notification',
     requireInteraction: false,
