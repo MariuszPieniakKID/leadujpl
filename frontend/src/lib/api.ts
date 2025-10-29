@@ -80,6 +80,8 @@ export type Client = {
   pvPower?: number | null;
   billRange?: string | null;
   extraComments?: string | null;
+  newRules?: boolean | null;
+  buildingType?: string | null;
 };
 
 export async function fetchClients(params?: { q?: string; status?: string; scope?: 'team' | 'mine'; managerId?: string }) {

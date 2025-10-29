@@ -10,7 +10,7 @@ export default function ClientsPage() {
   const user = getUser()
   const [clients, setClients] = useState<Client[]>([])
   const [loading, setLoading] = useState(false)
-  const [form, setForm] = useState<Partial<Client>>({ firstName: '', lastName: '', phone: '', email: '', street: '', city: '', postalCode: '', category: '' })
+  const [form, setForm] = useState<Partial<Client>>({ firstName: '', lastName: '', phone: '', email: '', street: '', city: '', postalCode: '', category: '', newRules: undefined })
   const [isPWA, setIsPWA] = useState(false)
 
   const [query, setQuery] = useState('')
@@ -105,6 +105,7 @@ export default function ClientsPage() {
     const payload = {
       firstName: form.firstName!, lastName: form.lastName!, phone: form.phone || undefined, email: form.email || undefined,
       street: form.street || undefined, city: form.city || undefined, postalCode: form.postalCode || undefined, category: form.category || undefined,
+      newRules: form.newRules,
     } as any
     if (navigator.onLine) {
       await createClient(payload)
@@ -115,7 +116,7 @@ export default function ClientsPage() {
       setClients(prev => [optimistic as any, ...prev])
       await pendingQueue.enqueue({ id: newLocalId('att'), method: 'POST', url: (import.meta.env.VITE_API_BASE || '') + '/api/clients', body: payload, headers: {}, createdAt: Date.now(), entityStore: 'clients', localId })
     }
-    setForm({ firstName: '', lastName: '', phone: '', email: '', street: '', city: '', postalCode: '', category: '' })
+    setForm({ firstName: '', lastName: '', phone: '', email: '', street: '', city: '', postalCode: '', category: '', newRules: undefined })
     setIsCreateOpen(false)
     await load()
   }
@@ -242,6 +243,14 @@ export default function ClientsPage() {
                     <option value="ME">ME</option>
                   </select>
                 </div>
+                <div className="form-group">
+                  <label className="form-label">Instalacja na nowych zasadach</label>
+                  <select className="form-select" value={form.newRules === undefined ? '' : (form.newRules ? 'true' : 'false')} onChange={e => setForm({ ...form, newRules: e.target.value === '' ? undefined : e.target.value === 'true' })}>
+                    <option value="">— wybierz —</option>
+                    <option value="true">Tak</option>
+                    <option value="false">Nie</option>
+                  </select>
+                </div>
               </div>
               {createError && <div className="text-error text-sm mt-4 p-3 bg-error-50 rounded border border-error-200">{createError}</div>}
               <div className="modal-footer">
@@ -292,6 +301,7 @@ export default function ClientsPage() {
                         <div className="list-row"><span>E-mail</span><span>{c.email ? <a href={`mailto:${c.email}`}>{c.email}</a> : <span className="text-gray-400">—</span>}</span></div>
                         <div className="list-row"><span>Adres</span><span style={{ whiteSpace: 'normal', overflowWrap: 'anywhere' }}>{[c.street, c.city].filter(Boolean).join(', ') || <span className="text-gray-400">—</span>}</span></div>
                         <div className="list-row"><span>Kod pocztowy</span><span>{(c as any).postalCode || <span className="text-gray-400">—</span>}</span></div>
+                        <div className="list-row"><span>Instalacja na nowych zasadach</span><span>{(c as any).newRules === true ? 'Tak' : (c as any).newRules === false ? 'Nie' : <span className="text-gray-400">—</span>}</span></div>
                         <div className="list-row"><span>Status</span><span><ClientLatestStatusInline clientId={c.id} /></span></div>
                       </div>
                     ) : (
@@ -312,6 +322,10 @@ export default function ClientsPage() {
                           <div>
                             <div className="text-gray-600 text-xs" style={{ marginBottom: 4, fontWeight: 600 }}>Kod pocztowy</div>
                             <div>{(c as any).postalCode || <span className="text-gray-400">—</span>}</div>
+                          </div>
+                          <div>
+                            <div className="text-gray-600 text-xs" style={{ marginBottom: 4, fontWeight: 600 }}>Instalacja na nowych zasadach</div>
+                            <div>{(c as any).newRules === true ? 'Tak' : (c as any).newRules === false ? 'Nie' : <span className="text-gray-400">—</span>}</div>
                           </div>
                           <div>
                             <div className="text-gray-600 text-xs" style={{ marginBottom: 4, fontWeight: 600 }}>Status</div>

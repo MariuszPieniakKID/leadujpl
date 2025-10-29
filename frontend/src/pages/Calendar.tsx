@@ -997,7 +997,7 @@ export default function CalendarPage() {
                   </label>
                 </div>
               </div>
-              {createForm.clientCategory === 'PV' && createForm.pvInstalled && createForm.pvInstalled !== '0' && (
+              {createForm.clientCategory === 'PV' && (
               <div>
                 <label>Instalacja na nowych zasadach?</label>
                 <div>
@@ -1378,7 +1378,7 @@ export default function CalendarPage() {
                   <option value="> 1000">powyżej 1000</option>
                 </select>
               </div>
-              {editForm.clientCategory === 'PV' && editForm.pvInstalled && editForm.pvInstalled !== '0' && (
+              {editForm.clientCategory === 'PV' && (
               <div>
                 <label>Instalacja na nowych zasadach?</label>
                 <div>
