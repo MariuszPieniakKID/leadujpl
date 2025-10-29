@@ -3,11 +3,22 @@ import { useEffect, useState } from 'react'
 export default function UpdatePrompt() {
   const [showPrompt, setShowPrompt] = useState(false)
   const [registration, setRegistration] = useState<ServiceWorkerRegistration | null>(null)
+  const [isUpdating, setIsUpdating] = useState(false)
 
   useEffect(() => {
     if (!('serviceWorker' in navigator)) return
 
+    // Check if we just updated (to prevent showing prompt again immediately)
+    const justUpdated = sessionStorage.getItem('sw-just-updated')
+    if (justUpdated) {
+      sessionStorage.removeItem('sw-just-updated')
+      return
+    }
+
     const handleUpdate = (reg: ServiceWorkerRegistration) => {
+      // Don't show prompt if we're already updating
+      if (isUpdating) return
+      
       setRegistration(reg)
       setShowPrompt(true)
     }
@@ -16,7 +27,7 @@ export default function UpdatePrompt() {
     const interval = setInterval(async () => {
       try {
         const reg = await navigator.serviceWorker.getRegistration()
-        if (reg) {
+        if (reg && !isUpdating) {
           await reg.update()
         }
       } catch (err) {
@@ -25,10 +36,15 @@ export default function UpdatePrompt() {
     }, 60 * 1000)
 
     // Listen for new service worker
-    navigator.serviceWorker.addEventListener('controllerchange', () => {
-      // New service worker has taken control
-      window.location.reload()
-    })
+    const controllerChangeHandler = () => {
+      // New service worker has taken control - mark that we just updated
+      if (isUpdating) {
+        sessionStorage.setItem('sw-just-updated', 'true')
+        window.location.reload()
+      }
+    }
+    
+    navigator.serviceWorker.addEventListener('controllerchange', controllerChangeHandler)
 
     // Check if there's already a waiting worker
     navigator.serviceWorker.ready.then(reg => {
@@ -50,11 +66,15 @@ export default function UpdatePrompt() {
       })
     })
 
-    return () => clearInterval(interval)
-  }, [])
+    return () => {
+      clearInterval(interval)
+      navigator.serviceWorker.removeEventListener('controllerchange', controllerChangeHandler)
+    }
+  }, [isUpdating])
 
   const handleUpdate = () => {
     if (registration?.waiting) {
+      setIsUpdating(true)
       // Tell the service worker to skip waiting
       registration.waiting.postMessage({ type: 'SKIP_WAITING' })
       setShowPrompt(false)
@@ -121,13 +141,15 @@ export default function UpdatePrompt() {
           <button
             className="primary"
             onClick={handleUpdate}
+            disabled={isUpdating}
             style={{ 
               flex: 1,
               background: 'white',
               color: '#667eea',
+              opacity: isUpdating ? 0.6 : 1,
             }}
           >
-            Aktualizuj teraz
+            {isUpdating ? 'Aktualizowanie...' : 'Aktualizuj teraz'}
           </button>
         </div>
       </div>

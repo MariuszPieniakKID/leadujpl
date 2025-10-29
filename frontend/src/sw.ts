@@ -8,7 +8,8 @@ import { BackgroundSyncPlugin } from 'workbox-background-sync';
 declare let self: ServiceWorkerGlobalScope;
 
 // Cache version - increment this to force cache refresh
-const CACHE_VERSION = 'v1.0.0';
+// Updated: 2025-10-29 - Fixed logo and newRules field
+const CACHE_VERSION = 'v1.1.0';
 const CACHE_NAME = `leaduj-${CACHE_VERSION}`;
 
 // Workbox precaching
