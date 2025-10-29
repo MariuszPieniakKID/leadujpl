@@ -535,7 +535,7 @@ async function refreshManagerAggregates() {
         city: createForm.clientCity || undefined,
         postalCode: createForm.postalCode || undefined,
         category: createForm.clientCategory || undefined,
-        newRules: undefined, // No longer collected in UI
+        newRules: createForm.newRules === 'TAK' ? true : (createForm.newRules === 'NIE' ? false : undefined),
         buildingType: createForm.buildingType || undefined,
         billRange: createForm.billRange || undefined,
         pvInstalled: pvInstalled,
@@ -1412,6 +1412,21 @@ async function refreshManagerAggregates() {
                   </label>
                 </div>
               </div>
+              {createForm.clientCategory === 'PV' && createForm.pvInstalled && createForm.pvInstalled !== '0' && (
+              <div className="form-group">
+                <label className="form-label">Instalacja na nowych zasadach?</label>
+                <div className="radio-group">
+                  <label className="radio-item">
+                    <input type="radio" name="newRulesCreateDash" checked={createForm.newRules === 'TAK'} onChange={() => setCreateForm({ ...createForm, newRules: 'TAK' })} />
+                    <span>Tak</span>
+                  </label>
+                  <label className="radio-item">
+                    <input type="radio" name="newRulesCreateDash" checked={createForm.newRules === 'NIE'} onChange={() => setCreateForm({ ...createForm, newRules: 'NIE' })} />
+                    <span>Nie</span>
+                  </label>
+                </div>
+              </div>
+              )}
               {/* przeniesione wyżej pod pytaniem o PV */}
                 <div className="form-group" style={{ gridColumn: '1 / -1' }}>
                   <label className="form-label">Komentarz/uwagi</label>

@@ -257,6 +257,7 @@ export default function CalendarPage() {
     pvInstalled: '', // '' | 'TAK' | 'NIE'
     billRange: '',
     extraComments: '',
+    newRules: '', // '' | 'TAK' | 'NIE'
     status: '', // 'Sukces' | 'Rezygnacja' | 'Przełożone' | ''
   })
   const [, setShowFollowUpCreate] = useState(false)
@@ -414,7 +415,7 @@ export default function CalendarPage() {
         city: createForm.clientCity || undefined,
         postalCode: createForm.postalCode || undefined,
         category: createForm.clientCategory || undefined,
-        newRules: undefined, // No longer collected in UI
+        newRules: createForm.newRules === 'TAK' ? true : (createForm.newRules === 'NIE' ? false : undefined),
         buildingType: createForm.buildingType || undefined,
         billRange: createForm.billRange || undefined,
         pvInstalled: pvInstalled,
@@ -538,6 +539,7 @@ export default function CalendarPage() {
         pvInstalled: pvRange, // Now stores PV range
         billRange: m.billRange || '',
         extraComments: m.extraComments || '',
+        newRules: m.client?.newRules === true ? 'TAK' : (m.client?.newRules === false ? 'NIE' : ''),
         status: m.status || '',
       })
       setEditMeta({
@@ -610,6 +612,7 @@ export default function CalendarPage() {
             pvInstalled: pvRange, // Now stores PV range
             billRange: m.billRange || '',
             extraComments: m.extraComments || '',
+            newRules: m.client?.newRules === true ? 'TAK' : (m.client?.newRules === false ? 'NIE' : ''),
             status: m.status || '',
           })
           setEditMeta({ canCaptureLocation: false, salesLocation: { address: '', city: '', postalCode: '', street: '', houseNumber: '' } })
@@ -645,7 +648,7 @@ export default function CalendarPage() {
       }
       if (editForm.billRange) payload.billRange = editForm.billRange
       if (editForm.extraComments) payload.extraComments = editForm.extraComments
-      const client = {
+      const client: any = {
         firstName: editForm.clientFirstName || undefined,
         lastName: editForm.clientLastName || undefined,
         phone: editForm.clientPhone || undefined,
@@ -653,6 +656,9 @@ export default function CalendarPage() {
         street: editForm.clientStreet || undefined,
         city: editForm.clientCity || undefined,
         category: editForm.clientCategory || undefined,
+      }
+      if (editForm.newRules) {
+        client.newRules = editForm.newRules === 'TAK' ? true : (editForm.newRules === 'NIE' ? false : undefined)
       }
       const hasClient = Object.values(client).some(v => v && `${v}`.trim() !== '')
       if (hasClient) payload.client = client
@@ -991,6 +997,19 @@ export default function CalendarPage() {
                   </label>
                 </div>
               </div>
+              {createForm.clientCategory === 'PV' && createForm.pvInstalled && createForm.pvInstalled !== '0' && (
+              <div>
+                <label>Instalacja na nowych zasadach?</label>
+                <div>
+                  <label style={{ marginRight: 12 }}>
+                    <input type="radio" name="newRulesCreateCal" checked={createForm.newRules === 'TAK'} onChange={() => setCreateForm({ ...createForm, newRules: 'TAK' })} /> Tak
+                  </label>
+                  <label>
+                    <input type="radio" name="newRulesCreateCal" checked={createForm.newRules === 'NIE'} onChange={() => setCreateForm({ ...createForm, newRules: 'NIE' })} /> Nie
+                  </label>
+                </div>
+              </div>
+              )}
               {/* przeniesione wyżej pod pytaniem o PV */}
               <div style={{ gridColumn: '1 / -1' }}>
                 <label>Komentarz/uwagi</label>
@@ -1214,6 +1233,7 @@ export default function CalendarPage() {
                             pvInstalled: editForm.pvInstalled,
                             billRange: editForm.billRange,
                             extraComments: editForm.extraComments,
+                            newRules: editForm.newRules,
                           }))
                           setCreateSectionsOpen({ meeting: true, client: true, extra: true })
                           setIsCreateOpen(true)
@@ -1358,6 +1378,19 @@ export default function CalendarPage() {
                   <option value="> 1000">powyżej 1000</option>
                 </select>
               </div>
+              {editForm.clientCategory === 'PV' && editForm.pvInstalled && editForm.pvInstalled !== '0' && (
+              <div>
+                <label>Instalacja na nowych zasadach?</label>
+                <div>
+                  <label style={{ marginRight: 12 }}>
+                    <input type="radio" name="newRulesEditCal" checked={editForm.newRules === 'TAK'} onChange={() => setEditForm({ ...editForm, newRules: 'TAK' })} /> Tak
+                  </label>
+                  <label>
+                    <input type="radio" name="newRulesEditCal" checked={editForm.newRules === 'NIE'} onChange={() => setEditForm({ ...editForm, newRules: 'NIE' })} /> Nie
+                  </label>
+                </div>
+              </div>
+              )}
               <div style={{ gridColumn: '1 / -1' }}>
                 <label>Komentarz/uwagi</label>
                 <textarea rows={3} value={editForm.extraComments} onChange={e => setEditForm({ ...editForm, extraComments: e.target.value })} />
