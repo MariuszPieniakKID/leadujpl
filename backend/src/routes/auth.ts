@@ -2,7 +2,9 @@ import { Router } from 'express';
 import { PrismaClient } from '@prisma/client';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
+import crypto from 'crypto';
 import { requireAuth } from '../middleware/auth';
+import { sendPasswordResetEmail } from '../lib/email';
 
 const prisma = new PrismaClient();
 const router = Router();
@@ -115,6 +117,154 @@ router.get('/verify', requireAuth, async (req, res) => {
     return res.status(500).json({ error: 'Verification failed' })
   }
 })
+
+// Request password reset - send email with reset token
+router.post('/forgot-password', async (req, res) => {
+  try {
+    const { email } = req.body as { email: string };
+    
+    if (!email) {
+      return res.status(400).json({ error: 'Email jest wymagany' });
+    }
+
+    // Check if user exists
+    const user = await prisma.user.findUnique({
+      where: { email: email.toLowerCase().trim() },
+      select: { id: true, email: true, firstName: true, lastName: true }
+    });
+
+    // Always return success to prevent email enumeration
+    // But only send email if user exists
+    if (user) {
+      // Generate secure random token
+      const token = crypto.randomBytes(32).toString('hex');
+      const expiresAt = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
+
+      // Save token to database
+      await prisma.passwordReset.create({
+        data: {
+          email: user.email,
+          token,
+          expiresAt,
+        },
+      });
+
+      // Send email
+      try {
+        await sendPasswordResetEmail(user.email, token, user.firstName);
+        console.log(`[Auth] Password reset email sent to ${user.email}`);
+      } catch (emailError) {
+        console.error('[Auth] Failed to send reset email:', emailError);
+        // Don't fail the request if email fails - token is still valid
+      }
+    } else {
+      console.log(`[Auth] Password reset requested for non-existent email: ${email}`);
+    }
+
+    // Always return success
+    return res.json({ 
+      success: true, 
+      message: 'Jeśli podany email istnieje w systemie, wysłaliśmy na niego link do resetu hasła.' 
+    });
+  } catch (e) {
+    console.error('[Auth] Forgot password error:', e);
+    return res.status(500).json({ error: 'Nie udało się wysłać emaila z resetem hasła' });
+  }
+});
+
+// Reset password with token
+router.post('/reset-password', async (req, res) => {
+  try {
+    const { token, newPassword } = req.body as { token: string; newPassword: string };
+
+    if (!token || !newPassword) {
+      return res.status(400).json({ error: 'Token i nowe hasło są wymagane' });
+    }
+
+    if (newPassword.length < 6) {
+      return res.status(400).json({ error: 'Hasło musi mieć minimum 6 znaków' });
+    }
+
+    // Find valid token
+    const resetToken = await prisma.passwordReset.findUnique({
+      where: { token },
+    });
+
+    if (!resetToken) {
+      return res.status(400).json({ error: 'Nieprawidłowy link resetowania hasła' });
+    }
+
+    if (resetToken.used) {
+      return res.status(400).json({ error: 'Ten link został już wykorzystany' });
+    }
+
+    if (resetToken.expiresAt < new Date()) {
+      return res.status(400).json({ error: 'Link resetowania hasła wygasł. Poproś o nowy.' });
+    }
+
+    // Find user
+    const user = await prisma.user.findUnique({
+      where: { email: resetToken.email },
+    });
+
+    if (!user) {
+      return res.status(404).json({ error: 'Użytkownik nie został znaleziony' });
+    }
+
+    // Hash new password
+    const passwordHash = await bcrypt.hash(newPassword, 10);
+
+    // Update password and mark token as used
+    await prisma.$transaction([
+      prisma.user.update({
+        where: { id: user.id },
+        data: { passwordHash },
+      }),
+      prisma.passwordReset.update({
+        where: { token },
+        data: { used: true },
+      }),
+    ]);
+
+    console.log(`[Auth] Password reset successful for ${user.email}`);
+
+    return res.json({ 
+      success: true, 
+      message: 'Hasło zostało zmienione. Możesz się teraz zalogować.' 
+    });
+  } catch (e) {
+    console.error('[Auth] Reset password error:', e);
+    return res.status(500).json({ error: 'Nie udało się zresetować hasła' });
+  }
+});
+
+// Verify reset token (check if valid before showing reset form)
+router.get('/verify-reset-token/:token', async (req, res) => {
+  try {
+    const { token } = req.params;
+
+    const resetToken = await prisma.passwordReset.findUnique({
+      where: { token },
+    });
+
+    if (!resetToken) {
+      return res.status(400).json({ valid: false, error: 'Nieprawidłowy link' });
+    }
+
+    if (resetToken.used) {
+      return res.status(400).json({ valid: false, error: 'Link został już wykorzystany' });
+    }
+
+    if (resetToken.expiresAt < new Date()) {
+      return res.status(400).json({ valid: false, error: 'Link wygasł' });
+    }
+
+    return res.json({ valid: true, email: resetToken.email });
+  } catch (e) {
+    console.error('[Auth] Verify token error:', e);
+    return res.status(500).json({ valid: false, error: 'Błąd weryfikacji' });
+  }
+});
 
 export default router;
 

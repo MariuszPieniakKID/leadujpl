@@ -168,14 +168,35 @@ export default function Login() {
           </div>
           
           <div className="form-group">
-            <label className="form-label" style={{ 
-              fontSize: 'var(--text-sm)', 
-              fontWeight: 600,
-              color: 'var(--gray-700)',
+            <div style={{ 
+              display: 'flex', 
+              justifyContent: 'space-between', 
+              alignItems: 'center',
               marginBottom: 'var(--space-2)'
             }}>
-              Hasło
-            </label>
+              <label className="form-label" style={{ 
+                fontSize: 'var(--text-sm)', 
+                fontWeight: 600,
+                color: 'var(--gray-700)',
+                margin: 0
+              }}>
+                Hasło
+              </label>
+              <a 
+                href="/forgot-password"
+                style={{
+                  fontSize: 'var(--text-sm)',
+                  fontWeight: 600,
+                  color: 'var(--primary-600)',
+                  textDecoration: 'none',
+                  transition: 'color 0.2s ease'
+                }}
+                onMouseEnter={(e) => e.currentTarget.style.color = 'var(--primary-700)'}
+                onMouseLeave={(e) => e.currentTarget.style.color = 'var(--primary-600)'}
+              >
+                Zapomniałeś?
+              </a>
+            </div>
             <input 
               className="form-input" 
               type="password" 

@@ -8,6 +8,8 @@ import './App.css'
 import api, { uploadAttachments, listMeetingAttachments, type AttachmentItem, viewAttachmentUrl, downloadAttachmentUrl, listClientOffers, downloadOffer, fetchOffer, fetchMyPoints } from './lib/api'
 import { offlineStore, pendingQueue, newLocalId } from './lib/offline'
 import Login from './pages/Login'
+import ForgotPassword from './pages/ForgotPassword'
+import ResetPassword from './pages/ResetPassword'
 import EmbeddedCalculator from './components/EmbeddedCalculator'
 import CalendarPage from './pages/Calendar'
 import ClientsPage from './pages/Clients'
@@ -1838,6 +1840,8 @@ function App() {
         {showNav && !isMobile && <NavBar />}
         <Routes>
           <Route path="/login" element={<LoginGuard />} />
+          <Route path="/forgot-password" element={<ForgotPassword />} />
+          <Route path="/reset-password" element={<ResetPassword />} />
           <Route path="/" element={<Protected><Dashboard /></Protected>} />
           <Route path="/calendar" element={<Protected><CalendarPage /></Protected>} />
           <Route path="/clients" element={<Protected roles={['ADMIN','MANAGER']}><ClientsPage /></Protected>} />
