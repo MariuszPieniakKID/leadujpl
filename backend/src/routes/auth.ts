@@ -123,7 +123,10 @@ router.post('/forgot-password', async (req, res) => {
   try {
     const { email } = req.body as { email: string };
     
+    console.log('[Auth] 🔑 Password reset requested for:', email);
+    
     if (!email) {
+      console.log('[Auth] ❌ No email provided');
       return res.status(400).json({ error: 'Email jest wymagany' });
     }
 
@@ -136,29 +139,42 @@ router.post('/forgot-password', async (req, res) => {
     // Always return success to prevent email enumeration
     // But only send email if user exists
     if (user) {
+      console.log(`[Auth] ✓ User found: ${user.email} (${user.firstName} ${user.lastName})`);
+      
       // Generate secure random token
       const token = crypto.randomBytes(32).toString('hex');
       const expiresAt = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
 
+      console.log(`[Auth] Generated token (first 10 chars): ${token.substring(0, 10)}...`);
+      console.log(`[Auth] Token expires at: ${expiresAt.toISOString()}`);
+
       // Save token to database
-      await prisma.passwordReset.create({
+      const resetRecord = await prisma.passwordReset.create({
         data: {
           email: user.email,
           token,
           expiresAt,
         },
       });
+      
+      console.log(`[Auth] ✓ Token saved to database with ID: ${resetRecord.id}`);
 
       // Send email
       try {
+        console.log(`[Auth] 📧 Sending password reset email to ${user.email}...`);
         await sendPasswordResetEmail(user.email, token, user.firstName);
-        console.log(`[Auth] Password reset email sent to ${user.email}`);
-      } catch (emailError) {
-        console.error('[Auth] Failed to send reset email:', emailError);
+        console.log(`[Auth] ✅ Password reset email sent successfully to ${user.email}`);
+      } catch (emailError: any) {
+        console.error('[Auth] ❌ Failed to send reset email:', {
+          error: emailError.message,
+          code: emailError.code,
+          stack: emailError.stack
+        });
         // Don't fail the request if email fails - token is still valid
+        console.log('[Auth] ⚠️  Email failed but token is still valid in database');
       }
     } else {
-      console.log(`[Auth] Password reset requested for non-existent email: ${email}`);
+      console.log(`[Auth] ⚠️  Password reset requested for non-existent email: ${email}`);
     }
 
     // Always return success
@@ -166,8 +182,11 @@ router.post('/forgot-password', async (req, res) => {
       success: true, 
       message: 'Jeśli podany email istnieje w systemie, wysłaliśmy na niego link do resetu hasła.' 
     });
-  } catch (e) {
-    console.error('[Auth] Forgot password error:', e);
+  } catch (e: any) {
+    console.error('[Auth] ❌ Forgot password error:', {
+      message: e.message,
+      stack: e.stack
+    });
     return res.status(500).json({ error: 'Nie udało się wysłać emaila z resetem hasła' });
   }
 });

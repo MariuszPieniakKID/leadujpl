@@ -9,9 +9,25 @@ const createTransporter = () => {
   const pass = process.env.SMTP_PASS;
   const from = process.env.SMTP_FROM || user;
 
+  // Detailed diagnostic logging
+  console.log('[Email] SMTP Configuration:');
+  console.log(`  Host: ${host}`);
+  console.log(`  Port: ${port}`);
+  console.log(`  Secure: ${port === 465}`);
+  console.log(`  User: ${user ? '✓ Set' : '✗ Not set'}`);
+  console.log(`  Pass: ${pass ? '✓ Set (length: ' + pass.length + ')' : '✗ Not set'}`);
+  console.log(`  From: ${from || 'Not set'}`);
+
   if (!user || !pass) {
-    console.warn('[Email] SMTP credentials not configured. Email sending will fail.');
-    console.warn('[Email] Set SMTP_USER and SMTP_PASS environment variables.');
+    console.error('[Email] ❌ SMTP credentials not configured!');
+    console.error('[Email] Set SMTP_USER and SMTP_PASS environment variables.');
+    console.error('[Email] Current env vars:', {
+      SMTP_HOST: process.env.SMTP_HOST || 'not set',
+      SMTP_PORT: process.env.SMTP_PORT || 'not set',
+      SMTP_USER: process.env.SMTP_USER ? 'set' : 'NOT SET',
+      SMTP_PASS: process.env.SMTP_PASS ? 'set' : 'NOT SET',
+      SMTP_FROM: process.env.SMTP_FROM || 'not set',
+    });
   }
 
   return nodemailer.createTransport({
@@ -19,6 +35,8 @@ const createTransporter = () => {
     port,
     secure: port === 465, // true for 465, false for other ports
     auth: user && pass ? { user, pass } : undefined,
+    logger: true, // Enable nodemailer logging
+    debug: true, // Enable debug output
   });
 };
 
@@ -146,7 +164,11 @@ Ta wiadomość została wysłana automatycznie. Nie odpowiadaj na nią.
   `;
 
   try {
-    await transporter.sendMail({
+    console.log(`[Email] 📧 Attempting to send password reset email to: ${email}`);
+    console.log(`[Email] Reset URL: ${resetUrl}`);
+    console.log(`[Email] From: ${process.env.SMTP_FROM || process.env.SMTP_USER}`);
+    
+    const info = await transporter.sendMail({
       from: process.env.SMTP_FROM || process.env.SMTP_USER,
       to: email,
       subject: '🔐 Reset hasła - CRM Atomic',
@@ -154,10 +176,20 @@ Ta wiadomość została wysłana automatycznie. Nie odpowiadaj na nią.
       html: htmlContent,
     });
     
-    console.log(`[Email] Password reset email sent to ${email}`);
+    console.log(`[Email] ✅ Password reset email sent successfully to ${email}`);
+    console.log(`[Email] Message ID: ${info.messageId}`);
+    console.log(`[Email] Response: ${info.response}`);
     return true;
-  } catch (error) {
-    console.error('[Email] Failed to send password reset email:', error);
+  } catch (error: any) {
+    console.error('[Email] ❌ Failed to send password reset email');
+    console.error('[Email] Error details:', {
+      message: error.message,
+      code: error.code,
+      command: error.command,
+      response: error.response,
+      responseCode: error.responseCode,
+    });
+    console.error('[Email] Full error:', error);
     throw error;
   }
 }
