@@ -14,7 +14,7 @@ const createTransporter = () => {
     console.warn('[Email] Set SMTP_USER and SMTP_PASS environment variables.');
   }
 
-  return nodemailer.createTransporter({
+  return nodemailer.createTransport({
     host,
     port,
     secure: port === 465, // true for 465, false for other ports
