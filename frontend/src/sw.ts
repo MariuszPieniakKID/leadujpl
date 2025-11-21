@@ -203,9 +203,14 @@ self.addEventListener('sync', function(event: any) {
 
 // Message handling from main thread
 self.addEventListener('message', function(event) {
-  console.log('Service Worker received message:', event.data);
+  console.log('[SW] Service Worker received message:', event.data);
   
   if (event.data && event.data.type === 'SKIP_WAITING') {
-    self.skipWaiting();
+    console.log('[SW] SKIP_WAITING message received, calling skipWaiting()');
+    self.skipWaiting().then(() => {
+      console.log('[SW] skipWaiting() completed successfully');
+    }).catch((error) => {
+      console.error('[SW] skipWaiting() failed:', error);
+    });
   }
 });

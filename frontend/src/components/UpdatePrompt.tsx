@@ -73,11 +73,35 @@ export default function UpdatePrompt() {
   }, [isUpdating])
 
   const handleUpdate = () => {
+    console.log('[UpdatePrompt] Update button clicked')
+    
     if (registration?.waiting) {
+      console.log('[UpdatePrompt] Found waiting service worker, sending SKIP_WAITING message')
       setIsUpdating(true)
+      
       // Tell the service worker to skip waiting
       registration.waiting.postMessage({ type: 'SKIP_WAITING' })
+      
+      // Set a timeout fallback - if controllerchange doesn't fire within 3 seconds, just reload
+      const reloadTimeout = setTimeout(() => {
+        console.log('[UpdatePrompt] Timeout reached, forcing reload')
+        sessionStorage.setItem('sw-just-updated', 'true')
+        window.location.reload()
+      }, 3000)
+      
+      // Clear timeout if controllerchange fires
+      const clearTimeoutOnChange = () => {
+        console.log('[UpdatePrompt] Controller changed, clearing timeout')
+        clearTimeout(reloadTimeout)
+      }
+      navigator.serviceWorker.addEventListener('controllerchange', clearTimeoutOnChange, { once: true })
+      
       setShowPrompt(false)
+    } else {
+      console.log('[UpdatePrompt] No waiting service worker, forcing reload')
+      // No waiting worker - just reload
+      sessionStorage.setItem('sw-just-updated', 'true')
+      window.location.reload()
     }
   }
 
